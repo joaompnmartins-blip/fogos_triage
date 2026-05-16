@@ -1,0 +1,28 @@
+Metadata-Version: 2.4
+Name: fogos-triage
+Version: 0.4.0
+Summary: Triagem rápida de fogos para apoio à decisão ANEPC
+Requires-Python: >=3.10
+Requires-Dist: wildfire-ROS-models @ git+https://github.com/forefireAPI/wildfire_ROS_models.git
+Provides-Extra: landscape
+Requires-Dist: rasterio>=1.3; extra == "landscape"
+Provides-Extra: weather
+Requires-Dist: httpx>=0.24; extra == "weather"
+Provides-Extra: db
+Requires-Dist: asyncpg>=0.29; extra == "db"
+Provides-Extra: fogos
+Requires-Dist: curl_cffi>=0.5; extra == "fogos"
+Requires-Dist: httpx>=0.24; extra == "fogos"
+Provides-Extra: api
+Requires-Dist: fastapi>=0.110; extra == "api"
+Requires-Dist: uvicorn[standard]>=0.27; extra == "api"
+Requires-Dist: asyncpg>=0.29; extra == "api"
+Requires-Dist: pydantic>=2.0; extra == "api"
+Provides-Extra: full
+Requires-Dist: rasterio>=1.3; extra == "full"
+Requires-Dist: httpx>=0.24; extra == "full"
+Requires-Dist: asyncpg>=0.29; extra == "full"
+Requires-Dist: curl_cffi>=0.5; extra == "full"
+Requires-Dist: fastapi>=0.110; extra == "full"
+Requires-Dist: uvicorn[standard]>=0.27; extra == "full"
+Requires-Dist: pydantic>=2.0; extra == "full"

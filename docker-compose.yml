@@ -1,0 +1,74 @@
+# =====================================================================
+# Docker Compose para desenvolvimento local
+# =====================================================================
+# Sobe Postgres+PostGIS, Redis, e o worker.
+# Para correr:
+#   docker-compose up postgres redis  # backing services em background
+#   docker-compose run --rm worker    # worker com logs no terminal
+# =====================================================================
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: fogos
+      POSTGRES_USER: fogos
+      POSTGRES_PASSWORD: fogos_dev_pass
+    ports:
+      - "5433:5433"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fogos"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  worker:
+    build:
+      context: .
+      dockerfile: services/worker/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://fogos:fogos_dev_pass@postgres:5432/fogos
+      FUEL_MODELS_CSV: /data/fuel_models_pt.csv
+      LANDSCAPE_DIR: /data/landscape
+      POLL_INTERVAL_S: "120"
+      TRIAGE_MAX_AGE_MIN: "15"
+      LOG_LEVEL: INFO
+      DEV_MODE: "true"  # usa MockLandscape até montar TIFFs reais
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./data:/data:ro
+
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://fogos:fogos_dev_pass@postgres:5432/fogos
+      FUEL_MODELS_CSV: /data/fuel_models_pt.csv
+      API_KEYS: "dev-key-change-me-in-prod"
+      ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:3000"
+      REQUIRE_AUTH: "true"
+      LOG_LEVEL: INFO
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./data:/data:ro
+
+volumes:
+  postgres_data:
+  redis_data:
