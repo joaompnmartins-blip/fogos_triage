@@ -54,13 +54,14 @@ class LandscapeRasters:
         base = Path(base_dir)
         if filename_pattern is None:
             filename_pattern = {
-                "elevation": "altitude.tif",
+                "elevation": "Altitude.tif",
                 "slope": "declive.tif",
-                "aspect": "exposicao.tif",
+                "aspect": "Exposicao.tif",
                 "fuel_model": "modelos_combustivel.tif",
-                "stand_height": "altura_povoamento.tif",
-                "canopy_cover": "cobertura_copas.tif",
+                "stand_height": "Altura_Povoamento.tif",
+                "canopy_cover": "cobertura_copa.tif",
                 "canopy_base_height": "altura_base_copa.tif",
+                "canopy_bulk_density": "densidade_copas.tif",
             }
         return cls(
             elevation=base / filename_pattern["elevation"],
@@ -70,6 +71,7 @@ class LandscapeRasters:
             stand_height=base / filename_pattern.get("stand_height", "_missing_"),
             canopy_cover=base / filename_pattern.get("canopy_cover", "_missing_"),
             canopy_base_height=base / filename_pattern.get("canopy_base_height", "_missing_"),
+            canopy_bulk_density=base / filename_pattern.get("canopy_bulk_density", "_missing_"),
         )
 
 
@@ -98,6 +100,7 @@ class LandscapeReader:
             ("stand_height", self.rasters.stand_height),
             ("canopy_cover", self.rasters.canopy_cover),
             ("canopy_base_height", self.rasters.canopy_base_height),
+            ("canopy_bulk_density", self.rasters.canopy_bulk_density),
         ]:
             if path is not None and path.exists():
                 self._datasets[name] = rasterio.open(path)
@@ -150,16 +153,21 @@ class LandscapeReader:
         # Assumimos graus (formato standard FARSITE/landscape file)
         slope_fraction = math.tan(math.radians(slope_deg))
 
+        cbd_raw = _read_at("canopy_bulk_density")
+        sh_raw = _read_at("stand_height")
+        cbh_raw = _read_at("canopy_base_height")
         return TerrainConditions(
             elevation_m=elevation,
             slope_fraction=slope_fraction,
             slope_degrees=slope_deg,
             aspect_degrees=aspect_deg,
             fuel_model_num=fuel_num,
-            stand_height_m=_read_at("stand_height"),
+            # alturas armazenadas em decímetros nos rasters PT
+            stand_height_m=sh_raw / 10.0 if sh_raw is not None else None,
             canopy_cover_pct=_read_at("canopy_cover"),
-            canopy_base_height_m=_read_at("canopy_base_height"),
-            canopy_bulk_density_kg_m3=_read_at("canopy_bulk_density"),
+            canopy_base_height_m=cbh_raw / 10.0 if cbh_raw is not None else None,
+            # densidade_copas.tif está em kg/m³ × 100
+            canopy_bulk_density_kg_m3=cbd_raw / 100.0 if cbd_raw is not None else None,
         )
 
 

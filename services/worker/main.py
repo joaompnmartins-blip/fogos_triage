@@ -7,8 +7,7 @@ Loop:
    - upsert na BD (regista histórico)
    - se é relevante para triagem e não foi triada recentemente:
      - lookup landscape (DEM, slope, aspect, fuel)
-     - converter meteo IPMA → WeatherConditions
-     - opcional: enriquecer com Open-Meteo (forecast +1h/+3h/+5h)
+     - fetch Open-Meteo no ponto exato (fonte primária de meteo)
      - correr triage_occurrence
      - guardar resultado
 3. Marcar como inativas ocorrências que desapareceram da resposta

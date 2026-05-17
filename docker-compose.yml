@@ -43,7 +43,7 @@ services:
       POLL_INTERVAL_S: "120"
       TRIAGE_MAX_AGE_MIN: "15"
       LOG_LEVEL: INFO
-      DEV_MODE: "true"  # usa MockLandscape até montar TIFFs reais
+      DEV_MODE: "false"
     depends_on:
       postgres:
         condition: service_healthy

@@ -76,7 +76,7 @@ FAKE_WEATHER_ROW = {
     "temperature_c": 18.8, "relative_humidity_pct": 61.0,
     "wind_speed_ms": 5.2, "wind_speed_kmh": 18.7,
     "wind_direction_deg": 0.0, "wind_direction_text": "N",
-    "source": "ipma_fogos", "ipma_station_location": "Rio Maior",
+    "source": "open_meteo", "ipma_station_location": "Rio Maior",
     "ipma_station_distance_km": 13.0, "observation_at": NOW,
 }
 
@@ -239,7 +239,7 @@ with TestClient(app) as client:
             scs = body["triage"]["scenarios"]
             check(f"3 cenarios (got {len(scs)})", len(scs) == 3)
             check("meteo presente",
-                  body["triage"]["weather"]["source"] == "ipma_fogos")
+                  body["triage"]["weather"]["source"] == "open_meteo")
     r = client.get("/fires/inexistente", headers=AUTH)
     check(f"/fires/inexistente -> 404 (got {r.status_code})", r.status_code == 404)
 

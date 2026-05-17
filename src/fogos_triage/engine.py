@@ -1,30 +1,20 @@
 """
-Adapter para o motor wildfire_ROS_models.
+Motor de fogo de superfície — Rothermel 1972 implementação directa.
 
-Encapsula a chamada ao RothermelAndrews2018 com os inputs do nosso domínio
-(TerrainConditions, WeatherConditions, FuelModelPT) e devolve um
-FireBehaviorPrediction.
+Calcula ROS, FLI, comprimento de chama e direcção de máxima propagação
+com as equações Rothermel 1972 + Byram 1959, mantendo as categorias
+morto e vivo separadas ao longo do cálculo (equivalente BehavePlus).
 
-Esta versão usa a biblioteca REAL wildfire_ROS_models (forefireAPI), com
-agregação ponderada dos 5 componentes de fuel para single-fuel equivalente
-(abordagem BehavePlus).
-
-Importação resiliente: se a wildfire_ROS_models não estiver instalada,
-o engine devolve resultados a zero com aviso. Em produção, instalar a
-biblioteca com:
-    pip install git+https://github.com/forefireAPI/wildfire_ROS_models.git
-
-A biblioteca tem dependência opcional em tensorflow para o módulo de neural
-network. Para evitar instalar TF (~1GB) num servidor de produção que não
-precisa dele, fazemos stub das suas importações no nosso loader.
+Pontos de diferença face à abordagem single-fuel:
+- η_M_dead e η_M_live calculados separadamente antes de somar I_R
+- φ_w usa β/β_op (correcto) em vez de β
+- Direcção de propagação por soma vectorial de φ_w e φ_s
 """
 from __future__ import annotations
 
 import math
-import sys
 import warnings
 from typing import Optional
-from unittest.mock import MagicMock
 
 from .fuel_models import FuelModelPT
 from .schemas import (
@@ -33,54 +23,6 @@ from .schemas import (
     TerrainConditions,
     WeatherConditions,
 )
-
-
-# ---------------------------------------------------------------------------
-# Lazy import da wildfire_ROS_models, com stub de tensorflow se necessário
-# ---------------------------------------------------------------------------
-
-_RA2018 = None
-_model_parameters_cls = None
-
-
-def _ensure_wildfire_ros_models_loaded():
-    """
-    Importa wildfire_ROS_models de forma lazy, contornando a dependência
-    opcional em tensorflow se não estiver instalada.
-    """
-    global _RA2018, _model_parameters_cls
-
-    if _RA2018 is not None:
-        return  # já carregado
-
-    # Verificar se tensorflow está disponível; senão fazer stub
-    try:
-        import tensorflow  # noqa: F401
-    except ImportError:
-        for mod_name in [
-            "tensorflow",
-            "tensorflow.keras",
-            "tensorflow.keras.models",
-            "tensorflow.keras.layers",
-            "tensorflow.keras.callbacks",
-            "tensorflow.keras.optimizers",
-            "tensorflow.keras.regularizers",
-        ]:
-            if mod_name not in sys.modules:
-                sys.modules[mod_name] = MagicMock()
-
-    try:
-        from wildfire_ROS_models.RothermelAndrews2018 import RothermelAndrews2018
-        from wildfire_ROS_models.model_set import model_parameters
-        _RA2018 = RothermelAndrews2018
-        _model_parameters_cls = model_parameters
-    except ImportError as exc:
-        warnings.warn(
-            f"wildfire_ROS_models não disponível ({exc}). "
-            f"Engine vai devolver resultados a zero. "
-            f"Instalar com: pip install git+https://github.com/forefireAPI/wildfire_ROS_models.git",
-            RuntimeWarning,
-        )
 
 
 # ---------------------------------------------------------------------------
@@ -208,82 +150,41 @@ def predict_surface_fire(
     scenario: str = "central",
 ) -> FireBehaviorPrediction:
     """
-    Calcula comportamento de fogo de superfície usando RothermelAndrews2018
-    da wildfire_ROS_models, com agregação multifuel à BehavePlus.
+    Rothermel 1972 surface fire com categorias morto/vivo separadas (BehavePlus-equivalent).
+    η_M_dead e η_M_live calculados independentemente antes de somar I_R.
     """
     if fm.is_empty:
         return _zero_prediction(scenario, FireType.NO_BURN)
 
-    _ensure_wildfire_ros_models_loaded()
-    if _RA2018 is None:
+    # humidades em fração
+    m_1h  = (weather.fuel_moisture_1h_pct  or 8.0)   / 100.0
+    m_10h = (weather.fuel_moisture_10h_pct or 9.0)   / 100.0
+    m_100h= (weather.fuel_moisture_100h_pct or 10.0) / 100.0
+    m_lh  = (weather.fuel_moisture_live_h_pct or 100.0) / 100.0
+    m_lw  = (weather.fuel_moisture_live_w_pct or 100.0) / 100.0
+
+    ros_m_min, fi_kw_m, phi_w, phi_s, I_R, sigma = _rothermel_direct(
+        fm, m_1h, m_10h, m_100h, m_lh, m_lw,
+        wind_midflame_ms=weather.wind_midflame_ms or 0.0,
+        slope_degrees=terrain.slope_degrees,
+    )
+
+    if ros_m_min <= 0 and fi_kw_m <= 0:
         return _zero_prediction(scenario, FireType.NO_BURN)
 
-    # Humidades em fração
-    m_1h = (weather.fuel_moisture_1h_pct or 8.0) / 100.0
-    m_10h = (weather.fuel_moisture_10h_pct or 9.0) / 100.0
-    m_100h = (weather.fuel_moisture_100h_pct or 10.0) / 100.0
-    m_lh = (weather.fuel_moisture_live_h_pct or 100.0) / 100.0
-    m_lw = (weather.fuel_moisture_live_w_pct or 100.0) / 100.0
+    flame_length_m = 0.0775 * fi_kw_m ** 0.46 if fi_kw_m > 0 else 0.0
 
-    # Agregar 5 componentes em single-fuel equivalente
-    agg = aggregate_multifuel(fm, m_1h, m_10h, m_100h, m_lh, m_lw)
-    if agg is None:
-        return _zero_prediction(scenario, FireType.NO_BURN)
+    # heat per unit area e reaction intensity derivados de I_R e ROS
+    t_r = 384.0 / sigma if sigma > 0 else 0.0
+    hpa_kj_m2 = I_R * t_r * 11.357          # I_R [BTU/ft²/min] × t_r [min] → BTU/ft² → kJ/m²
+    ri_kw_m2 = I_R * 0.1893                  # BTU/ft²/min → kW/m²
 
-    wind_ftmin = (weather.wind_midflame_ms or 0.0) * 196.85
-
-    # Heat content ponderado mortos vs vivos
-    heat_eff = (agg["f_dead"] * fm.heat_dead
-                + agg["f_live"] * fm.heat_live)
-
-    # IMPORTANTE: passar fuelDens_kgm3 (não _lbft3, devido a interpretação
-    # SI no model_set.py — 32 lb/ft³ = 512.59 kg/m³)
-    params = {
-        "CODE": fm.code,
-        "H_BTUlb": heat_eff,
-        "SAVcar_ftinv": agg["sav_char_ftinv"],
-        "fd_ft": fm.depth,
-        "fuelDens_kgm3": 512.59,
-        "Dme_r": agg["moist_ext_eff_r"],
-        "fl1h_lbft2": agg["load_total_lbft2"],
-        "wind_ftmin": wind_ftmin,
-        "slope_deg": terrain.slope_degrees,
-        "mdOnDry1h_r": agg["moist_eff_r"],
-        "totMineral_r": 0.0555,
-        "effectMineral_r": 0.01,
-    }
-
-    try:
-        Z = _model_parameters_cls(params)
-        result = _RA2018(Z)
-    except Exception as exc:
-        warnings.warn(f"Erro a correr RothermelAndrews2018: {exc}", RuntimeWarning)
-        return _zero_prediction(scenario, FireType.NO_BURN)
-
-    ros_ftmin = float(result.get("ROS_ftmin", 0.0))
-    ros_m_min = ros_ftmin * 0.3048
-
-    fi_btu_ft_min = float(result.get("FI_BTUftmin", 0.0))
-    fi_kw_m = fi_btu_ft_min * 0.05767  # BTU/(ft·min) → kW/m
-
-    # Flame length (Byram 1959): L = 0.0775 * I^0.46 (I em kW/m, L em m)
-    flame_length_m = 0.0775 * fi_kw_m**0.46 if fi_kw_m > 0 else 0.0
-
-    # Heat per unit area
-    rt = 384.0 / agg["sav_char_ftinv"] if agg["sav_char_ftinv"] > 0 else 0
-    hpa_btu_ft2 = float(result.get("PR_r", 0.0)) * rt
-    hpa_kj_m2 = hpa_btu_ft2 * 11.357
-
-    # Reaction intensity em kW/m²
-    ri_btu_ft2_min = float(result.get("PR_r", 0.0))
-    ri_kw_m2 = ri_btu_ft2_min * 0.1893
-
-    # Direção da máxima propagação
-    if weather.wind_speed_10m_ms > 0:
-        direction = (weather.wind_direction_deg - 180.0) % 360.0
-    else:
-        direction = ((terrain.aspect_degrees + 180.0) % 360.0
-                     if terrain.slope_degrees > 0 else 0.0)
+    direction = _max_spread_direction_from_phi(
+        wind_direction_deg=weather.wind_direction_deg,
+        aspect_degrees=terrain.aspect_degrees,
+        phi_w=phi_w,
+        phi_s=phi_s,
+    )
 
     return FireBehaviorPrediction(
         scenario=scenario,
@@ -296,6 +197,159 @@ def predict_surface_fire(
         effective_wind_ms=weather.wind_midflame_ms or 0.0,
         fire_type=FireType.SURFACE,
     )
+
+
+def _rothermel_direct(
+    fm: FuelModelPT,
+    m_1h: float, m_10h: float, m_100h: float,
+    m_live_h: float, m_live_w: float,
+    wind_midflame_ms: float,
+    slope_degrees: float,
+) -> tuple[float, float, float, float, float, float]:
+    """
+    Rothermel 1972 surface fire — implementação directa com η_M_dead/live separados.
+
+    Devolve (ros_m_per_min, fi_kw_m, phi_w, phi_s, I_R_btu_ft2_min, sigma_ftinv).
+    Humidades em fração (0-1).
+    """
+    rho_p = 32.0      # lb/ft³ — densidade da partícula
+    S_T   = 0.0555    # conteúdo mineral total (Rothermel default)
+    S_e   = 0.01      # mineral efetivo
+    sav_10h  = 109.0  # 1/ft — fixo (Rothermel 1972)
+    sav_100h = 30.0
+
+    # --- Áreas de superfície ---
+    A_1h   = fm.sav_1h    * fm.load_1h    / rho_p
+    A_10h  = sav_10h      * fm.load_10h   / rho_p
+    A_100h = sav_100h     * fm.load_100h  / rho_p
+    A_lh   = fm.sav_live_h * fm.load_live_h / rho_p if fm.load_live_h > 0 else 0.0
+    A_lw   = fm.sav_live_w * fm.load_live_w / rho_p if fm.load_live_w > 0 else 0.0
+
+    A_dead  = A_1h + A_10h + A_100h
+    A_live  = A_lh + A_lw
+    A_total = A_dead + A_live
+    if A_total <= 0:
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 1.0
+
+    # fracções dentro de cada categoria
+    f_1h   = A_1h   / A_dead if A_dead > 0 else 0.0
+    f_10h  = A_10h  / A_dead if A_dead > 0 else 0.0
+    f_100h = A_100h / A_dead if A_dead > 0 else 0.0
+    f_lh   = A_lh   / A_live if A_live > 0 else 0.0
+    f_lw   = A_lw   / A_live if A_live > 0 else 0.0
+    f_dead = A_dead / A_total
+    f_live = A_live / A_total
+
+    # --- SAV característico (eq 27) ---
+    sigma_dead = f_1h * fm.sav_1h + f_10h * sav_10h + f_100h * sav_100h
+    sigma_live = (f_lh * fm.sav_live_h + f_lw * fm.sav_live_w) if A_live > 0 else 0.0
+    sigma = f_dead * sigma_dead + f_live * sigma_live
+    if sigma <= 0:
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 1.0
+
+    # --- Geometria do leito ---
+    w_dead  = fm.load_1h + fm.load_10h + fm.load_100h
+    w_live  = fm.load_live_h + fm.load_live_w
+    w_total = w_dead + w_live
+    rho_b   = w_total / fm.depth if fm.depth > 0 else 0.0
+    beta    = max(1e-6, rho_b / rho_p)
+
+    # --- Velocidade de reação Γ' (eq 36-38) ---
+    beta_op    = 3.348 * sigma ** (-0.8189)
+    beta_ratio = beta / beta_op
+    sigma_15   = sigma ** 1.5
+    gamma_max  = sigma_15 / (495.0 + 0.0594 * sigma_15)
+    A_c        = 133.0 * sigma ** (-0.7913)
+    gamma      = gamma_max * (beta_ratio ** A_c) * math.exp(A_c * (1.0 - beta_ratio))
+
+    # --- Humidades ponderadas por categoria ---
+    m_dead = f_1h * m_1h + f_10h * m_10h + f_100h * m_100h
+    m_live = (f_lh * m_live_h + f_lw * m_live_w) if A_live > 0 else 0.0
+
+    # M_x dos vivos (Albini 1976)
+    M_x_dead = fm.moist_ext_dead
+    M_x_live = M_x_dead
+    if A_live > 0 and M_x_dead > 0:
+        K = 138.0
+        W_d = fm.load_1h * math.exp(-K / fm.sav_1h) if fm.sav_1h > 0 else 0.0
+        W_l = sum(w * math.exp(-K / s) for w, s in [
+            (fm.load_live_h, fm.sav_live_h), (fm.load_live_w, fm.sav_live_w)
+        ] if w > 0 and s > 0)
+        if W_l > 0:
+            M_x_live = max(2.9 * (W_d / W_l) * (1.0 - m_1h / M_x_dead) - 0.226, M_x_dead)
+
+    # --- η_M separados por categoria (eq 29 — ponto central da melhoria) ---
+    def _eta_M(m: float, Mx: float) -> float:
+        if Mx <= 0 or m >= Mx:
+            return 0.0
+        r = m / Mx
+        return max(0.0, 1.0 - 2.59 * r + 5.11 * r**2 - 3.52 * r**3)
+
+    eta_M_dead = _eta_M(m_dead, M_x_dead)
+    eta_M_live = _eta_M(m_live, M_x_live) if A_live > 0 else 0.0
+
+    # η_s — amortecimento mineral (eq 56)
+    eta_s = 0.174 * S_e ** (-0.19)
+
+    # --- Intensidade de reação (eq 27) — mortos e vivos separados ---
+    I_R_dead = gamma * w_dead * (1.0 - S_T) * fm.heat_dead * eta_M_dead * eta_s
+    I_R_live = (gamma * w_live * (1.0 - S_T) * fm.heat_live * eta_M_live * eta_s
+                if A_live > 0 else 0.0)
+    I_R = I_R_dead + I_R_live
+    if I_R <= 0:
+        return 0.0, 0.0, 0.0, 0.0, 0.0, sigma
+
+    # --- Propagating flux ratio ξ (eq 42) ---
+    xi = (math.exp((0.792 + 0.681 * sigma ** 0.5) * (beta + 0.1))
+          / (192.0 + 0.2595 * sigma))
+
+    # --- φ_w e φ_s (eq 47, 51) — β/β_op corrigido ---
+    wind_ftmin = wind_midflame_ms * 196.85
+    B = 0.02526 * sigma ** 0.54
+    C = 7.47  * math.exp(-0.133  * sigma ** 0.55)
+    E = 0.715 * math.exp(-3.59e-4 * sigma)
+    phi_w = C * (wind_ftmin ** B) * (beta_ratio ** (-E)) if wind_ftmin > 0 else 0.0
+    phi_s = (5.275 * beta ** (-0.3) * math.tan(math.radians(slope_degrees)) ** 2
+             if slope_degrees > 0 else 0.0)
+
+    # --- Effective heating number e calor de ignição (eq 77-78) ---
+    eps  = math.exp(-138.0 / sigma)
+    Q_ig = 250.0 + 1116.0 * m_dead
+
+    # --- ROS (eq 52) ---
+    denom = rho_b * eps * Q_ig
+    ros_ftmin = I_R * xi * (1.0 + phi_w + phi_s) / denom if denom > 0 else 0.0
+    ros_m_min = max(0.0, ros_ftmin * 0.3048)
+
+    # --- FLI Byram (I_B = I_R × t_r × R) ---
+    t_r      = 384.0 / sigma
+    fi_kw_m  = max(0.0, I_R * t_r * ros_ftmin * 0.05767)
+
+    return ros_m_min, fi_kw_m, phi_w, phi_s, I_R, sigma
+
+
+def _max_spread_direction_from_phi(
+    wind_direction_deg: float,
+    aspect_degrees: float,
+    phi_w: float,
+    phi_s: float,
+) -> float:
+    """
+    Azimute de máxima propagação por soma vectorial de φ_w e φ_s.
+    Usa os valores já calculados em _rothermel_direct — sem recalcular β.
+    """
+    if phi_w + phi_s < 1e-6:
+        return 0.0
+
+    wind_az  = (wind_direction_deg + 180.0) % 360.0  # downwind
+    slope_az = (aspect_degrees    + 180.0) % 360.0   # upslope
+
+    rx = math.sin(math.radians(wind_az))  * phi_w + math.sin(math.radians(slope_az)) * phi_s
+    ry = math.cos(math.radians(wind_az))  * phi_w + math.cos(math.radians(slope_az)) * phi_s
+
+    if abs(rx) < 1e-9 and abs(ry) < 1e-9:
+        return wind_az if phi_w >= phi_s else slope_az
+    return math.degrees(math.atan2(rx, ry)) % 360.0
 
 
 def _zero_prediction(scenario: str, fire_type: FireType) -> FireBehaviorPrediction:
