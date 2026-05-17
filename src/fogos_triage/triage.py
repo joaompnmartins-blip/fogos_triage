@@ -149,68 +149,73 @@ def compute_priority(
     occurrence: Occurrence,
 ) -> tuple[Priority, float]:
     """
-    Score de prioridade contínuo 0-100, com mapeamento para P1-P4.
+    Score de prioridade contínuo 0-100, alinhado com as classes FWI ANEPC.
 
-    Fatores:
-    - Intensidade prevista (Byram em kW/m), normalizada
-    - Comprimento de chama (categoria táctica)
-    - ROS (rapidez de propagação)
-    - Modificador por crown fire
-    - Modificador por meios já alocados vs necessários (placeholder)
+    Limiares de score → prioridade (calibrados para FLI típico de cada classe):
+      P0 ≥ 87  — Extremo    FLI ≥ 10 000 kW/m, copa ativa, incontrolável
+      P1 ≥ 67  — Muito El.  FLI  4 000-10 000, copa passiva, só meios aéreos pesados
+      P2 ≥ 47  — Elevado    FLI  2 000- 4 000, meios aéreos necessários
+      P3 ≥ 22  — Moderado   FLI    500- 2 000, terrestres efetivos
+      P4 < 22  — Baixo      FLI  <    500    , sapadores
 
-    Esta é uma fórmula inicial. Deve ser calibrada com casos reais e
-    feedback operacional. Os pesos devem ser revistos com pessoal ANEPC.
+    Fórmula:
+      score = (0.50×I + 0.25×T + 0.25×R) × crown_modifier
+      I = intensidade log-scale, calibrada: 500→25, 2000→50, 4000→70, 10000→90
+      T = tática por comprimento de chama (limiares FWI)
+      R = velocidade de propagação
+      crown_modifier = 1.20 (torching) / 1.50 (crowning)
     """
-    # Componente intensidade — log-scale porque varia de 100 a 100000 kW/m
     fli = max(behavior.fireline_intensity_kw_m, 1.0)
-    intensity_score = min(100.0, 20.0 * math.log10(fli) - 20.0)  # 1000 kW/m → 40, 10000 → 60, 100000 → 80
-    intensity_score = max(0, intensity_score)
-
-    # Componente táctica
-    L = behavior.flame_length_m
-    if L < 1.2:
-        tactic_score = 10
-    elif L < 2.4:
-        tactic_score = 35
-    elif L < 3.4:
-        tactic_score = 60
-    elif L < 7:
-        tactic_score = 80
-    else:
-        tactic_score = 95
-
-    # Componente ROS (m/min)
+    L   = behavior.flame_length_m
     ros = behavior.ros_m_per_min
+
+    # Intensidade — calibrada nos limiares FWI: 500→25, 2000→50, 4000→70, 10000→90
+    intensity_score = max(0.0, min(100.0, 50.0 * math.log10(fli) - 110.0))
+
+    # Tática — limiares alinhados com FWI (Baixo/Moderado/Elevado/Muito El./Extremo)
+    if L < 1.3:
+        tactic_score = 10    # Baixo: sapadores
+    elif L < 2.5:
+        tactic_score = 35    # Moderado: terrestres
+    elif L < 3.5:
+        tactic_score = 60    # Elevado: máquinas + aéreos
+    elif L < 10.0:
+        tactic_score = 82    # Muito Elevado: só aéreos pesados
+    else:
+        tactic_score = 95    # Extremo: flancos e retaguarda
+
+    # ROS (m/min)
     if ros < 1:
         ros_score = 5
     elif ros < 5:
-        ros_score = 30
+        ros_score = 25
     elif ros < 15:
-        ros_score = 60
+        ros_score = 55
     elif ros < 30:
-        ros_score = 80
+        ros_score = 78
     else:
-        ros_score = 95
+        ros_score = 92
 
-    # Modificador crown fire
+    # Modificador crown fire — mais agressivo para distinguir P1 de P0
     crown_modifier = 1.0
     if behavior.fire_type == FireType.TORCHING:
-        crown_modifier = 1.15
+        crown_modifier = 1.20   # copa passiva: eleva P2→P1, P1→P0
     elif behavior.fire_type == FireType.CROWNING:
-        crown_modifier = 1.30
+        crown_modifier = 1.50   # copa ativa: eleva para P0 em quase todos os casos
 
-    # Combinação ponderada
-    score = (0.4 * intensity_score
-             + 0.3 * tactic_score
-             + 0.3 * ros_score) * crown_modifier
-    score = min(100.0, score)
+    score = min(100.0,
+                (0.50 * intensity_score
+                 + 0.25 * tactic_score
+                 + 0.25 * ros_score) * crown_modifier)
 
-    # Mapeamento para prioridades
-    if score >= 70:
+    # Mapeamento alinhado com classes FWI
+    if score >= 87:
+        prio = Priority.P0_EXTREME
+    elif score >= 67:
         prio = Priority.P1_CRITICAL
-    elif score >= 50:
+    elif score >= 47:
         prio = Priority.P2_HIGH
-    elif score >= 25:
+    elif score >= 22:
         prio = Priority.P3_WATCH
     else:
         prio = Priority.P4_CONTROLLED

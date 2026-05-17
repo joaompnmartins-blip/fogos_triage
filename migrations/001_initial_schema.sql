@@ -141,6 +141,7 @@ CREATE TABLE IF NOT EXISTS weather_snapshots (
     cloud_cover_pct  REAL,
     radiation        REAL,
     pressure_hpa     REAL,
+    fire_weather_index REAL,
 
     -- Timestamp original do dado meteorológico
     observation_at   TIMESTAMPTZ

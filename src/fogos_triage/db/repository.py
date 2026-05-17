@@ -274,9 +274,10 @@ class OccurrenceRepository:
                     temperature_c, relative_humidity_pct,
                     wind_speed_ms, wind_gust_ms, wind_direction_deg,
                     precipitation_24h_mm, cloud_cover_pct,
+                    fire_weather_index,
                     observation_at
                 )
-                VALUES ($1, 'open_meteo', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                VALUES ($1, 'open_meteo', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
                 """,
                 fire_id,
                 weather.timestamp,
@@ -288,6 +289,7 @@ class OccurrenceRepository:
                 weather.wind_direction_deg,
                 weather.precipitation_mm_24h,
                 weather.cloud_cover_pct,
+                weather.fire_weather_index,
                 weather.timestamp,
             )
 

@@ -57,6 +57,7 @@ async def fetch_open_meteo(
             "precipitation",
             "cloud_cover",
         ]),
+        "daily": "fire_weather_index",
         "models": "best_match",
         "forecast_days": 2,
         "timezone": "Europe/Lisbon",
@@ -76,6 +77,9 @@ async def fetch_open_meteo(
             await client.aclose()
 
     hourly = data["hourly"]
+    daily = data.get("daily", {})
+    fwi_today = (daily.get("fire_weather_index") or [None])[0]
+
     now = datetime.now()
     out: list[WeatherConditions] = []
 
@@ -100,6 +104,7 @@ async def fetch_open_meteo(
             wind_direction_deg=hourly["wind_direction_10m"][i],
             precipitation_mm_24h=precip_24h,
             cloud_cover_pct=hourly["cloud_cover"][i],
+            fire_weather_index=fwi_today,
         ))
 
     return out

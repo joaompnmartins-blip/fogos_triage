@@ -39,12 +39,12 @@ router = APIRouter(prefix="/fires", tags=["fires"])
 
 
 def _tactic_category(flame_length_m: float) -> str:
-    """Categoria táctica de Andrews & Rothermel."""
-    if flame_length_m < 1.2:
+    """Categoria táctica alinhada com classes FWI ANEPC."""
+    if flame_length_m < 1.3:
         return "direct_attack_manual"
-    elif flame_length_m < 2.4:
+    elif flame_length_m < 2.5:
         return "direct_attack_difficult"
-    elif flame_length_m < 3.4:
+    elif flame_length_m < 3.5:
         return "indirect_attack_machinery"
     else:
         return "indirect_attack_only"
@@ -343,6 +343,7 @@ async def get_fire_detail(
             wind_speed_kmh=wx["wind_speed_kmh"] if wx else None,
             wind_direction_deg=wx["wind_direction_deg"] if wx else None,
             wind_direction_text=wx["wind_direction_text"] if wx else None,
+            fire_weather_index=wx["fire_weather_index"] if wx else None,
             source=wx["source"] if wx else "unknown",
             station_location=wx["ipma_station_location"] if wx else None,
             station_distance_km=wx["ipma_station_distance_km"] if wx else None,

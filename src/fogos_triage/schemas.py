@@ -14,11 +14,12 @@ from typing import Optional
 
 
 class Priority(str, Enum):
-    """Categorias de prioridade operacional."""
-    P1_CRITICAL = "P1"   # ação imediata, risco elevado
-    P2_HIGH = "P2"       # vigilância apertada, recursos a postos
-    P3_WATCH = "P3"      # monitorizar evolução
-    P4_CONTROLLED = "P4" # sob controlo ou baixo risco
+    """Categorias de prioridade operacional (alinhadas com classes FWI ANEPC)."""
+    P0_EXTREME = "P0"    # Extremo FWI: copa ativa, incontrolável à cabeça (FLI ≥10 000 kW/m)
+    P1_CRITICAL = "P1"   # Muito Elevado: copa passiva, só meios aéreos pesados (FLI 4 000-10 000)
+    P2_HIGH = "P2"       # Elevado: meios aéreos necessários à cabeça (FLI 2 000-4 000)
+    P3_WATCH = "P3"      # Moderado: meios terrestres efetivos (FLI 500-2 000)
+    P4_CONTROLLED = "P4" # Baixo: sapadores, controlo direto (FLI < 500)
 
 
 class FireType(str, Enum):
@@ -51,6 +52,8 @@ class WeatherConditions:
     fuel_moisture_100h_pct: Optional[float] = None
     fuel_moisture_live_h_pct: Optional[float] = None
     fuel_moisture_live_w_pct: Optional[float] = None
+    # Índice de perigo meteorológico (Open-Meteo / ECMWF)
+    fire_weather_index: Optional[float] = None
 
 
 @dataclass
@@ -120,14 +123,18 @@ class FireBehaviorPrediction:
     def tactic_category(self) -> str:
         """
         Categoria táctica baseada no comprimento de chama.
-        Convenção do Fire Behavior Field Reference Guide (USFS).
+        Limiares alinhados com as classes FWI ANEPC (Índices_FWI.pdf):
+          < 1.3m  → Baixo      — sapadores, ataque direto
+          < 2.5m  → Moderado   — terrestres efetivos
+          < 3.5m  → Elevado    — máquinas, meios aéreos necessários
+          ≥ 3.5m  → Muito Elevado / Extremo — só indireto / flancos
         """
         L = self.flame_length_m
-        if L < 1.2:
+        if L < 1.3:
             return "direct_attack_manual"
-        elif L < 2.4:
+        elif L < 2.5:
             return "direct_attack_difficult"
-        elif L < 3.4:
+        elif L < 3.5:
             return "indirect_attack_machinery"
         else:
             return "indirect_attack_only"
