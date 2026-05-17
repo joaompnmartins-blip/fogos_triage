@@ -55,11 +55,20 @@ def aggregate_multifuel(
     sav_10h = 109.0  # 1/ft (fixos no Rothermel)
     sav_100h = 30.0
 
+    # Dynamic fuel transfer (Burgan 1979)
+    if fm.is_dynamic and fm.load_live_h > 0:
+        f_t      = max(0.0, 1.0 - moist_live_h / 1.20)
+        w_1h     = fm.load_1h + fm.load_live_h * f_t
+        w_live_h = fm.load_live_h * (1.0 - f_t)
+    else:
+        w_1h     = fm.load_1h
+        w_live_h = fm.load_live_h
+
     # Áreas de superfície por classe: A_i = sigma_i * w_i / rho_p
-    A_1h = fm.sav_1h * fm.load_1h / rho_p
+    A_1h = fm.sav_1h * w_1h / rho_p
     A_10h = sav_10h * fm.load_10h / rho_p
     A_100h = sav_100h * fm.load_100h / rho_p
-    A_lh = fm.sav_live_h * fm.load_live_h / rho_p if fm.load_live_h > 0 else 0.0
+    A_lh = fm.sav_live_h * w_live_h / rho_p if w_live_h > 0 else 0.0
     A_lw = fm.sav_live_w * fm.load_live_w / rho_p if fm.load_live_w > 0 else 0.0
 
     A_dead = A_1h + A_10h + A_100h
@@ -87,9 +96,9 @@ def aggregate_multifuel(
     sigma_live = (f_lh * fm.sav_live_h + f_lw * fm.sav_live_w) if A_live > 0 else 0.0
     sigma_char = f_dead * sigma_dead + f_live * sigma_live
 
-    # Carga total
-    w_total = (fm.load_1h + fm.load_10h + fm.load_100h
-               + fm.load_live_h + fm.load_live_w)
+    # Carga total (com transfer aplicado)
+    w_total = (w_1h + fm.load_10h + fm.load_100h
+               + w_live_h + fm.load_live_w)
 
     # Humidade ponderada por área (mortos e vivos separadamente)
     m_dead = ((f_1h * moist_1h + f_10h * moist_10h + f_100h * moist_100h)
@@ -103,11 +112,11 @@ def aggregate_multifuel(
     # Humidade de extinção dos vivos (Albini 1976)
     if A_live > 0 and fm.moist_ext_dead > 0:
         K = 138.0
-        sum_dead_we = (fm.load_1h * math.exp(-K / fm.sav_1h)
+        sum_dead_we = (w_1h * math.exp(-K / fm.sav_1h)
                        if fm.sav_1h > 0 else 0.0)
         sum_live_we = 0.0
-        if fm.load_live_h > 0 and fm.sav_live_h > 0:
-            sum_live_we += fm.load_live_h * math.exp(-K / fm.sav_live_h)
+        if w_live_h > 0 and fm.sav_live_h > 0:
+            sum_live_we += w_live_h * math.exp(-K / fm.sav_live_h)
         if fm.load_live_w > 0 and fm.sav_live_w > 0:
             sum_live_we += fm.load_live_w * math.exp(-K / fm.sav_live_w)
         if sum_live_we > 0:
@@ -218,11 +227,22 @@ def _rothermel_direct(
     sav_10h  = 109.0  # 1/ft — fixo (Rothermel 1972)
     sav_100h = 30.0
 
+    # --- Dynamic fuel transfer (Burgan 1979 / Scott & Burgan 2005) ---
+    # Para modelos dinâmicos: fração da erva viva → morta 1h à medida que
+    # a humidade desce abaixo de 120%. f_t = 0 se M_live_h >= 1.20.
+    if fm.is_dynamic and fm.load_live_h > 0:
+        f_t      = max(0.0, 1.0 - m_live_h / 1.20)
+        w_1h     = fm.load_1h + fm.load_live_h * f_t
+        w_live_h = fm.load_live_h * (1.0 - f_t)
+    else:
+        w_1h     = fm.load_1h
+        w_live_h = fm.load_live_h
+
     # --- Áreas de superfície ---
-    A_1h   = fm.sav_1h    * fm.load_1h    / rho_p
+    A_1h   = fm.sav_1h    * w_1h     / rho_p
     A_10h  = sav_10h      * fm.load_10h   / rho_p
     A_100h = sav_100h     * fm.load_100h  / rho_p
-    A_lh   = fm.sav_live_h * fm.load_live_h / rho_p if fm.load_live_h > 0 else 0.0
+    A_lh   = fm.sav_live_h * w_live_h / rho_p if w_live_h > 0 else 0.0
     A_lw   = fm.sav_live_w * fm.load_live_w / rho_p if fm.load_live_w > 0 else 0.0
 
     A_dead  = A_1h + A_10h + A_100h
@@ -248,8 +268,8 @@ def _rothermel_direct(
         return 0.0, 0.0, 0.0, 0.0, 0.0, 1.0
 
     # --- Geometria do leito ---
-    w_dead  = fm.load_1h + fm.load_10h + fm.load_100h
-    w_live  = fm.load_live_h + fm.load_live_w
+    w_dead  = w_1h + fm.load_10h + fm.load_100h
+    w_live  = w_live_h + fm.load_live_w
     w_total = w_dead + w_live
     rho_b   = w_total / fm.depth if fm.depth > 0 else 0.0
     beta    = max(1e-6, rho_b / rho_p)
@@ -271,9 +291,9 @@ def _rothermel_direct(
     M_x_live = M_x_dead
     if A_live > 0 and M_x_dead > 0:
         K = 138.0
-        W_d = fm.load_1h * math.exp(-K / fm.sav_1h) if fm.sav_1h > 0 else 0.0
+        W_d = w_1h * math.exp(-K / fm.sav_1h) if fm.sav_1h > 0 else 0.0
         W_l = sum(w * math.exp(-K / s) for w, s in [
-            (fm.load_live_h, fm.sav_live_h), (fm.load_live_w, fm.sav_live_w)
+            (w_live_h, fm.sav_live_h), (fm.load_live_w, fm.sav_live_w)
         ] if w > 0 and s > 0)
         if W_l > 0:
             M_x_live = max(2.9 * (W_d / W_l) * (1.0 - m_1h / M_x_dead) - 0.226, M_x_dead)
