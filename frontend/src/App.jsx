@@ -7,12 +7,24 @@ import HistoricoView from './views/HistoricoView'
 import { fetchHealth } from './api'
 
 // ---------------------------------------------------------------------------
+// Clock — live time for sidebar footer
+// ---------------------------------------------------------------------------
+
+function Clock() {
+  const [time, setTime] = useState(new Date())
+  useEffect(() => {
+    const id = setInterval(() => setTime(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
+  return <>{time.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</>
+}
+
+// ---------------------------------------------------------------------------
 // API Key modal
 // ---------------------------------------------------------------------------
 
 function KeyModal({ onSave }) {
   const [value, setValue] = useState('')
-
   return (
     <div className="modal-overlay">
       <div className="modal">
@@ -22,7 +34,7 @@ function KeyModal({ onSave }) {
           A chave fica guardada localmente no browser.
         </p>
         <input
-          className="modal-input"
+          className="form-input"
           type="password"
           placeholder="ft_..."
           value={value}
@@ -32,7 +44,7 @@ function KeyModal({ onSave }) {
         />
         <div className="modal-actions">
           <button
-            className="btn-primary"
+            className="btn btn-primary"
             disabled={!value.trim()}
             onClick={() => onSave(value.trim())}
           >
@@ -45,79 +57,113 @@ function KeyModal({ onSave }) {
 }
 
 // ---------------------------------------------------------------------------
-// Header
+// Sidebar
 // ---------------------------------------------------------------------------
 
-function Header({ health, apiKey, onChangeKey }) {
+function Sidebar({ health, onChangeKey, apiKey }) {
+  const location = useLocation()
+  const isListArea = location.pathname.startsWith('/lista') || location.pathname.startsWith('/fogo')
   const ok = health && health.database_ok
-  const lastSeen = health?.worker_last_seen_at
+  const workerTs = health?.worker_last_seen_at
     ? new Date(health.worker_last_seen_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
     : null
 
   return (
-    <header className="header">
-      <span className="header-logo">F.T.</span>
-      <span className="header-title">Fogos Triage</span>
-      <span className="header-sep" />
-      <div className="header-status">
-        <span className={`status-dot ${health === null ? '' : ok ? 'ok' : 'err'}`} />
-        <span>{health === null ? 'a ligar…' : ok ? 'online' : 'erro BD'}</span>
-        {lastSeen && <span style={{ color: 'var(--dim)' }}>· {lastSeen}</span>}
+    <div className="sidebar">
+      <div className="sidebar-header">
+        <div className="sidebar-tag">
+          <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--icnf-green-lime)', boxShadow: '0 0 8px rgba(140,150,28,.6)' }} />
+          <span>ANEPC · ICNF</span>
+        </div>
+        <div className="sidebar-title">Fogos<span>Triage</span></div>
       </div>
-      {apiKey && (
-        <button className="btn-ghost" onClick={onChangeKey} title="Alterar chave de API">
-          API KEY
-        </button>
-      )}
-    </header>
+
+      <nav className="nav">
+        <NavLink
+          to="/mapa"
+          className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+        >
+          <span className="nav-icon">◎</span>
+          <span>Mapa</span>
+        </NavLink>
+        <NavLink
+          to="/lista"
+          className={() => `nav-item${isListArea ? ' active' : ''}`}
+        >
+          <span className="nav-icon">≡</span>
+          <span>Ocorrências</span>
+        </NavLink>
+        <div className="nav-sep" />
+      </nav>
+
+      <div className="sidebar-footer">
+        <div>
+          <span
+            className="dot"
+            style={!ok ? { background: 'var(--danger)', boxShadow: 'none' } : {}}
+          />
+          {ok ? 'SISTEMA OK' : health === null ? 'A LIGAR…' : 'BD OFFLINE'}
+        </div>
+        {workerTs && <div style={{ marginLeft: 11 }}>WORKER {workerTs}</div>}
+        <div style={{ marginTop: 4, color: 'var(--dim)' }}>
+          <Clock />
+        </div>
+        {apiKey && (
+          <button
+            onClick={onChangeKey}
+            style={{
+              marginTop: 8,
+              background: 'none',
+              border: 'none',
+              color: 'var(--dim)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: 9,
+              cursor: 'pointer',
+              padding: 0,
+              letterSpacing: '.1em',
+            }}
+          >
+            ALTERAR KEY
+          </button>
+        )}
+      </div>
+    </div>
   )
 }
 
 // ---------------------------------------------------------------------------
-// Navigation (tabs + breadcrumbs)
+// Topbar — dynamic title from route
 // ---------------------------------------------------------------------------
 
-function NavTabs() {
+function Topbar() {
   const location = useLocation()
   const isDetail = location.pathname.match(/^\/fogo\/([^/]+)$/)
   const isHistory = location.pathname.match(/^\/fogo\/([^/]+)\/historico$/)
-  const fireId = (isDetail?.[1] || isHistory?.[1] || '').slice(0, 12)
 
-  const tabs = (
-    <>
-      <NavLink to="/mapa">
-        {({ isActive }) => (
-          <button className={`nav-tab${isActive ? ' active' : ''}`}>Mapa</button>
-        )}
-      </NavLink>
-      <NavLink to="/lista">
-        {({ isActive }) => (
-          <button className={`nav-tab${isActive || (isDetail && !isHistory) || isHistory ? ' active' : ''}`} style={isDetail || isHistory ? { color: 'var(--text)' } : {}}>
-            Lista
-          </button>
-        )}
-      </NavLink>
-    </>
-  )
+  let title, sub
+  if (isHistory) {
+    title = 'Histórico'
+    sub = `#${isHistory[1].slice(0, 10)}…`
+  } else if (isDetail) {
+    title = 'Ocorrência'
+    sub = `#${isDetail[1].slice(0, 10)}…`
+  } else if (location.pathname.startsWith('/mapa')) {
+    title = 'Mapa'
+    sub = 'Portugal Continental'
+  } else {
+    title = 'Ocorrências Ativas'
+    sub = null
+  }
 
   return (
-    <nav className="nav-tabs">
-      {tabs}
-      {(isDetail || isHistory) && (
-        <>
-          <span className="nav-sep">›</span>
-          <span className={`nav-crumb${isHistory ? '' : ' active'}`}>
-            #{fireId}…
-          </span>
-          {isHistory && (
-            <>
-              <span className="nav-sep">›</span>
-              <span className="nav-crumb active">Histórico</span>
-            </>
-          )}
-        </>
-      )}
-    </nav>
+    <div className="topbar">
+      <div className="topbar-left">
+        <div>
+          <div className="page-label">{title}</div>
+          {sub && <div className="page-sub">{sub}</div>}
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -127,18 +173,20 @@ function NavTabs() {
 
 function AppShell({ apiKey, onChangeKey, health }) {
   return (
-    <div className="layout">
-      <Header health={health} apiKey={apiKey} onChangeKey={onChangeKey} />
-      <NavTabs />
-      <div className="content" id="main-content">
-        <Routes>
-          <Route path="/" element={<Navigate to="/mapa" replace />} />
-          <Route path="/mapa" element={<MapView apiKey={apiKey} />} />
-          <Route path="/lista" element={<ListaView apiKey={apiKey} />} />
-          <Route path="/fogo/:fireId" element={<DetalheView apiKey={apiKey} />} />
-          <Route path="/fogo/:fireId/historico" element={<HistoricoView apiKey={apiKey} />} />
-          <Route path="*" element={<Navigate to="/mapa" replace />} />
-        </Routes>
+    <div id="shell">
+      <Sidebar health={health} onChangeKey={onChangeKey} apiKey={apiKey} />
+      <div className="main">
+        <Topbar />
+        <div className="content">
+          <Routes>
+            <Route path="/" element={<Navigate to="/mapa" replace />} />
+            <Route path="/mapa" element={<MapView apiKey={apiKey} />} />
+            <Route path="/lista" element={<ListaView apiKey={apiKey} />} />
+            <Route path="/fogo/:fireId" element={<DetalheView apiKey={apiKey} />} />
+            <Route path="/fogo/:fireId/historico" element={<HistoricoView apiKey={apiKey} />} />
+            <Route path="*" element={<Navigate to="/mapa" replace />} />
+          </Routes>
+        </div>
       </div>
     </div>
   )
@@ -159,9 +207,8 @@ export default function App() {
     setShowModal(false)
   }
 
-  // Poll health every 30s
   useEffect(() => {
-    const check = () => fetchHealth().then(setHealth)
+    const check = () => fetchHealth().then(setHealth).catch(() => {})
     check()
     const id = setInterval(check, 30_000)
     return () => clearInterval(id)

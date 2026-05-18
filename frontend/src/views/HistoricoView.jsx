@@ -1,7 +1,14 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { fetchFireHistory, fetchFireDetail } from '../api'
-import { fmtDateTime, fmtTime } from '../constants'
+import { fmtDateTime } from '../constants'
+
+const TAG_CLASS = {
+  created: 'tag-created',
+  status: 'tag-status',
+  resources: 'tag-resources',
+  both: 'tag-both',
+}
 
 const CHANGE_LABELS = {
   created: 'CRIADO',
@@ -10,26 +17,18 @@ const CHANGE_LABELS = {
   both: 'ESTADO+RECURSOS',
 }
 
-const CHANGE_DOT = {
-  created: 'created',
-  status: 'status',
-  resources: 'resources',
-  both: 'status',
-}
-
 function ResourceLine({ item }) {
   const parts = []
-  if (item.operatives) parts.push(`${item.operatives} operacionais`)
-  if (item.vehicles) parts.push(`${item.vehicles} veículos`)
+  if (item.operatives) parts.push(`${item.operatives} oper.`)
+  if (item.vehicles) parts.push(`${item.vehicles} veíc.`)
   if (item.aerial) parts.push(`${item.aerial} aéreos`)
-  if (item.heli_fight) parts.push(`${item.heli_fight} heli-combate`)
+  if (item.heli_fight) parts.push(`${item.heli_fight} heli`)
   if (item.plane_fight) parts.push(`${item.plane_fight} aviões`)
-  return <span>{parts.join(' · ') || '—'}</span>
+  return <>{parts.join(' · ') || '—'}</>
 }
 
 export default function HistoricoView({ apiKey }) {
   const { fireId } = useParams()
-  const navigate = useNavigate()
   const [history, setHistory] = useState(null)
   const [fire, setFire] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -42,82 +41,83 @@ export default function HistoricoView({ apiKey }) {
       fetchFireHistory(apiKey, fireId),
       fetchFireDetail(apiKey, fireId),
     ])
-      .then(([hist, f]) => {
-        setHistory(hist)
-        setFire(f)
-      })
+      .then(([hist, f]) => { setHistory(hist); setFire(f) })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
   }, [apiKey, fireId])
 
-  if (loading) return <div className="state-center">A carregar…</div>
+  if (loading) return <div className="state-center" style={{ height: '100%' }}>A carregar…</div>
   if (error) return (
-    <div className="state-center" style={{ color: 'var(--danger)', gap: 8 }}>
+    <div className="state-center" style={{ height: '100%', color: 'var(--danger)', gap: 8 }}>
       <div>Erro ao carregar histórico</div>
       <div style={{ fontSize: 11, opacity: 0.7 }}>{error}</div>
     </div>
   )
 
-  const location = fire ? `${fire.municipality}, ${fire.district}` : fireId
+  const location = fire ? [fire.municipality, fire.district].filter(Boolean).join(', ') : fireId
+
+  let lastDay = null
 
   return (
-    <div className="content scrollable" style={{ height: '100%' }}>
-      {/* Sub-header */}
-      <div style={{
-        padding: '10px 16px',
-        borderBottom: '1px solid var(--border)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        background: 'var(--surface2)',
-      }}>
-        <Link
-          to={`/fogo/${fireId}`}
-          style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent2)' }}
-        >
-          ← Detalhe
-        </Link>
-        <span style={{ fontFamily: 'var(--font-cond)', fontSize: 15, fontWeight: 600 }}>
-          {location}
-        </span>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)' }}>
-          {history?.length ?? 0} eventos
-        </span>
+    <div className="content-scroll">
+      {/* Breadcrumb */}
+      <div className="breadcrumb">
+        <Link to="/lista">Ocorrências</Link>
+        <span className="sep">›</span>
+        <Link to={`/fogo/${fireId}`}>{location}</Link>
+        <span className="sep">›</span>
+        <span>Histórico</span>
+      </div>
+
+      <div className="section-hdr">
+        <div className="section-title">
+          Histórico
+          <span>{history?.length ?? 0} eventos</span>
+        </div>
       </div>
 
       {history && history.length === 0 ? (
-        <div className="state-center" style={{ color: 'var(--muted)' }}>
-          <div>Sem histórico registado</div>
+        <div style={{ color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 12, padding: '20px 0' }}>
+          Sem histórico registado.
         </div>
       ) : (
-        <div className="history-list">
+        <div>
           {(history || []).map((item, idx) => {
             const changeType = item.change_type || 'status'
-            const isCreated = changeType === 'created'
-            const isStatus = changeType === 'status' || changeType === 'both'
+            const isStatus = changeType === 'status' || changeType === 'both' || changeType === 'created'
             const isResources = changeType === 'resources' || changeType === 'both'
 
+            const d = new Date(item.snapshot_at)
+            const dayKey = d.toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric', month: 'short' })
+            const showDaySep = dayKey !== lastDay
+            if (showDaySep) lastDay = dayKey
+
             return (
-              <div key={idx} className="history-item">
-                <div className="history-time">{fmtTime(item.snapshot_at)}</div>
-                <div className={`history-dot ${CHANGE_DOT[changeType] || 'status'}`} />
-                <div className="history-content">
-                  <div className="history-event">
-                    {CHANGE_LABELS[changeType] || changeType.toUpperCase()}
+              <div key={idx}>
+                {showDaySep && (
+                  <div className="occ-log-day-sep">{dayKey}</div>
+                )}
+                <div className="occ-log-entry">
+                  <div className="occ-log-ts">
+                    {d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                   </div>
-                  <div className="history-detail">
-                    {isStatus && (
-                      <div>
-                        {item.previous_status_code != null
-                          ? `${item.previous_status_code} → ${item.status_code} ${item.status_name}`
-                          : `${item.status_code} ${item.status_name}`}
-                      </div>
-                    )}
-                    {isResources && (
-                      <div><ResourceLine item={item} /></div>
-                    )}
-                    <div style={{ color: 'var(--dim)', fontSize: 10, marginTop: 2 }}>
-                      {fmtDateTime(item.snapshot_at)}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ marginBottom: 4 }}>
+                      <span className={`occ-log-tag ${TAG_CLASS[changeType] || 'tag-status'}`}>
+                        {CHANGE_LABELS[changeType] || changeType.toUpperCase()}
+                      </span>
+                    </div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)', lineHeight: 1.7 }}>
+                      {isStatus && item.status_name && (
+                        <div>
+                          {item.previous_status_code != null
+                            ? `${item.previous_status_code} → ${item.status_code} ${item.status_name}`
+                            : `${item.status_code} ${item.status_name}`}
+                        </div>
+                      )}
+                      {isResources && (
+                        <div><ResourceLine item={item} /></div>
+                      )}
                     </div>
                   </div>
                 </div>
