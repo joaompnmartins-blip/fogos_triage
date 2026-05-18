@@ -43,10 +43,12 @@ def triage_occurrence(
     """
     fm = fuel_models.get(terrain.fuel_model_num)
     if fm is None:
-        # modelo desconhecido — usar fallback ou rejeitar?
-        # Aqui usamos FM98 (não combustível) e sinalizamos
         fm = fuel_models.get(98)
-        notes = [f"Modelo {terrain.fuel_model_num} desconhecido, usando FM98"]
+        # Scott & Burgan 40 NB codes (91-98) = Non-Burnable; mapeamos para FM98
+        if 91 <= terrain.fuel_model_num <= 98:
+            notes = [f"FM{terrain.fuel_model_num} (NB Scott&Burgan) → não combustível"]
+        else:
+            notes = [f"Modelo {terrain.fuel_model_num} desconhecido, usando FM98"]
     else:
         notes = []
 
