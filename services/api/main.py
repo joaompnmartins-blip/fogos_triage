@@ -62,11 +62,13 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # CORS
+    # CORS — allow_credentials deve ser False quando allow_origins=["*"].
+    # Bearer tokens não são "credentials" no sentido CORS (cookies/HTTP auth);
+    # com credentials=True o Starlette recusa-se a enviar headers CORS com wildcard.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=config.allowed_origins,
-        allow_credentials=True,
+        allow_credentials=False,
         allow_methods=["GET", "POST"],
         allow_headers=["Authorization", "Content-Type"],
     )
