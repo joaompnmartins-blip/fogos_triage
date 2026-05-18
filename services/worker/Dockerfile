@@ -32,6 +32,7 @@ RUN pip install --no-cache-dir \
 # Worker script (incluindo services/__init__.py para o package)
 COPY services/__init__.py ./services/__init__.py
 COPY services/worker ./services/worker
+COPY migrations ./migrations
 
 # Modelos de combustível PT (montados ou copiados conforme caso)
 COPY data /data
