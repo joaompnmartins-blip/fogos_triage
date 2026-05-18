@@ -266,7 +266,7 @@ export default function DetalheView({ apiKey }) {
       </div>
 
       {/* Footer meta */}
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--dim)', borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 8 }}>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--dim)', borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 8 }}>
         ID: {fire.fire_id}
         {fire.sado_id && ` · SADO: ${fire.sado_id}`}
         {fire.dico && ` · DICO: ${fire.dico}`}

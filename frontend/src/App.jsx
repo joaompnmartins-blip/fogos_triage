@@ -135,10 +135,10 @@ function Topbar() {
   let title, sub
   if (isHistory) {
     title = 'Histórico'
-    sub = `#${isHistory[1].slice(0, 10)}…`
+    sub = `#${isHistory[1]}`
   } else if (isDetail) {
     title = 'Ocorrência'
-    sub = `#${isDetail[1].slice(0, 10)}…`
+    sub = `#${isDetail[1]}`
   } else if (location.pathname.startsWith('/mapa')) {
     title = 'Mapa'
     sub = 'Portugal Continental'
