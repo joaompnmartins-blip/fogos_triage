@@ -45,6 +45,7 @@ class WeatherSummary(BaseModel):
     wind_speed_kmh: Optional[float] = None
     wind_direction_deg: Optional[float] = None
     wind_direction_text: Optional[str] = None
+    precipitation_mm_24h: Optional[float] = None
     fire_weather_index: Optional[float] = None
     source: str  # "ipma_fogos" / "open_meteo"
     station_location: Optional[str] = None

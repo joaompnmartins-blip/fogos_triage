@@ -211,21 +211,32 @@ export default function DetalheView({ apiKey }) {
         {/* Meteorologia */}
         {wx && (
           <div className="detail-card">
-            <div className="detail-card-title">Meteorologia</div>
+            <div className="detail-card-title">
+              Meteorologia
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--dim)', marginLeft: 8, textTransform: 'none', letterSpacing: 0 }}>
+                {wx.source === 'open_meteo' ? 'Open-Meteo' : wx.source === 'ipma_fogos' ? `IPMA${wx.station_location ? ` · ${wx.station_location}` : ''}` : wx.source}
+              </span>
+            </div>
             <InfoRow label="Temperatura" value={fmt(wx.temperature_c, 1)} unit="°C" />
             <InfoRow label="Humidade relativa" value={fmt(wx.relative_humidity_pct, 0)} unit="%" />
-            <InfoRow label="Velocidade vento" value={fmt(wx.wind_speed_ms, 1)} unit="m/s" />
+            <InfoRow
+              label="Velocidade vento"
+              value={wx.wind_speed_kmh != null ? fmt(wx.wind_speed_kmh, 1) : wx.wind_speed_ms != null ? fmt(wx.wind_speed_ms * 3.6, 1) : null}
+              unit="km/h"
+            />
             <InfoRow label="Direção vento" value={windDirText(wx.wind_direction_deg)} />
-            {t?.wind_midflame_ms != null && (
-              <InfoRow label="Vento midflame" value={fmt(t.wind_midflame_ms, 1)} unit="m/s" />
+            {wx.precipitation_mm_24h != null && (
+              <InfoRow label="Precipitação 24h" value={fmt(wx.precipitation_mm_24h, 1)} unit="mm" />
             )}
             {t?.fuel_moisture_1h_pct != null && (
               <InfoRow label="Hum. combustível 1h" value={fmt(t.fuel_moisture_1h_pct, 1)} unit="%" />
             )}
+            {t?.wind_midflame_ms != null && (
+              <InfoRow label="Vento midflame" value={fmt(t.wind_midflame_ms * 3.6, 1)} unit="km/h" />
+            )}
             {wx.fire_weather_index != null && (
               <InfoRow label="FWI" value={fmt(wx.fire_weather_index, 1)} color="var(--warn)" />
             )}
-            {wx.source && <InfoRow label="Fonte" value={wx.source} />}
           </div>
         )}
 

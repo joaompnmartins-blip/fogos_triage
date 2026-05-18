@@ -306,12 +306,12 @@ async def get_fire_detail(
             fire_id,
         )
 
-        # 3. Meteo mais recente
+        # 3. Meteo — preferir open_meteo (usada na triagem) sobre ipma_fogos
         wx = await conn.fetchrow(
             """
             SELECT * FROM weather_snapshots
             WHERE fire_id = $1
-            ORDER BY snapshot_at DESC LIMIT 1
+            ORDER BY (source = 'open_meteo') DESC, snapshot_at DESC LIMIT 1
             """,
             fire_id,
         )
@@ -336,13 +336,19 @@ async def get_fire_detail(
             for s in scenarios_json
         ]
 
+        ws_ms = wx["wind_speed_ms"] if wx else None
+        ws_kmh = wx["wind_speed_kmh"] if wx else None
+        if ws_kmh is None and ws_ms is not None:
+            ws_kmh = round(ws_ms * 3.6, 1)
+
         weather_summary = WeatherSummary(
             temperature_c=wx["temperature_c"] if wx else None,
             relative_humidity_pct=wx["relative_humidity_pct"] if wx else None,
-            wind_speed_ms=wx["wind_speed_ms"] if wx else None,
-            wind_speed_kmh=wx["wind_speed_kmh"] if wx else None,
+            wind_speed_ms=ws_ms,
+            wind_speed_kmh=ws_kmh,
             wind_direction_deg=wx["wind_direction_deg"] if wx else None,
             wind_direction_text=wx["wind_direction_text"] if wx else None,
+            precipitation_mm_24h=wx["precipitation_24h_mm"] if wx else None,
             fire_weather_index=wx["fire_weather_index"] if wx else None,
             source=wx["source"] if wx else "unknown",
             station_location=wx["ipma_station_location"] if wx else None,
