@@ -60,7 +60,7 @@ function KeyModal({ onSave }) {
 // Sidebar
 // ---------------------------------------------------------------------------
 
-function Sidebar({ health, onChangeKey, apiKey }) {
+function Sidebar({ health, onChangeKey, apiKey, theme, onToggleTheme }) {
   const location = useLocation()
   const isListArea = location.pathname.startsWith('/lista') || location.pathname.startsWith('/fogo')
   const ok = health && health.database_ok
@@ -68,14 +68,20 @@ function Sidebar({ health, onChangeKey, apiKey }) {
     ? new Date(health.worker_last_seen_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
     : null
 
+  const footerBtn = {
+    background: 'none', border: 'none', color: 'var(--dim)',
+    fontFamily: 'var(--font-mono)', fontSize: 9, cursor: 'pointer',
+    padding: 0, letterSpacing: '.1em', display: 'block', marginTop: 6,
+  }
+
   return (
     <div className="sidebar">
       <div className="sidebar-header">
         <div className="sidebar-tag">
-          <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--icnf-green-lime)', boxShadow: '0 0 8px rgba(140,150,28,.6)' }} />
-          <span>ANEPC · ICNF</span>
+          <span className="dot" />
+          <span>ICNF / GFR</span>
         </div>
-        <div className="sidebar-title">Fogos<span>Triage</span></div>
+        <div className="sidebar-title">Triagem<span>Ocorrências</span></div>
       </div>
 
       <nav className="nav">
@@ -105,26 +111,12 @@ function Sidebar({ health, onChangeKey, apiKey }) {
           {ok ? 'SISTEMA OK' : health === null ? 'A LIGAR…' : 'BD OFFLINE'}
         </div>
         {workerTs && <div style={{ marginLeft: 11 }}>WORKER {workerTs}</div>}
-        <div style={{ marginTop: 4, color: 'var(--dim)' }}>
-          <Clock />
-        </div>
+        <div style={{ marginTop: 4, color: 'var(--dim)' }}><Clock /></div>
+        <button style={footerBtn} onClick={onToggleTheme}>
+          {theme === 'dark' ? '◑ TEMA CLARO' : '◐ TEMA ESCURO'}
+        </button>
         {apiKey && (
-          <button
-            onClick={onChangeKey}
-            style={{
-              marginTop: 8,
-              background: 'none',
-              border: 'none',
-              color: 'var(--dim)',
-              fontFamily: 'var(--font-mono)',
-              fontSize: 9,
-              cursor: 'pointer',
-              padding: 0,
-              letterSpacing: '.1em',
-            }}
-          >
-            ALTERAR KEY
-          </button>
+          <button style={footerBtn} onClick={onChangeKey}>ALTERAR KEY</button>
         )}
       </div>
     </div>
@@ -171,10 +163,10 @@ function Topbar() {
 // App shell
 // ---------------------------------------------------------------------------
 
-function AppShell({ apiKey, onChangeKey, health }) {
+function AppShell({ apiKey, onChangeKey, health, theme, onToggleTheme }) {
   return (
     <div id="shell">
-      <Sidebar health={health} onChangeKey={onChangeKey} apiKey={apiKey} />
+      <Sidebar health={health} onChangeKey={onChangeKey} apiKey={apiKey} theme={theme} onToggleTheme={onToggleTheme} />
       <div className="main">
         <Topbar />
         <div className="content">
@@ -200,6 +192,12 @@ export default function App() {
   const [apiKey, setApiKey] = useState(localStorage.getItem('ft_api_key') || '')
   const [showModal, setShowModal] = useState(!localStorage.getItem('ft_api_key'))
   const [health, setHealth] = useState(null)
+  const [theme, setTheme] = useState(() => localStorage.getItem('ft_theme') || 'light')
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('ft_theme', theme)
+  }, [theme])
 
   const saveKey = (key) => {
     localStorage.setItem('ft_api_key', key)
@@ -222,6 +220,8 @@ export default function App() {
           apiKey={apiKey}
           onChangeKey={() => setShowModal(true)}
           health={health}
+          theme={theme}
+          onToggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
         />
       )}
     </BrowserRouter>
