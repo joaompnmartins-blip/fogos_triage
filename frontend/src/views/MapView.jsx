@@ -77,6 +77,8 @@ export default function MapView({ apiKey }) {
     function setupLayers() {
       if (map.getSource('fires')) return
       map.addSource('fires', { type: 'geojson', data: fireDataRef.current })
+
+      // Glow (all fires)
       map.addLayer({
         id: 'fires-glow',
         type: 'circle',
@@ -88,6 +90,9 @@ export default function MapView({ apiKey }) {
           'circle-blur': 1,
         },
       })
+
+      // Main dot (all fires, priority color)
+      // Agrícola (3105): anel dourado; outros: anel branco subtil
       map.addLayer({
         id: 'fires-dot',
         type: 'circle',
@@ -95,9 +100,31 @@ export default function MapView({ apiKey }) {
         paint: {
           'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 5, 10, 10, 14, 16],
           'circle-color': priorityColorExpr,
-          'circle-stroke-width': 1.5,
-          'circle-stroke-color': 'rgba(255,255,255,0.25)',
+          'circle-stroke-width': ['match', ['get', 'natureza_code'],
+            3105, 2.5,
+            3109, 0,
+            1.5,
+          ],
+          'circle-stroke-color': ['match', ['get', 'natureza_code'],
+            3105, 'rgba(255,200,0,0.90)',
+            'rgba(255,255,255,0.25)',
+          ],
           'circle-opacity': 0.92,
+        },
+      })
+
+      // Anel exterior para Gestão de Combustível (3109) — cria aspeto ⊙
+      map.addLayer({
+        id: 'fires-gc-ring',
+        type: 'circle',
+        source: 'fires',
+        filter: ['==', ['get', 'natureza_code'], 3109],
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 9, 10, 16, 14, 24],
+          'circle-color': 'rgba(0,0,0,0)',
+          'circle-stroke-width': 1.5,
+          'circle-stroke-color': priorityColorExpr,
+          'circle-opacity': 1,
         },
       })
     }
@@ -210,6 +237,24 @@ export default function MapView({ apiKey }) {
           <div className="map-legend-item" style={{ marginTop: 4 }}>
             <div className="map-legend-dot" style={{ background: '#888888' }} />
             <span>Sem triagem</span>
+          </div>
+        </div>
+
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)', letterSpacing: '.08em', textTransform: 'uppercase', marginTop: 10, marginBottom: 6 }}>
+          Tipo
+        </div>
+        <div className="map-legend">
+          <div className="map-legend-item">
+            <div className="map-legend-dot" style={{ background: 'var(--muted)' }} />
+            <span>Florestal / Mato</span>
+          </div>
+          <div className="map-legend-item">
+            <div className="map-legend-dot" style={{ background: 'var(--muted)', outline: '1.5px solid var(--muted)', outlineOffset: '2px' }} />
+            <span>Gestão Combustível</span>
+          </div>
+          <div className="map-legend-item">
+            <div className="map-legend-dot" style={{ background: 'var(--muted)', outline: '2px solid rgba(255,200,0,0.85)', outlineOffset: '1px' }} />
+            <span>Agrícola</span>
           </div>
         </div>
 
