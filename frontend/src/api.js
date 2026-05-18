@@ -1,0 +1,63 @@
+// Em dev, o Vite faz proxy /api → Railway. Em produção, usa VITE_API_URL direto.
+const API_BASE = import.meta.env.DEV
+  ? '/api'
+  : (import.meta.env.VITE_API_URL || '')
+
+function auth(apiKey) {
+  return { Authorization: `Bearer ${apiKey}` }
+}
+
+async function get(path, apiKey, params) {
+  const url = new URL(`${API_BASE}${path}`, window.location.origin)
+  if (params) {
+    Object.entries(params).forEach(([k, v]) => {
+      if (v != null && v !== '') url.searchParams.set(k, v)
+    })
+  }
+  const res = await fetch(url.toString(), {
+    headers: apiKey ? auth(apiKey) : {},
+  })
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText)
+    throw new Error(`${res.status}: ${text}`)
+  }
+  return res.json()
+}
+
+export async function fetchHealth() {
+  try {
+    const res = await fetch(`${API_BASE}/health`)
+    if (!res.ok) return null
+    return res.json()
+  } catch {
+    return null
+  }
+}
+
+export async function fetchFires(apiKey, { limit = 50, cursor, district, minPriority, onlyTriaged } = {}) {
+  return get('/fires', apiKey, {
+    limit,
+    cursor,
+    district: district || undefined,
+    min_priority: minPriority || undefined,
+    only_triaged: onlyTriaged ? 'true' : undefined,
+  })
+}
+
+export async function fetchFiresGeo(apiKey, { minLat = 30, minLng = -32, maxLat = 42.5, maxLng = -5.5 } = {}) {
+  return get('/fires/geo/within', apiKey, {
+    min_lat: minLat,
+    min_lng: minLng,
+    max_lat: maxLat,
+    max_lng: maxLng,
+    only_active: 'true',
+  })
+}
+
+export async function fetchFireDetail(apiKey, fireId) {
+  return get(`/fires/${encodeURIComponent(fireId)}`, apiKey)
+}
+
+export async function fetchFireHistory(apiKey, fireId) {
+  return get(`/fires/${encodeURIComponent(fireId)}/history`, apiKey)
+}
