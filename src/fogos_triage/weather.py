@@ -57,12 +57,10 @@ async def fetch_open_meteo(
             "precipitation",
             "cloud_cover",
         ]),
-        "daily": "fire_weather_index",
         "models": "best_match",
         "forecast_days": 2,
         "timezone": "Europe/Lisbon",
         "wind_speed_unit": "ms",
-        # daily=fire_weather_index não está disponível no modelo best_match
     }
 
     own_client = client is None
