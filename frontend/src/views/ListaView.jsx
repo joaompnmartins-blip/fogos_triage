@@ -19,7 +19,7 @@ function FireCard({ fire, onClick }) {
       style={{ '--card-color': priorityColor }}
     >
       <div className="fire-card-header">
-        <div className="fire-card-id">{fire.fire_id.slice(0, 18)}</div>
+        <div className="fire-card-id">{fire.fire_id}</div>
         <div className="fire-card-name">
           {[fire.municipality, fire.district].filter(Boolean).join(' · ')}
         </div>

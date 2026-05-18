@@ -386,7 +386,7 @@ input, select, textarea { font: inherit; }
 
 .fire-card-id {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
   margin-bottom: 3px;
 }
