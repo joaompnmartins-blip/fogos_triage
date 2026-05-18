@@ -113,6 +113,15 @@ class OccurrenceRepository:
                         NOW(), $32
                     )
                     ON CONFLICT (fire_id) DO UPDATE SET
+                        -- Actualizar coordenadas se a fogos.pt as corrigiu
+                        geom = EXCLUDED.geom,
+                        latitude = EXCLUDED.latitude,
+                        longitude = EXCLUDED.longitude,
+                        has_reliable_coords = EXCLUDED.has_reliable_coords,
+                        location_text = EXCLUDED.location_text,
+                        district = EXCLUDED.district,
+                        municipality = EXCLUDED.municipality,
+                        parish = EXCLUDED.parish,
                         status_code = EXCLUDED.status_code,
                         status_name = EXCLUDED.status_name,
                         is_active = EXCLUDED.is_active,
