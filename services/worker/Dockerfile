@@ -25,6 +25,7 @@ RUN pip install --no-cache-dir \
     curl_cffi \
     rasterio \
     scikit-learn \
+    boto3 \
     git+https://github.com/forefireAPI/wildfire_ROS_models.git \
     && pip install --no-cache-dir -e .
 

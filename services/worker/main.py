@@ -19,6 +19,11 @@ Variáveis de ambiente:
 - POLL_INTERVAL_S: segundos entre polls (default 120)
 - TRIAGE_MAX_AGE_MIN: minutos a partir dos quais re-triar (default 15)
 - LOG_LEVEL: DEBUG/INFO/WARNING/ERROR
+- R2_ACCOUNT_ID: Cloudflare Account ID (para download dos TIFFs no arranque)
+- R2_ACCESS_KEY_ID: R2 API Token Access Key ID
+- R2_SECRET_ACCESS_KEY: R2 API Token Secret Access Key
+- R2_BUCKET: nome do bucket R2 (default: fogos-landscape)
+- R2_PREFIX: prefixo dos TIFFs no bucket (default: landscape/)
 """
 from __future__ import annotations
 
@@ -58,6 +63,81 @@ class WorkerConfig:
         self.log_level = os.environ.get("LOG_LEVEL", "INFO")
         # Modo desenvolvimento — sem landscape real, usa mock
         self.dev_mode = os.environ.get("DEV_MODE", "false").lower() == "true"
+        # Cloudflare R2 — download dos TIFFs no arranque
+        self.r2_account_id = os.environ.get("R2_ACCOUNT_ID")
+        self.r2_access_key_id = os.environ.get("R2_ACCESS_KEY_ID")
+        self.r2_secret_access_key = os.environ.get("R2_SECRET_ACCESS_KEY")
+        self.r2_bucket = os.environ.get("R2_BUCKET", "fogos-landscape")
+        self.r2_prefix = os.environ.get("R2_PREFIX", "landscape/")
+
+
+_LANDSCAPE_TIFS = [
+    "Altitude.tif",
+    "declive.tif",
+    "Exposicao.tif",
+    "modelos_combustivel.tif",
+    "Altura_Povoamento.tif",
+    "cobertura_copa.tif",
+    "altura_base_copa.tif",
+    "densidade_copas.tif",
+]
+
+
+def ensure_landscape(config: WorkerConfig) -> None:
+    """
+    Garante que os TIFFs da Landscape File estão presentes em LANDSCAPE_DIR.
+
+    Se algum ficheiro faltar e as credenciais R2 estiverem configuradas,
+    descarrega do bucket Cloudflare R2. Bloqueia o arranque do worker até
+    o download estar completo.
+
+    Não faz nada em dev_mode ou se LANDSCAPE_DIR não estiver definido.
+    """
+    if config.dev_mode or not config.landscape_dir:
+        return
+
+    landscape_path = Path(config.landscape_dir)
+    landscape_path.mkdir(parents=True, exist_ok=True)
+
+    missing = [f for f in _LANDSCAPE_TIFS if not (landscape_path / f).exists()]
+    if not missing:
+        log.info(f"Landscape: {len(_LANDSCAPE_TIFS)} TIFFs presentes em {landscape_path}")
+        return
+
+    log.info(f"Landscape: {len(missing)} TIFFs em falta — {missing}")
+
+    if not all([config.r2_account_id, config.r2_access_key_id, config.r2_secret_access_key]):
+        raise RuntimeError(
+            f"TIFFs em falta em {landscape_path} e credenciais R2 não configuradas. "
+            f"Definir R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY "
+            f"ou usar DEV_MODE=true."
+        )
+
+    try:
+        import boto3
+        from botocore.config import Config as BotoConfig
+    except ImportError:
+        raise RuntimeError("boto3 não instalado — necessário para download dos TIFFs do R2")
+
+    endpoint = f"https://{config.r2_account_id}.r2.cloudflarestorage.com"
+    s3 = boto3.client(
+        "s3",
+        endpoint_url=endpoint,
+        aws_access_key_id=config.r2_access_key_id,
+        aws_secret_access_key=config.r2_secret_access_key,
+        config=BotoConfig(signature_version="s3v4"),
+    )
+
+    prefix = config.r2_prefix.rstrip("/") + "/"
+    for filename in missing:
+        key = f"{prefix}{filename}"
+        dest = landscape_path / filename
+        log.info(f"  A descarregar {key} → {dest} ...")
+        s3.download_file(config.r2_bucket, key, str(dest))
+        size_mb = dest.stat().st_size / 1_048_576
+        log.info(f"  {filename} — {size_mb:.0f} MB")
+
+    log.info("Landscape: download completo")
 
 
 @asynccontextmanager
@@ -300,6 +380,9 @@ async def run_worker():
     log.info(f"poll_interval={config.poll_interval_s}s "
              f"triage_max_age={config.triage_max_age_min}min "
              f"dev_mode={config.dev_mode}")
+
+    # Garantir TIFFs presentes (download do R2 se necessário)
+    ensure_landscape(config)
 
     # Sinal de paragem (Ctrl-C, SIGTERM do Railway/Docker)
     stop_event = asyncio.Event()
