@@ -71,6 +71,50 @@ class WorkerConfig:
         self.r2_prefix = os.environ.get("R2_PREFIX", "landscape/")
 
 
+_MIGRATIONS_DIR = Path(__file__).parent.parent.parent / "migrations"
+
+_MIGRATIONS = [
+    "001_initial_schema.sql",
+    "002_add_fwi.sql",
+]
+
+
+async def run_migrations(database_url: str) -> None:
+    """
+    Aplica as migrations em ordem, com retry até o Postgres estar pronto.
+    Idempotente — usa IF NOT EXISTS em todo o DDL.
+    """
+    import asyncpg
+
+    log.info("A aplicar migrations...")
+    conn = None
+    last_err = None
+    for attempt in range(1, 31):
+        try:
+            conn = await asyncpg.connect(database_url)
+            break
+        except Exception as exc:
+            last_err = exc
+            log.info(f"Postgres ainda não disponível (tentativa {attempt}): {exc}")
+            await asyncio.sleep(2)
+
+    if conn is None:
+        raise RuntimeError(f"Não foi possível ligar ao Postgres para migrations: {last_err}")
+
+    try:
+        for filename in _MIGRATIONS:
+            path = _MIGRATIONS_DIR / filename
+            if not path.exists():
+                log.warning(f"Migration não encontrada: {path}")
+                continue
+            await conn.execute(path.read_text())
+            log.info(f"  {filename} — ok")
+    finally:
+        await conn.close()
+
+    log.info("Migrations concluídas")
+
+
 _LANDSCAPE_TIFS = [
     "Altitude.tif",
     "declive.tif",
@@ -383,6 +427,9 @@ async def run_worker():
 
     # Garantir TIFFs presentes (download do R2 se necessário)
     ensure_landscape(config)
+
+    # Correr migrations antes de tudo o resto
+    await run_migrations(config.database_url)
 
     # Sinal de paragem (Ctrl-C, SIGTERM do Railway/Docker)
     stop_event = asyncio.Event()
