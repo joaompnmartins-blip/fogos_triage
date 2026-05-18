@@ -130,6 +130,9 @@ export default function MapView({ apiKey }) {
     }
     setupLayersFnRef.current = setupLayers
 
+    // Re-add fires source/layers every time a new style is loaded (initial + basemap switches)
+    map.on('style.load', () => setupLayersFnRef.current?.())
+
     async function loadFires() {
       try {
         const geojson = await fetchFiresGeo(apiKey, PT_BBOX)
@@ -177,10 +180,7 @@ export default function MapView({ apiKey }) {
       popup.remove()
     })
 
-    map.on('load', () => {
-      setupLayers()
-      loadFires()
-    })
+    map.on('load', loadFires)
 
     const interval = setInterval(loadFires, 120_000)
 
@@ -198,9 +198,7 @@ export default function MapView({ apiKey }) {
     const map = mapRef.current
     if (!map) return
     const style = basemap === 'satellite' ? SATELLITE_STYLE : OSM_STYLE
-    // Register BEFORE setStyle to avoid missing the event on inline styles
-    map.once('style.load', () => setupLayersFnRef.current?.())
-    map.setStyle(style)
+    map.setStyle(style, { diff: false })
   }, [basemap])
 
   return (
