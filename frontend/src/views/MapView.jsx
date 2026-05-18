@@ -42,6 +42,7 @@ export default function MapView({ apiKey }) {
   const mapRef = useRef(null)
   const fireDataRef = useRef({ type: 'FeatureCollection', features: [] })
   const setupLayersFnRef = useRef(null)
+  const basemapInitRef = useRef(true)  // skip first run of basemap effect
   const navigate = useNavigate()
   const [basemap, setBasemap] = useState('osm')
   const [fireCount, setFireCount] = useState(null)
@@ -164,13 +165,15 @@ export default function MapView({ apiKey }) {
     }
   }, [apiKey]) // eslint-disable-line
 
-  // Basemap switching
+  // Basemap switching — skip first render (map already initialised with OSM)
   useEffect(() => {
+    if (basemapInitRef.current) { basemapInitRef.current = false; return }
     const map = mapRef.current
     if (!map) return
     const style = basemap === 'satellite' ? SATELLITE_STYLE : OSM_STYLE
-    map.setStyle(style)
+    // Register BEFORE setStyle to avoid missing the event on inline styles
     map.once('style.load', () => setupLayersFnRef.current?.())
+    map.setStyle(style)
   }, [basemap])
 
   return (
