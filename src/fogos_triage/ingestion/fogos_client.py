@@ -98,11 +98,12 @@ class StatusCode(IntEnum):
     CONCLUSAO = 8
 
 
-# Naturezas que disparam triagem completa (excluem queimadas controladas)
+# Naturezas que disparam triagem completa
 TRIAGE_RELEVANT_NATUREZAS = {
     NaturezaCode.POVOAMENTO_FLORESTAL,
     NaturezaCode.MATO,
     NaturezaCode.AGRICOLA,
+    NaturezaCode.GESTAO_COMBUSTIVEL,
 }
 
 

@@ -94,9 +94,9 @@ Estas foram descobertas a testar — não são óbvias a olhar para o código:
    internamente e não as expõe.** Queries contra a VIEW não podem referir
    essas colunas. Queries contra a TABELA `occurrences` podem.
 
-6. **Naturezas relevantes para triagem:** só 3101 (Povoamento Florestal),
-   3103 (Mato), 3105 (Agrícola). As de queimada/prevenção (3109, 3111,
-   4335) NÃO disparam triagem — é por design, não é bug.
+6. **Naturezas relevantes para triagem:** 3101 (Povoamento Florestal),
+   3103 (Mato), 3105 (Agrícola), 3109 (Gestão de Combustível). As de
+   queimada/prevenção (3111, 4335) NÃO disparam triagem — é por design.
 
 ## Meteorologia
 
