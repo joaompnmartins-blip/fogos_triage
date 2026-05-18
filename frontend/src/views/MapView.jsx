@@ -26,8 +26,8 @@ const SATELLITE_STYLE = {
     satellite: {
       type: 'raster',
       tiles: [
-        'https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-        'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+        'https://mt0.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+        'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
       ],
       tileSize: 256,
       attribution: '© Google',
