@@ -186,8 +186,12 @@ def _init_ee() -> bool:
 
         ee.Initialize(creds)
         _ee_initialized = True
+        import logging
+        logging.getLogger(__name__).info("GEE Earth Engine inicializado com sucesso")
         return True
-    except Exception:
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning(f"GEE inicialização falhou: {exc}")
         return False
 
 
