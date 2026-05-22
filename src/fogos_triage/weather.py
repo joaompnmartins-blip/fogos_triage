@@ -228,12 +228,19 @@ def _viirs_fmc_sync(
         end_date = date.strftime('%Y-%m-%d')
         start_date = (date - timedelta(days=16)).strftime('%Y-%m-%d')
 
-        # NDVI — bandas I1 (red, 640nm) e I2 (NIR, 865nm); escala cancela no rácio
+        # NDVI — bandas I1 (red) e I2 (NIR); fill=28672, válido 0-10000
+        def _mask_vnp09(img):
+            i1 = img.select('I1')
+            i2 = img.select('I2')
+            return img.updateMask(
+                i1.gte(0).And(i1.lte(10000)).And(i2.gte(0)).And(i2.lte(10000))
+            )
         vnp09 = (
             ee.ImageCollection('NASA/VIIRS/002/VNP09GA')
             .filterDate(start_date, end_date)
             .filterBounds(point)
             .select(['I1', 'I2'])
+            .map(_mask_vnp09)
             .mean()
         )
         ndvi_img = (
@@ -242,15 +249,18 @@ def _viirs_fmc_sync(
             .rename('ndvi')
         )
 
-        # LST — escala 0.02 K/DN → converter para °C
-        vnp21 = (
+        # LST — escala 0.02 K/DN → °C; fill=0 (gera -273°C sem máscara)
+        lst_img = (
             ee.ImageCollection('NASA/VIIRS/002/VNP21A1D')
             .filterDate(start_date, end_date)
             .filterBounds(point)
             .select(['LST_1KM'])
+            .map(lambda img: img.updateMask(img.select('LST_1KM').gt(7500)))
             .mean()
+            .multiply(0.02)
+            .subtract(273.15)
+            .rename('lst_c')
         )
-        lst_img = vnp21.multiply(0.02).subtract(273.15).rename('lst_c')
 
         vals = (
             ndvi_img.addBands(lst_img)
