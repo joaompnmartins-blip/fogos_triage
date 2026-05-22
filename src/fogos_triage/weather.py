@@ -205,7 +205,7 @@ def _viirs_fmc_sync(
 
     NDVI: VNP09GA (NASA/VIIRS/002/VNP09GA), bandas I1 (red) e I2 (NIR).
           Escala de reflectância (0.0001) cancela no rácio NDVI.
-    LST : VNP21A1D (NASA/VIIRS/002/VNP21A1D), banda LST_1KM.
+    LST : MOD11A1 (MODIS/061/MOD11A1), banda LST_Day_1km.
     Janela temporal: 16 dias antes de `date`.
 
     Correção sazonal para anos Normais (Yebra 2007):
@@ -249,13 +249,13 @@ def _viirs_fmc_sync(
             .rename('ndvi')
         )
 
-        # LST — escala 0.02 K/DN → °C; fill=0 (gera -273°C sem máscara)
+        # LST — MODIS MOD11A1 (diário, 1km); escala 0.02 K/DN; fill=0
         lst_img = (
-            ee.ImageCollection('NASA/VIIRS/002/VNP21A1D')
+            ee.ImageCollection('MODIS/061/MOD11A1')
             .filterDate(start_date, end_date)
             .filterBounds(point)
-            .select(['LST_1KM'])
-            .map(lambda img: img.updateMask(img.select('LST_1KM').gt(7500)))
+            .select(['LST_Day_1km'])
+            .map(lambda img: img.updateMask(img.select('LST_Day_1km').gt(7500)))
             .mean()
             .multiply(0.02)
             .subtract(273.15)
