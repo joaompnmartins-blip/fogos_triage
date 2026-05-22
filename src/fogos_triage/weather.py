@@ -203,7 +203,7 @@ def _viirs_fmc_sync(
     """
     Estima humidade dos combustíveis vivos por VIIRS + Yebra 2007.
 
-    NDVI: VNP09GA (NASA/VIIRS/002/VNP09GA), bandas I1/I2.
+    NDVI: NOAA/CDR/VIIRS/NDVI/V1, banda NDVI directa (escala 0.0001).
     LST : VNP21A1D (NASA/VIIRS/002/VNP21A1D), banda LST_1KM.
     Janela temporal: 16 dias antes de `date`.
 
@@ -227,18 +227,16 @@ def _viirs_fmc_sync(
         end_date = date.strftime('%Y-%m-%d')
         start_date = (date - timedelta(days=16)).strftime('%Y-%m-%d')
 
-        # NDVI — bandas I1 (red, 640nm) e I2 (NIR, 865nm)
-        # Escala de reflectância (0.0001) cancela no rácio
-        vnp09 = (
-            ee.ImageCollection('NASA/VIIRS/002/VNP09GA')
+        # NDVI — NOAA/CDR/VIIRS/NDVI/V1 tem banda NDVI directa (int16, escala 0.0001)
+        ndvi_img = (
+            ee.ImageCollection('NOAA/CDR/VIIRS/NDVI/V1')
             .filterDate(start_date, end_date)
             .filterBounds(point)
-            .select(['SurfReflect_I1', 'SurfReflect_I2'])
+            .select(['NDVI'])
             .mean()
+            .multiply(0.0001)
+            .rename('ndvi')
         )
-        i1 = vnp09.select('SurfReflect_I1')
-        i2 = vnp09.select('SurfReflect_I2')
-        ndvi_img = i2.subtract(i1).divide(i2.add(i1)).rename('ndvi')
 
         # LST — escala 0.02 K/DN → converter para °C
         vnp21 = (
@@ -262,8 +260,6 @@ def _viirs_fmc_sync(
         )
 
         import logging as _log
-        _log.getLogger(__name__).info(f"GEE vals: {vals}")
-
         ndvi = vals.get('ndvi')
         lst_c = vals.get('lst_c')
         if ndvi is None or lst_c is None:
