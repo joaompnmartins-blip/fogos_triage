@@ -254,16 +254,20 @@ def _viirs_fmc_sync(
             ndvi_img.addBands(lst_img)
             .reduceRegion(
                 reducer=ee.Reducer.mean(),
-                geometry=point,
-                scale=1000,
-                maxPixels=1,
+                geometry=point.buffer(1000),
+                scale=500,
+                maxPixels=100,
             )
             .getInfo()
         )
 
+        import logging as _log
+        _log.getLogger(__name__).info(f"GEE vals: {vals}")
+
         ndvi = vals.get('ndvi')
         lst_c = vals.get('lst_c')
         if ndvi is None or lst_c is None:
+            _log.getLogger(__name__).warning(f"GEE sem dados: ndvi={ndvi} lst_c={lst_c}")
             return None
 
         # Correção sazonal — anos Normais (Yebra 2007 Eq. 3 e 4)
@@ -278,7 +282,9 @@ def _viirs_fmc_sync(
             float(max(0.0, min(250.0, fmc_grass))),
             float(max(0.0, min(250.0, fmc_shrub))),
         )
-    except Exception:
+    except Exception as exc:
+        import logging as _log
+        _log.getLogger(__name__).warning(f"GEE _viirs_fmc_sync falhou: {exc}")
         return None
 
 
