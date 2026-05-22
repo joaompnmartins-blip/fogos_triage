@@ -360,9 +360,9 @@ async def process_fire(
         )
         if live_fmc:
             live_h_pct, live_w_pct = live_fmc
-            log.debug(f"{fire.fire_id} — LFMC herbáceo={live_h_pct:.0f}% lenhoso={live_w_pct:.0f}%")
+            log.info(f"{fire.fire_id} — LFMC herbáceo={live_h_pct:.0f}% lenhoso={live_w_pct:.0f}%")
     except Exception as exc:
-        log.debug(f"GEE LFMC falhou para {fire.fire_id}: {exc}")
+        log.warning(f"GEE LFMC falhou para {fire.fire_id}: {exc}")
 
     weather = derive_fire_weather(
         weather_raw,
@@ -445,6 +445,10 @@ async def run_worker():
     log.info(f"poll_interval={config.poll_interval_s}s "
              f"triage_max_age={config.triage_max_age_min}min "
              f"dev_mode={config.dev_mode}")
+    if config.gee_service_account:
+        log.info(f"GEE configurado: {config.gee_service_account}")
+    else:
+        log.info("GEE não configurado — live FMC usa fallback sazonal (60%/80%)")
 
     # Garantir TIFFs presentes (download do R2 se necessário)
     ensure_landscape(config)
