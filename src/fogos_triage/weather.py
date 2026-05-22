@@ -176,13 +176,13 @@ def _init_ee() -> bool:
         if key_file:
             creds = ee.ServiceAccountCredentials(service_account, key_file)
         else:
-            import tempfile
-            with tempfile.NamedTemporaryFile(
-                mode='w', suffix='.json', delete=False
-            ) as fh:
-                fh.write(key_json)
-                tmp_path = fh.name
-            creds = ee.ServiceAccountCredentials(service_account, tmp_path)
+            import json
+            from google.oauth2 import service_account as gsa
+            key_data = json.loads(key_json)
+            creds = gsa.Credentials.from_service_account_info(
+                key_data,
+                scopes=['https://www.googleapis.com/auth/earthengine'],
+            )
 
         ee.Initialize(creds)
         _ee_initialized = True
