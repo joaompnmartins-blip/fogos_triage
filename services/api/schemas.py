@@ -145,6 +145,10 @@ class TriageDetail(BaseModel):
     wind_midflame_ms: Optional[float]
     wind_adjustment_factor: Optional[float]
     fuel_moisture_1h_pct: Optional[float]
+    fuel_moisture_10h_pct: Optional[float]
+    fuel_moisture_100h_pct: Optional[float]
+    fuel_moisture_live_h_pct: Optional[float]
+    fuel_moisture_live_w_pct: Optional[float]
     scenarios: list[FireBehaviorDetail]
     notes: list[str] = Field(default_factory=list)
 

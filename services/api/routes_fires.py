@@ -376,6 +376,10 @@ async def get_fire_detail(
             wind_midflame_ms=tri["wind_midflame_ms"],
             wind_adjustment_factor=tri["wind_adjustment_factor"],
             fuel_moisture_1h_pct=tri["fuel_moisture_1h_pct"],
+            fuel_moisture_10h_pct=tri["fuel_moisture_10h_pct"],
+            fuel_moisture_100h_pct=tri["fuel_moisture_100h_pct"],
+            fuel_moisture_live_h_pct=tri["fuel_moisture_live_h_pct"],
+            fuel_moisture_live_w_pct=tri["fuel_moisture_live_w_pct"],
             scenarios=scenarios,
             notes=tri["notes"] or [],
         )

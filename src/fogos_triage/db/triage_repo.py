@@ -57,11 +57,14 @@ class TriageResultRepository:
                         central_flame_length_m, central_fire_type, central_direction_deg,
                         scenarios_json, priority_class, priority_score,
                         wind_midflame_ms, wind_adjustment_factor,
-                        fuel_moisture_1h_pct, notes
+                        fuel_moisture_1h_pct, fuel_moisture_10h_pct,
+                        fuel_moisture_100h_pct, fuel_moisture_live_h_pct,
+                        fuel_moisture_live_w_pct, notes
                     )
                     VALUES (
                         $1, $2, $3, $4, $5, $6, $7, $8, $9,
-                        $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21
+                        $10, $11, $12, $13, $14, $15, $16, $17, $18, $19,
+                        $20, $21, $22, $23, $24
                     )
                     RETURNING id
                     """,
@@ -85,6 +88,10 @@ class TriageResultRepository:
                     result.weather.wind_midflame_ms,
                     result.wind_adjustment_factor,
                     result.weather.fuel_moisture_1h_pct,
+                    result.weather.fuel_moisture_10h_pct,
+                    result.weather.fuel_moisture_100h_pct,
+                    result.weather.fuel_moisture_live_h_pct,
+                    result.weather.fuel_moisture_live_w_pct,
                     result.notes,
                 )
                 return row["id"]

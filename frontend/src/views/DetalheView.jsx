@@ -228,14 +228,43 @@ export default function DetalheView({ apiKey }) {
             {wx.precipitation_mm_24h != null && (
               <InfoRow label="Precipitação 24h" value={fmt(wx.precipitation_mm_24h, 1)} unit="mm" />
             )}
-            {t?.fuel_moisture_1h_pct != null && (
-              <InfoRow label="Hum. combustível 1h" value={fmt(t.fuel_moisture_1h_pct, 1)} unit="%" />
-            )}
             {t?.wind_midflame_ms != null && (
               <InfoRow label="Vento midflame" value={fmt(t.wind_midflame_ms * 3.6, 1)} unit="km/h" />
             )}
             {wx.fire_weather_index != null && (
               <InfoRow label="FWI" value={fmt(wx.fire_weather_index, 1)} color="var(--warn)" />
+            )}
+          </div>
+        )}
+
+        {/* Humidades dos combustíveis */}
+        {t && (t.fuel_moisture_1h_pct != null || t.fuel_moisture_live_h_pct != null) && (
+          <div className="detail-card">
+            <div className="detail-card-title">Humidade dos Combustíveis</div>
+            {t.fuel_moisture_1h_pct != null && (
+              <InfoRow label="Morto 1h" value={fmt(t.fuel_moisture_1h_pct, 1)} unit="%" />
+            )}
+            {t.fuel_moisture_10h_pct != null && (
+              <InfoRow label="Morto 10h" value={fmt(t.fuel_moisture_10h_pct, 1)} unit="%" />
+            )}
+            {t.fuel_moisture_100h_pct != null && (
+              <InfoRow label="Morto 100h" value={fmt(t.fuel_moisture_100h_pct, 1)} unit="%" />
+            )}
+            {t.fuel_moisture_live_h_pct != null && (
+              <InfoRow
+                label="Vivo herbáceo"
+                value={fmt(t.fuel_moisture_live_h_pct, 0)}
+                unit="%"
+                color={t.fuel_moisture_live_h_pct < 80 ? 'var(--danger)' : t.fuel_moisture_live_h_pct < 120 ? 'var(--warn)' : undefined}
+              />
+            )}
+            {t.fuel_moisture_live_w_pct != null && (
+              <InfoRow
+                label="Vivo lenhoso"
+                value={fmt(t.fuel_moisture_live_w_pct, 0)}
+                unit="%"
+                color={t.fuel_moisture_live_w_pct < 80 ? 'var(--danger)' : t.fuel_moisture_live_w_pct < 120 ? 'var(--warn)' : undefined}
+              />
             )}
           </div>
         )}
