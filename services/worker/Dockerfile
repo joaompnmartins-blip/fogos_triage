@@ -26,6 +26,7 @@ RUN pip install --no-cache-dir \
     rasterio \
     scikit-learn \
     boto3 \
+    earthengine-api \
     git+https://github.com/forefireAPI/wildfire_ROS_models.git \
     && pip install --no-cache-dir -e .
 

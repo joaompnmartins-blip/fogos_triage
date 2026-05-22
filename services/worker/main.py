@@ -44,7 +44,7 @@ from fogos_triage.ingestion.fogos_client import FogosFire, fetch_fires
 from fogos_triage.landscape import LandscapeRasters, LandscapeReader, MockLandscapeReader
 from fogos_triage.schemas import TerrainConditions
 from fogos_triage.triage import triage_occurrence
-from fogos_triage.weather import derive_fire_weather, fetch_open_meteo
+from fogos_triage.weather import derive_fire_weather, fetch_live_fmc_viirs, fetch_open_meteo
 
 log = logging.getLogger(__name__)
 
@@ -69,6 +69,11 @@ class WorkerConfig:
         self.r2_secret_access_key = os.environ.get("R2_SECRET_ACCESS_KEY")
         self.r2_bucket = os.environ.get("R2_BUCKET", "fogos-landscape")
         self.r2_prefix = os.environ.get("R2_PREFIX", "landscape/")
+        # Google Earth Engine — live fuel moisture via VIIRS (Yebra 2007)
+        # Opcional: sem estas variáveis, usa fallback sazonal (60%/80%)
+        self.gee_service_account = os.environ.get("GEE_SERVICE_ACCOUNT")
+        self.gee_key_file = os.environ.get("GEE_KEY_FILE")
+        self.gee_key_json = os.environ.get("GEE_KEY_JSON")
 
 
 _MIGRATIONS_DIR = Path(__file__).parent.parent.parent / "migrations"
@@ -345,11 +350,27 @@ async def process_fire(
         except Exception as exc:
             log.warning(f"Não guardou snapshot meteo de {fire.fire_id}: {exc}")
 
+    # Live fuel moisture via VIIRS/GEE (Yebra 2007)
+    live_h_pct: Optional[float] = None
+    live_w_pct: Optional[float] = None
+    try:
+        live_fmc = await fetch_live_fmc_viirs(
+            fire.latitude, fire.longitude,
+            weather_raw.timestamp or datetime.now(timezone.utc),
+        )
+        if live_fmc:
+            live_h_pct, live_w_pct = live_fmc
+            log.debug(f"{fire.fire_id} — LFMC herbáceo={live_h_pct:.0f}% lenhoso={live_w_pct:.0f}%")
+    except Exception as exc:
+        log.debug(f"GEE LFMC falhou para {fire.fire_id}: {exc}")
+
     weather = derive_fire_weather(
         weather_raw,
         stand_height_m=terrain.stand_height_m or 0,
         canopy_cover_pct=terrain.canopy_cover_pct or 0,
         has_overstory=(terrain.canopy_cover_pct or 0) > 10,
+        live_h_pct=live_h_pct,
+        live_w_pct=live_w_pct,
     )
 
     try:
