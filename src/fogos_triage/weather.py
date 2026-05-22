@@ -203,7 +203,8 @@ def _viirs_fmc_sync(
     """
     Estima humidade dos combustíveis vivos por VIIRS + Yebra 2007.
 
-    NDVI: NOAA/CDR/VIIRS/NDVI/V1, banda NDVI directa (escala 0.0001).
+    NDVI: VNP09GA (NASA/VIIRS/002/VNP09GA), bandas I1 (red) e I2 (NIR).
+          Escala de reflectância (0.0001) cancela no rácio NDVI.
     LST : VNP21A1D (NASA/VIIRS/002/VNP21A1D), banda LST_1KM.
     Janela temporal: 16 dias antes de `date`.
 
@@ -227,14 +228,17 @@ def _viirs_fmc_sync(
         end_date = date.strftime('%Y-%m-%d')
         start_date = (date - timedelta(days=16)).strftime('%Y-%m-%d')
 
-        # NDVI — NOAA/CDR/VIIRS/NDVI/V1 tem banda NDVI directa (int16, escala 0.0001)
-        ndvi_img = (
-            ee.ImageCollection('NOAA/CDR/VIIRS/NDVI/V1')
+        # NDVI — bandas I1 (red, 640nm) e I2 (NIR, 865nm); escala cancela no rácio
+        vnp09 = (
+            ee.ImageCollection('NASA/VIIRS/002/VNP09GA')
             .filterDate(start_date, end_date)
             .filterBounds(point)
-            .select(['NDVI'])
+            .select(['I1', 'I2'])
             .mean()
-            .multiply(0.0001)
+        )
+        ndvi_img = (
+            vnp09.select('I2').subtract(vnp09.select('I1'))
+            .divide(vnp09.select('I2').add(vnp09.select('I1')))
             .rename('ndvi')
         )
 
