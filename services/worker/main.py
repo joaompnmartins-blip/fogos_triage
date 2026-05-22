@@ -81,6 +81,7 @@ _MIGRATIONS_DIR = Path(__file__).parent.parent.parent / "migrations"
 _MIGRATIONS = [
     "001_initial_schema.sql",
     "002_add_fwi.sql",
+    "003_add_fuel_moisture.sql",
 ]
 
 
