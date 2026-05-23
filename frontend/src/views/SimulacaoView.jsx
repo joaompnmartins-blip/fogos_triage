@@ -340,7 +340,7 @@ function _renderLayers(map, result, layer, opacity) {
     'perim-2h-fill', 'perim-2h-line',
     'perim-3h-fill', 'perim-3h-line',
     'perim-6h-fill', 'perim-6h-line',
-  ].forEach(id => { try { map.removeLayer(id) } catch {} })
+  ].forEach(id => { try { map.removeLayer(id) } catch {} });
   ['sim-pixels', 'perim-1h', 'perim-2h', 'perim-3h', 'perim-6h',
   ].forEach(id => { try { map.removeSource(id) } catch {} })
 
