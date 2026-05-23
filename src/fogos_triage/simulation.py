@@ -54,6 +54,7 @@ MAX_SEG_M = 150.0
 MIN_SEG_M = 30.0
 INIT_RADIUS_M = 75.0
 N_INIT_VERTICES = 16
+AA_SURFACE = 0.115  # FARSITE fire acceleration constant (eq. [30])
 
 
 # ---------------------------------------------------------------------------
@@ -103,10 +104,28 @@ def _richards_step(
     x_next: float, y_next: float,
     theta_rad: float,
     a: float, b: float, c: float,
+    slope_rad: float = 0.0,
+    aspect_rad: float = 0.0,
 ) -> tuple[float, float]:
-    """Taxa de propagação (Xt, Yt) em m/min para um vértice do perímetro."""
+    """Taxa de propagação (Xt, Yt) em m/min para um vértice do perímetro.
+
+    Aplica correcção de terreno inclinado (FARSITE eq. [3]-[10]) quando
+    slope_rad > 0.  aspect_rad e slope_rad em radianos, azimute a partir de N.
+    """
     xs = x_prev - x_next
     ys = y_prev - y_next
+
+    # Transformação horizontal → superfície inclinada (FARSITE eq. [3]-[7])
+    if slope_rad > 1e-4:
+        seg_len = math.hypot(xs, ys)
+        if seg_len > 1e-6:
+            cos_slope = math.cos(slope_rad)
+            # ai: azimute do vector normal (ângulo a partir de N = atan2(x_e, y_n))
+            ai = math.atan2(xs, ys)
+            di = math.atan(math.tan(aspect_rad - ai) / cos_slope)
+            Di = seg_len * math.cos(di) * (1.0 - cos_slope)
+            xs += Di * math.sin(aspect_rad)
+            ys += Di * math.cos(aspect_rad)
 
     cos_t = math.cos(theta_rad)
     sin_t = math.sin(theta_rad)
@@ -122,6 +141,15 @@ def _richards_step(
     denom = math.sqrt(denom_sq)
     Xt = (a * a * cos_t * p - b * b * sin_t * q) / denom + c * sin_t
     Yt = (-a * a * sin_t * p - b * b * cos_t * q) / denom + c * cos_t
+
+    # Transformação superfície → horizontal (FARSITE eq. [8]-[10])
+    if slope_rad > 1e-4:
+        spread_len = math.hypot(Xt, Yt)
+        if spread_len > 1e-6:
+            Dr = spread_len * math.cos(aspect_rad - math.atan2(Xt, Yt)) * (1.0 - math.cos(slope_rad))
+            Xt += Dr * math.sin(aspect_rad)
+            Yt += Dr * math.cos(aspect_rad)
+
     return Xt, Yt
 
 
@@ -281,9 +309,11 @@ def _propagate(
     proj_crs = datasets["elevation"].crs
 
     angles = [2 * math.pi * i / N_INIT_VERTICES for i in range(N_INIT_VERTICES)]
+    # Vértices como (x, y, ros_actual) — ros_actual inicia em 0 (fogo acabou de acender)
     verts = [
         (cx_proj + INIT_RADIUS_M * math.sin(a),
-         cy_proj + INIT_RADIUS_M * math.cos(a))
+         cy_proj + INIT_RADIUS_M * math.cos(a),
+         0.0)
         for a in angles
     ]
 
@@ -312,14 +342,14 @@ def _propagate(
         new_verts = []
 
         for i in range(n):
-            x_cur, y_cur = verts[i]
-            x_prev, y_prev = verts[(i - 1) % n]
-            x_next, y_next = verts[(i + 1) % n]
+            x_cur, y_cur, ros_cur = verts[i]
+            x_prev, y_prev, _ = verts[(i - 1) % n]
+            x_next, y_next, _ = verts[(i + 1) % n]
 
             fm, terrain = _sample_terrain_projected(datasets, x_cur, y_cur, fuel_models)
 
             if fm is None or fm.is_empty:
-                new_verts.append((x_cur, y_cur))
+                new_verts.append((x_cur, y_cur, 0.0))
                 continue
 
             try:
@@ -329,12 +359,24 @@ def _propagate(
                     slope_degrees=terrain.slope_degrees,
                 )
             except Exception:
-                new_verts.append((x_cur, y_cur))
+                new_verts.append((x_cur, y_cur, 0.0))
                 continue
 
             if ros_m_min <= 0:
-                new_verts.append((x_cur, y_cur))
+                new_verts.append((x_cur, y_cur, 0.0))
                 continue
+
+            # Aceleração / desaceleração (FARSITE eq. [29]-[33])
+            R_eq = ros_m_min
+            if ros_cur >= R_eq:
+                # Desaceleração instantânea (FARSITE)
+                ros_step = R_eq
+            else:
+                # Aceleração logarítmica: ros_cur = R_eq*(1 - exp(-AA*Tt))
+                frac = ros_cur / R_eq if ros_cur > 1e-9 else 0.0
+                Tt = -math.log(1.0 - frac) / AA_SURFACE if frac > 0.0 else 0.0
+                ros_step = R_eq * (1.0 - math.exp(-AA_SURFACE * (Tt + DT_MIN)))
+                ros_step = min(ros_step, R_eq)
 
             theta_deg = _max_spread_direction_from_phi(
                 wind_direction_deg=wind_dir,
@@ -343,10 +385,16 @@ def _propagate(
                 phi_s=phi_s,
             )
             theta_rad = math.radians(theta_deg)
+            slope_rad = math.radians(terrain.slope_degrees)
+            aspect_rad = math.radians(terrain.aspect_degrees)
 
-            a, b, c = _ellipse_dims(ros_m_min, eff_ms)
-            Xt, Yt = _richards_step(x_prev, y_prev, x_next, y_next, theta_rad, a, b, c)
-            new_verts.append((x_cur + Xt * DT_MIN, y_cur + Yt * DT_MIN))
+            a, b, c = _ellipse_dims(ros_step, eff_ms)
+            Xt, Yt = _richards_step(
+                x_prev, y_prev, x_next, y_next,
+                theta_rad, a, b, c,
+                slope_rad=slope_rad, aspect_rad=aspect_rad,
+            )
+            new_verts.append((x_cur + Xt * DT_MIN, y_cur + Yt * DT_MIN, ros_step))
 
         verts = new_verts
         t += DT_MIN
@@ -392,19 +440,25 @@ def _make_snapshot(verts: list, t_h: float, proj_crs) -> Optional[PerimeterSnaps
 
 
 def _rediscretize(verts: list) -> list:
-    """Insere vértices em segmentos longos; remove em segmentos curtos."""
+    """Insere vértices em segmentos longos; remove em segmentos curtos.
+    Vértices como (x, y, ros_actual); ros interpolado linearmente.
+    """
     n = len(verts)
     result = []
     for i in range(n):
-        x1, y1 = verts[i]
-        x2, y2 = verts[(i + 1) % n]
+        x1, y1, r1 = verts[i]
+        x2, y2, r2 = verts[(i + 1) % n]
         dist = math.hypot(x2 - x1, y2 - y1)
-        result.append((x1, y1))
+        result.append((x1, y1, r1))
         if dist > MAX_SEG_M:
             n_insert = int(dist / MAX_SEG_M)
             for k in range(1, n_insert + 1):
                 frac = k / (n_insert + 1)
-                result.append((x1 + frac * (x2 - x1), y1 + frac * (y2 - y1)))
+                result.append((
+                    x1 + frac * (x2 - x1),
+                    y1 + frac * (y2 - y1),
+                    r1 + frac * (r2 - r1),
+                ))
     cleaned = [result[0]]
     for pt in result[1:]:
         if math.hypot(pt[0] - cleaned[-1][0], pt[1] - cleaned[-1][1]) >= MIN_SEG_M:
@@ -413,18 +467,31 @@ def _rediscretize(verts: list) -> list:
 
 
 def _fix_crossovers(verts: list) -> list:
-    """Usa Shapely para corrigir auto-intersecções; devolve maior componente."""
+    """Usa Shapely para corrigir auto-intersecções; devolve maior componente.
+    Preserva ros_actual (3.º elemento) por vizinho mais próximo após correcção.
+    """
     if not HAS_SHAPELY or len(verts) < 3:
         return verts
     try:
-        poly = Polygon(verts)
+        pts_2d = [(v[0], v[1]) for v in verts]
+        poly = Polygon(pts_2d)
         if not poly.is_valid:
             poly = make_valid(poly)
         if isinstance(poly, MultiPolygon):
             poly = max(poly.geoms, key=lambda p: p.area)
         if poly.is_empty or not isinstance(poly, Polygon):
             return verts
-        return list(poly.exterior.coords[:-1])
+        new_pts = list(poly.exterior.coords[:-1])
+        # Re-atribuir ros_actual pelo vértice original mais próximo
+        result = []
+        for nx, ny in new_pts:
+            best_ros, best_d = 0.0, float('inf')
+            for ox, oy, orx in verts:
+                d = math.hypot(nx - ox, ny - oy)
+                if d < best_d:
+                    best_d, best_ros = d, orx
+            result.append((nx, ny, best_ros))
+        return result
     except Exception:
         return verts
 
