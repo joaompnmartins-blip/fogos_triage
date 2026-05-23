@@ -5,6 +5,8 @@ Composição: lifespan que cria pool Postgres → routers → CORS.
 """
 from __future__ import annotations
 
+import asyncio
+import logging
 from contextlib import asynccontextmanager
 
 import asyncpg
@@ -14,6 +16,9 @@ from fastapi.responses import JSONResponse
 
 from .deps import get_config
 from fogos_triage.db.repository import _init_connection
+from fogos_triage.landscape import ensure_landscape
+
+log = logging.getLogger(__name__)
 from .routes_fires import router as fires_router
 from .routes_meta import (
     router_fuels,
@@ -27,6 +32,25 @@ from .routes_meta import (
 async def lifespan(app: FastAPI):
     """Lifecycle da aplicação: cria pool no arranque, fecha à saída."""
     config = get_config()
+
+    # Garantir TIFFs da Landscape File presentes (download do R2 se necessário).
+    # Só corre se LANDSCAPE_DIR estiver definido (em DEV_MODE normalmente não está).
+    if config.landscape_dir and config.r2_account_id:
+        try:
+            await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: ensure_landscape(
+                    landscape_dir=config.landscape_dir,
+                    r2_account_id=config.r2_account_id,
+                    r2_access_key_id=config.r2_access_key_id,
+                    r2_secret_access_key=config.r2_secret_access_key,
+                    r2_bucket=config.r2_bucket,
+                    r2_prefix=config.r2_prefix,
+                ),
+            )
+        except Exception as exc:
+            log.warning("Landscape download falhou no arranque da API: %s", exc)
+
     # init_pool regista codecs JSON/JSONB — essencial para que as colunas
     # scenarios_json (triage_results) e result_json (simulation_jobs)
     # venham desserializadas como list/dict e não como string.

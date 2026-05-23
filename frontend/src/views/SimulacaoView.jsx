@@ -24,15 +24,15 @@ const SATELLITE_STYLE = {
 }
 
 const ROS_COLOR_EXPR = [
-  'interpolate', ['linear'], ['get', 'ros_m_min'],
+  'interpolate', ['linear'], ['coalesce', ['get', 'ros_m_min'], 0],
   0, '#3b82f6', 1, '#22c55e', 5, '#f97316', 20, '#ef4444',
 ]
 const FLI_COLOR_EXPR = [
-  'interpolate', ['linear'], ['get', 'fi_kw_m'],
+  'interpolate', ['linear'], ['coalesce', ['get', 'fi_kw_m'], 0],
   0, '#3b82f6', 100, '#22c55e', 500, '#f97316', 2000, '#ef4444',
 ]
 const FLAME_COLOR_EXPR = [
-  'interpolate', ['linear'], ['get', 'flame_m'],
+  'interpolate', ['linear'], ['coalesce', ['get', 'flame_m'], 0],
   0, '#3b82f6', 1, '#22c55e', 2.5, '#f97316', 4, '#ef4444',
 ]
 

@@ -23,7 +23,8 @@ RUN pip install --no-cache-dir \
     scikit-learn \
     pydantic \
     rasterio \
-    shapely
+    shapely \
+    boto3
 
 # Copiar código (precisamos do package fogos_triage para fuel_models e schemas)
 COPY pyproject.toml ./

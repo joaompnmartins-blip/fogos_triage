@@ -41,7 +41,9 @@ from fogos_triage.db.triage_repo import TriageResultRepository
 from fogos_triage.fuel_models import load_fuel_models_csv
 from fogos_triage.ingestion.adapters import fogos_to_occurrence
 from fogos_triage.ingestion.fogos_client import FogosFire, fetch_fires
-from fogos_triage.landscape import LandscapeRasters, LandscapeReader, MockLandscapeReader
+from fogos_triage.landscape import (
+    LandscapeRasters, LandscapeReader, MockLandscapeReader, ensure_landscape,
+)
 from fogos_triage.schemas import TerrainConditions
 from fogos_triage.triage import triage_neighbourhood
 from fogos_triage.weather import fetch_live_fmc_viirs, fetch_open_meteo
@@ -121,73 +123,18 @@ async def run_migrations(database_url: str) -> None:
     log.info("Migrations concluídas")
 
 
-_LANDSCAPE_TIFS = [
-    "Altitude.tif",
-    "declive.tif",
-    "Exposicao.tif",
-    "modelos_combustivel.tif",
-    "Altura_Povoamento.tif",
-    "cobertura_copa.tif",
-    "altura_base_copa.tif",
-    "densidade_copas.tif",
-]
-
-
-def ensure_landscape(config: WorkerConfig) -> None:
-    """
-    Garante que os TIFFs da Landscape File estão presentes em LANDSCAPE_DIR.
-
-    Se algum ficheiro faltar e as credenciais R2 estiverem configuradas,
-    descarrega do bucket Cloudflare R2. Bloqueia o arranque do worker até
-    o download estar completo.
-
-    Não faz nada em dev_mode ou se LANDSCAPE_DIR não estiver definido.
-    """
+def _ensure_landscape_worker(config: WorkerConfig) -> None:
+    """Wrapper que adapta WorkerConfig para ensure_landscape() partilhado."""
     if config.dev_mode or not config.landscape_dir:
         return
-
-    landscape_path = Path(config.landscape_dir)
-    landscape_path.mkdir(parents=True, exist_ok=True)
-
-    missing = [f for f in _LANDSCAPE_TIFS if not (landscape_path / f).exists()]
-    if not missing:
-        log.info(f"Landscape: {len(_LANDSCAPE_TIFS)} TIFFs presentes em {landscape_path}")
-        return
-
-    log.info(f"Landscape: {len(missing)} TIFFs em falta — {missing}")
-
-    if not all([config.r2_account_id, config.r2_access_key_id, config.r2_secret_access_key]):
-        raise RuntimeError(
-            f"TIFFs em falta em {landscape_path} e credenciais R2 não configuradas. "
-            f"Definir R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY "
-            f"ou usar DEV_MODE=true."
-        )
-
-    try:
-        import boto3
-        from botocore.config import Config as BotoConfig
-    except ImportError:
-        raise RuntimeError("boto3 não instalado — necessário para download dos TIFFs do R2")
-
-    endpoint = f"https://{config.r2_account_id}.r2.cloudflarestorage.com"
-    s3 = boto3.client(
-        "s3",
-        endpoint_url=endpoint,
-        aws_access_key_id=config.r2_access_key_id,
-        aws_secret_access_key=config.r2_secret_access_key,
-        config=BotoConfig(signature_version="s3v4"),
+    ensure_landscape(
+        landscape_dir=config.landscape_dir,
+        r2_account_id=config.r2_account_id,
+        r2_access_key_id=config.r2_access_key_id,
+        r2_secret_access_key=config.r2_secret_access_key,
+        r2_bucket=config.r2_bucket,
+        r2_prefix=config.r2_prefix,
     )
-
-    prefix = config.r2_prefix.rstrip("/") + "/"
-    for filename in missing:
-        key = f"{prefix}{filename}"
-        dest = landscape_path / filename
-        log.info(f"  A descarregar {key} → {dest} ...")
-        s3.download_file(config.r2_bucket, key, str(dest))
-        size_mb = dest.stat().st_size / 1_048_576
-        log.info(f"  {filename} — {size_mb:.0f} MB")
-
-    log.info("Landscape: download completo")
 
 
 @asynccontextmanager
@@ -446,7 +393,7 @@ async def run_worker():
         log.info("GEE não configurado — live FMC usa fallback sazonal (60%/80%)")
 
     # Garantir TIFFs presentes (download do R2 se necessário)
-    ensure_landscape(config)
+    _ensure_landscape_worker(config)
 
     # Correr migrations antes de tudo o resto
     await run_migrations(config.database_url)

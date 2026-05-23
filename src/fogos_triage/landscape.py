@@ -9,10 +9,82 @@ ficheiros já abertos via rasterio.open ou pré-carregar em memória.
 """
 from __future__ import annotations
 
+import logging
 import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
+
+log = logging.getLogger(__name__)
+
+LANDSCAPE_TIFS = [
+    "Altitude.tif",
+    "declive.tif",
+    "Exposicao.tif",
+    "modelos_combustivel.tif",
+    "Altura_Povoamento.tif",
+    "cobertura_copa.tif",
+    "altura_base_copa.tif",
+    "densidade_copas.tif",
+]
+
+
+def ensure_landscape(
+    landscape_dir: str | Path,
+    r2_account_id: str | None = None,
+    r2_access_key_id: str | None = None,
+    r2_secret_access_key: str | None = None,
+    r2_bucket: str = "fogos-landscape",
+    r2_prefix: str = "landscape/",
+) -> None:
+    """
+    Garante que os TIFFs da Landscape File estão em landscape_dir.
+
+    Se algum ficheiro faltar e as credenciais R2 estiverem presentes,
+    descarrega do bucket Cloudflare R2. Bloqueia até o download concluir.
+    Levanta RuntimeError se os TIFFs estiverem em falta e não for possível descarregar.
+    """
+    landscape_path = Path(landscape_dir)
+    landscape_path.mkdir(parents=True, exist_ok=True)
+
+    missing = [f for f in LANDSCAPE_TIFS if not (landscape_path / f).exists()]
+    if not missing:
+        log.info("Landscape: %d TIFFs presentes em %s", len(LANDSCAPE_TIFS), landscape_path)
+        return
+
+    log.info("Landscape: %d TIFFs em falta — %s", len(missing), missing)
+
+    if not all([r2_account_id, r2_access_key_id, r2_secret_access_key]):
+        raise RuntimeError(
+            f"TIFFs em falta em {landscape_path} e credenciais R2 não configuradas. "
+            "Definir R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY."
+        )
+
+    try:
+        import boto3
+        from botocore.config import Config as BotoConfig
+    except ImportError:
+        raise RuntimeError("boto3 não instalado — necessário para download dos TIFFs do R2")
+
+    endpoint = f"https://{r2_account_id}.r2.cloudflarestorage.com"
+    s3 = boto3.client(
+        "s3",
+        endpoint_url=endpoint,
+        aws_access_key_id=r2_access_key_id,
+        aws_secret_access_key=r2_secret_access_key,
+        config=BotoConfig(signature_version="s3v4"),
+    )
+
+    prefix = r2_prefix.rstrip("/") + "/"
+    for filename in missing:
+        key = f"{prefix}{filename}"
+        dest = landscape_path / filename
+        log.info("  A descarregar %s → %s ...", key, dest)
+        s3.download_file(r2_bucket, key, str(dest))
+        size_mb = dest.stat().st_size / 1_048_576
+        log.info("  %s — %.0f MB", filename, size_mb)
+
+    log.info("Landscape: download completo")
 
 try:
     import rasterio

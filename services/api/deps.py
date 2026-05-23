@@ -28,6 +28,12 @@ class APIConfig:
         # Em dev, podemos desligar auth para testes rápidos
         self.require_auth = os.environ.get("REQUIRE_AUTH", "true").lower() == "true"
         self.landscape_dir = os.getenv("LANDSCAPE_DIR", "data/landscape")
+        # Cloudflare R2 — download dos TIFFs no arranque (partilhado com o worker)
+        self.r2_account_id = os.environ.get("R2_ACCOUNT_ID")
+        self.r2_access_key_id = os.environ.get("R2_ACCESS_KEY_ID")
+        self.r2_secret_access_key = os.environ.get("R2_SECRET_ACCESS_KEY")
+        self.r2_bucket = os.environ.get("R2_BUCKET", "fogos-landscape")
+        self.r2_prefix = os.environ.get("R2_PREFIX", "landscape/")
 
     def is_dev_mode(self) -> bool:
         return os.environ.get("DEV_MODE", "false").lower() == "true"

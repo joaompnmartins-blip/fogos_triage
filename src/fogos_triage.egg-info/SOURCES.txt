@@ -5,6 +5,7 @@ src/fogos_triage/engine.py
 src/fogos_triage/fuel_models.py
 src/fogos_triage/landscape.py
 src/fogos_triage/schemas.py
+src/fogos_triage/simulation.py
 src/fogos_triage/triage.py
 src/fogos_triage/weather.py
 src/fogos_triage.egg-info/PKG-INFO
@@ -23,5 +24,6 @@ tests/test_api_integration.py
 tests/test_api_smoke.py
 tests/test_e2e_postgres.py
 tests/test_fogos_client.py
+tests/test_open_meteo.py
 tests/test_parser_offline.py
 tests/test_pipeline.py
