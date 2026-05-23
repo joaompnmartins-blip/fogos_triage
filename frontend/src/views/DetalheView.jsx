@@ -136,6 +136,10 @@ export default function DetalheView({ apiKey }) {
             <Link to={`/fogo/${fireId}/historico`} style={{ color: 'var(--accent2)' }}>
               Ver histórico
             </Link>
+            <span className="sep">·</span>
+            <Link to={`/fogo/${fireId}/simulacao`} style={{ color: 'var(--p1)' }}>
+              ▶ Simular
+            </Link>
           </>
         )}
       </div>

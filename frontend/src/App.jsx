@@ -4,6 +4,7 @@ import MapView from './views/MapView'
 import ListaView from './views/ListaView'
 import DetalheView from './views/DetalheView'
 import HistoricoView from './views/HistoricoView'
+import SimulacaoView from './views/SimulacaoView'
 import { fetchHealth } from './api'
 
 // ---------------------------------------------------------------------------
@@ -131,9 +132,13 @@ function Topbar() {
   const location = useLocation()
   const isDetail = location.pathname.match(/^\/fogo\/([^/]+)$/)
   const isHistory = location.pathname.match(/^\/fogo\/([^/]+)\/historico$/)
+  const isSimulation = location.pathname.match(/^\/fogo\/([^/]+)\/simulacao$/)
 
   let title, sub
-  if (isHistory) {
+  if (isSimulation) {
+    title = 'Simulação'
+    sub = `#${isSimulation[1]}`
+  } else if (isHistory) {
     title = 'Histórico'
     sub = `#${isHistory[1]}`
   } else if (isDetail) {
@@ -176,6 +181,7 @@ function AppShell({ apiKey, onChangeKey, health, theme, onToggleTheme }) {
             <Route path="/lista" element={<ListaView apiKey={apiKey} />} />
             <Route path="/fogo/:fireId" element={<DetalheView apiKey={apiKey} />} />
             <Route path="/fogo/:fireId/historico" element={<HistoricoView apiKey={apiKey} />} />
+            <Route path="/fogo/:fireId/simulacao" element={<SimulacaoView apiKey={apiKey} />} />
             <Route path="*" element={<Navigate to="/mapa" replace />} />
           </Routes>
         </div>

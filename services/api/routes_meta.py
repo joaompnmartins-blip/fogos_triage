@@ -3,6 +3,9 @@ Endpoints de suporte: fuel models, simulação ForeFire, healthcheck.
 """
 from __future__ import annotations
 
+import asyncio
+import json
+import logging
 import os
 import uuid
 from datetime import datetime, timezone
@@ -17,8 +20,12 @@ from .schemas import (
     FuelModelInfo,
     HealthResponse,
     SimulationJob,
+    SimulationJobDetail,
     SimulationRequest,
+    SimulationResultDetail,
 )
+
+log = logging.getLogger(__name__)
 
 
 router_fuels = APIRouter(prefix="/fuel-models", tags=["fuel-models"])
@@ -96,29 +103,44 @@ async def get_fuel_model(model_num: int, _: str = Depends(require_api_key)):
 @router_sim.post(
     "",
     response_model=SimulationJob,
-    summary="Cria job de simulação ForeFire",
-    description=(
-        "Cria um job na fila para simulação detalhada com ForeFire. "
-        "O runner consome a fila Redis e processa assincronamente. "
-        "Consultar estado via GET /jobs/{job_id}."
-    ),
+    summary="Cria job de simulação Huygens/Richards",
     status_code=202,
 )
 async def create_simulation(
     payload: SimulationRequest,
     pool: asyncpg.Pool = Depends(get_pool),
+    config: APIConfig = Depends(get_config),
     _: str = Depends(require_api_key),
 ):
     async with pool.acquire() as conn:
-        # Verificar que a ocorrência existe
         occ = await conn.fetchrow(
-            "SELECT fire_id, is_active, is_terminated FROM occurrences WHERE fire_id = $1",
+            """
+            SELECT o.fire_id, o.latitude, o.longitude,
+                   t.wind_midflame_ms, t.fuel_moisture_1h_pct, t.fuel_moisture_10h_pct,
+                   t.fuel_moisture_100h_pct, t.fuel_moisture_live_h_pct,
+                   t.fuel_moisture_live_w_pct,
+                   w.wind_speed_ms, w.wind_direction_deg, w.temperature_c,
+                   w.relative_humidity_pct
+            FROM occurrences o
+            LEFT JOIN triage_results t ON t.fire_id = o.fire_id AND t.is_latest = TRUE
+            LEFT JOIN weather_snapshots w ON w.fire_id = o.fire_id
+                AND w.id = (SELECT MAX(id) FROM weather_snapshots WHERE fire_id = o.fire_id)
+            WHERE o.fire_id = $1
+            """,
             payload.fire_id,
         )
         if occ is None:
             raise HTTPException(status_code=404, detail="Ocorrência não encontrada")
 
-        # Inserir job
+        if not Path(config.landscape_dir).exists():
+            raise HTTPException(
+                status_code=501,
+                detail="Simulação requer rasters reais (DEV_MODE não suportado)",
+            )
+
+        wind_speed = payload.wind_speed_ms or occ["wind_speed_ms"] or 3.0
+        wind_dir = payload.wind_direction_deg or occ["wind_direction_deg"] or 0.0
+
         job_id = str(uuid.uuid4())
         await conn.execute(
             """
@@ -127,25 +149,42 @@ async def create_simulation(
             )
             VALUES ($1, $2, $3, $4, 'pending')
             """,
-            job_id, payload.fire_id, payload.duration_h,
-            payload.model_dump(),
+            job_id, payload.fire_id, payload.duration_h, payload.model_dump(),
         )
+        now = datetime.now(timezone.utc)
 
-    # TODO: empurrar para fila Redis quando o runner existir.
-    # Por agora fica em "pending" eternamente para mostrar o ciclo de vida.
+    asyncio.create_task(_run_and_update(
+        job_id=job_id,
+        pool=pool,
+        lat=occ["latitude"],
+        lon=occ["longitude"],
+        wind_speed_ms=wind_speed,
+        wind_dir_deg=wind_dir,
+        wind_midflame_ms=occ["wind_midflame_ms"] or wind_speed * 0.4,
+        temperature_c=occ["temperature_c"] or 25.0,
+        humidity_pct=occ["relative_humidity_pct"] or 30.0,
+        fm_1h=occ["fuel_moisture_1h_pct"],
+        fm_10h=occ["fuel_moisture_10h_pct"],
+        fm_100h=occ["fuel_moisture_100h_pct"],
+        fm_live_h=occ["fuel_moisture_live_h_pct"],
+        fm_live_w=occ["fuel_moisture_live_w_pct"],
+        duration_h=payload.duration_h,
+        bbox_km=payload.bbox_km or 15.0,
+        landscape_dir=config.landscape_dir,
+    ))
 
     return SimulationJob(
         job_id=job_id,
         fire_id=payload.fire_id,
         status="pending",
-        requested_at=datetime.now(timezone.utc),
+        requested_at=now,
         duration_h=payload.duration_h,
     )
 
 
 @router_jobs.get(
     "/{job_id}",
-    response_model=SimulationJob,
+    response_model=SimulationJobDetail,
     summary="Estado e resultado de um job de simulação",
 )
 async def get_simulation_job(
@@ -161,7 +200,14 @@ async def get_simulation_job(
         if row is None:
             raise HTTPException(status_code=404, detail="Job não encontrado")
 
-    return SimulationJob(
+    result = None
+    if row["result_json"] and row["status"] == "done":
+        try:
+            result = SimulationResultDetail(**row["result_json"])
+        except Exception as exc:
+            log.warning("Erro ao desserializar result_json de %s: %s", job_id, exc)
+
+    return SimulationJobDetail(
         job_id=str(row["job_id"]),
         fire_id=row["fire_id"],
         status=row["status"],
@@ -170,8 +216,85 @@ async def get_simulation_job(
         completed_at=row["completed_at"],
         duration_h=row["duration_h"],
         error_message=row["error_message"],
-        perimeters_geojson=row["result_json"],
+        result=result,
     )
+
+
+async def _run_and_update(
+    job_id: str,
+    pool: asyncpg.Pool,
+    lat: float,
+    lon: float,
+    wind_speed_ms: float,
+    wind_dir_deg: float,
+    wind_midflame_ms: float,
+    temperature_c: float,
+    humidity_pct: float,
+    fm_1h: Optional[float],
+    fm_10h: Optional[float],
+    fm_100h: Optional[float],
+    fm_live_h: Optional[float],
+    fm_live_w: Optional[float],
+    duration_h: float,
+    bbox_km: float,
+    landscape_dir: str,
+):
+    """Task em background: corre simulação e grava resultado no DB."""
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE simulation_jobs SET status='running', started_at=NOW() WHERE job_id=$1",
+            job_id,
+        )
+    try:
+        from fogos_triage.fuel_models import load_fuel_models_csv
+        from fogos_triage.landscape import LandscapeRasters
+        from fogos_triage.schemas import WeatherConditions
+        from fogos_triage.simulation import run_simulation_async
+
+        rasters = LandscapeRasters.from_directory(landscape_dir)
+        fuel_dict = load_fuel_models_csv(
+            os.environ.get("FUEL_MODELS_CSV", "/data/fuel_models_pt.csv")
+        )
+
+        weather = WeatherConditions(
+            timestamp=datetime.now(timezone.utc),
+            temperature_c=temperature_c,
+            relative_humidity_pct=humidity_pct,
+            wind_speed_10m_ms=wind_speed_ms,
+            wind_gust_10m_ms=wind_speed_ms,
+            wind_direction_deg=wind_dir_deg,
+            precipitation_mm_24h=0.0,
+            cloud_cover_pct=0.0,
+            wind_midflame_ms=wind_midflame_ms,
+            fuel_moisture_1h_pct=fm_1h,
+            fuel_moisture_10h_pct=fm_10h,
+            fuel_moisture_100h_pct=fm_100h,
+            fuel_moisture_live_h_pct=fm_live_h,
+            fuel_moisture_live_w_pct=fm_live_w,
+        )
+
+        result = await run_simulation_async(
+            lat, lon, weather, fuel_dict, rasters, duration_h, bbox_km,
+        )
+
+        async with pool.acquire() as conn:
+            await conn.execute(
+                """UPDATE simulation_jobs
+                   SET status='done', completed_at=NOW(), result_json=$1
+                   WHERE job_id=$2""",
+                json.dumps(result),
+                job_id,
+            )
+    except Exception as e:
+        log.error("Simulação %s falhou: %s", job_id, e, exc_info=True)
+        async with pool.acquire() as conn:
+            await conn.execute(
+                """UPDATE simulation_jobs
+                   SET status='failed', completed_at=NOW(), error_message=$1
+                   WHERE job_id=$2""",
+                str(e),
+                job_id,
+            )
 
 
 # ---------------------------------------------------------------------------

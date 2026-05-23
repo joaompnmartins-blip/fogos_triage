@@ -3,8 +3,10 @@
 # =====================================================================
 FROM python:3.12-slim AS base
 
-# Dependências de sistema mínimas (sem GDAL — API não toca em rasters)
+# Dependências de sistema — GDAL necessário para rasterio (simulação espacial)
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgdal-dev \
+    gdal-bin \
     libcurl4-openssl-dev \
     libssl-dev \
     curl \
@@ -13,13 +15,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Python deps — só o necessário para a API (sem rasterio/wildfire_ROS_models pesados)
+# Python deps
 RUN pip install --no-cache-dir \
     fastapi \
     "uvicorn[standard]" \
     asyncpg \
     scikit-learn \
-    pydantic
+    pydantic \
+    rasterio \
+    shapely
 
 # Copiar código (precisamos do package fogos_triage para fuel_models e schemas)
 COPY pyproject.toml ./

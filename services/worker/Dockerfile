@@ -24,6 +24,7 @@ RUN pip install --no-cache-dir \
     httpx \
     curl_cffi \
     rasterio \
+    shapely \
     scikit-learn \
     boto3 \
     earthengine-api \

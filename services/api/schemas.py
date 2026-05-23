@@ -266,5 +266,20 @@ class SimulationJob(BaseModel):
     completed_at: Optional[datetime] = None
     duration_h: float
     error_message: Optional[str] = None
-    # Resultado disponível quando status=done
-    perimeters_geojson: Optional[dict] = None
+
+
+class PerimeterSnapshot(BaseModel):
+    t_h: float
+    area_ha: float
+    geojson: dict
+
+
+class SimulationResultDetail(BaseModel):
+    perimeters: list[PerimeterSnapshot]
+    pixel_grid: dict
+    meta: dict
+
+
+class SimulationJobDetail(SimulationJob):
+    """Detalhe completo — inclui resultado quando status=done."""
+    result: Optional[SimulationResultDetail] = None

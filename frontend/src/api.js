@@ -61,3 +61,23 @@ export async function fetchFireDetail(apiKey, fireId) {
 export async function fetchFireHistory(apiKey, fireId) {
   return get(`/fires/${encodeURIComponent(fireId)}/history`, apiKey)
 }
+
+export async function postSimulate(apiKey, fireId, { duration_h = 3, wind_speed_ms, wind_direction_deg, bbox_km } = {}) {
+  const res = await fetch(`${API_BASE}/simulate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...auth(apiKey) },
+    body: JSON.stringify({
+      fire_id: fireId,
+      duration_h,
+      wind_speed_ms: wind_speed_ms || null,
+      wind_direction_deg: wind_direction_deg || null,
+      bbox_km: bbox_km || null,
+    }),
+  })
+  if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`)
+  return res.json()
+}
+
+export async function getSimulationJob(apiKey, jobId) {
+  return get(`/jobs/${encodeURIComponent(jobId)}`, apiKey)
+}

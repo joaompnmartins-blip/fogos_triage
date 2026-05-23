@@ -27,6 +27,7 @@ class APIConfig:
         self.version = os.environ.get("API_VERSION", "0.3.0")
         # Em dev, podemos desligar auth para testes rápidos
         self.require_auth = os.environ.get("REQUIRE_AUTH", "true").lower() == "true"
+        self.landscape_dir = os.getenv("LANDSCAPE_DIR", "data/landscape")
 
     def is_dev_mode(self) -> bool:
         return os.environ.get("DEV_MODE", "false").lower() == "true"
