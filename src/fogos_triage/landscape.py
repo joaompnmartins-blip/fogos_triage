@@ -111,6 +111,39 @@ class LandscapeReader:
             ds.close()
         self._datasets.clear()
 
+    _NEIGHBOURHOOD_ANGLES_DEG = [0, 45, 90, 135, 180, 225, 270, 315]
+
+    def sample_neighbourhood(
+        self,
+        latitude: float,
+        longitude: float,
+        radius_m: float = 200.0,
+    ) -> list[TerrainConditions]:
+        """
+        Amostra 9 pontos: ignição + 8 direcções (N/NE/E/SE/S/SW/W/NW) a radius_m.
+        O primeiro elemento é sempre o ponto de ignição.
+        Pixels fora da extensão do raster são ignorados silenciosamente.
+        """
+        d_lat = radius_m / 111320.0
+        d_lon = radius_m / (111320.0 * math.cos(math.radians(latitude)))
+
+        points = [(latitude, longitude)]
+        for a_deg in self._NEIGHBOURHOOD_ANGLES_DEG:
+            a_rad = math.radians(a_deg)
+            points.append((
+                latitude  + d_lat * math.cos(a_rad),
+                longitude + d_lon * math.sin(a_rad),
+            ))
+
+        results = []
+        for lat_p, lon_p in points:
+            try:
+                results.append(self.sample(lat_p, lon_p))
+            except Exception:
+                pass
+
+        return results if results else [self.sample(latitude, longitude)]
+
     def sample(self, latitude: float, longitude: float) -> TerrainConditions:
         """
         Lê os valores dos rasters num ponto (lat, lon em WGS84).
@@ -185,6 +218,14 @@ class MockLandscapeReader:
 
     def __exit__(self, *args):
         pass
+
+    def sample_neighbourhood(
+        self,
+        latitude: float,
+        longitude: float,
+        radius_m: float = 200.0,
+    ) -> list[TerrainConditions]:
+        return [self._terrain] * 9
 
     def sample(self, latitude: float, longitude: float) -> TerrainConditions:
         return self._terrain

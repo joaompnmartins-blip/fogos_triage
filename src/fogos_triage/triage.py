@@ -5,14 +5,13 @@ Orquestra: ocorrência → terreno + meteo → motor → resultado priorizado.
 """
 from __future__ import annotations
 
-import copy
 import math
+from collections import Counter
 from dataclasses import replace
 from typing import Optional
 
 from .engine import check_crown_fire_transition, predict_surface_fire
 from .fuel_models import FuelModelPT
-from .landscape import LandscapeReader
 from .schemas import (
     FireBehaviorPrediction,
     FireType,
@@ -23,6 +22,121 @@ from .schemas import (
     WeatherConditions,
 )
 from .weather import derive_fire_weather
+
+
+NEIGHBOURHOOD_RADIUS_M = 200.0
+
+_DEFAULT_TERRAIN = TerrainConditions(
+    elevation_m=0.0, slope_fraction=0.0, slope_degrees=0.0,
+    aspect_degrees=0.0, fuel_model_num=98,
+)
+
+
+def triage_neighbourhood(
+    occurrence: Occurrence,
+    fuel_models: dict[int, FuelModelPT],
+    terrains: list[TerrainConditions],
+    weather_raw: WeatherConditions,
+    live_h_pct: Optional[float] = None,
+    live_w_pct: Optional[float] = None,
+) -> TriageResult:
+    """
+    Triagem com amostragem de vizinhança (9 pixels, raio 200 m).
+
+    Para cada pixel: deriva meteo com WAF per-pixel (canopy/height dos rasters),
+    corre Rothermel, e recolhe o ROS resultante.  Os cenários são construídos
+    a partir da distribuição de ROS:
+      central → mediana (P50)
+      pior    → máximo  (pixel mais desfavorável)
+      melhor  → mínimo  (pixel mais favorável)
+
+    O modelo de combustível reportado é o dominante (moda) na vizinhança.
+    Fallback para triagem pixel-único se nenhum pixel produzir ROS válido.
+    """
+    pixel_results: list[tuple] = []  # (pred, terrain, fm, wx)
+
+    for terrain in terrains:
+        fm = fuel_models.get(terrain.fuel_model_num) or fuel_models.get(98)
+        if fm is None:
+            continue
+
+        has_overstory = (terrain.canopy_cover_pct or 0) > 10
+        wx = derive_fire_weather(
+            weather_raw,
+            stand_height_m=terrain.stand_height_m or 0.0,
+            canopy_cover_pct=terrain.canopy_cover_pct or 0.0,
+            has_overstory=has_overstory,
+            live_h_pct=live_h_pct,
+            live_w_pct=live_w_pct,
+        )
+
+        try:
+            pred = predict_surface_fire(fm, terrain, wx, "")
+        except Exception:
+            continue
+
+        if pred.ros_m_per_min > 0:
+            pixel_results.append((pred, terrain, fm, wx))
+
+    # Fallback para pixel único se nenhum pixel produziu ROS válido
+    if not pixel_results:
+        terrain0 = terrains[0] if terrains else _DEFAULT_TERRAIN
+        wx0 = derive_fire_weather(weather_raw, live_h_pct=live_h_pct, live_w_pct=live_w_pct)
+        return triage_occurrence(occurrence, fuel_models, terrain0, wx0)
+
+    pixel_results.sort(key=lambda x: x[0].ros_m_per_min)
+    n = len(pixel_results)
+
+    best_pred,    _,               _,          _           = pixel_results[0]
+    central_pred, central_terrain, central_fm, central_wx  = pixel_results[n // 2]
+    worst_pred,   _,               _,          _           = pixel_results[-1]
+
+    best_pred    = replace(best_pred,    scenario="best")
+    central_pred = replace(central_pred, scenario="central")
+    worst_pred   = replace(worst_pred,   scenario="worst")
+
+    notes = [
+        f"Multi-pixel: {n}/{len(terrains)} px válidos, raio {NEIGHBOURHOOD_RADIUS_M:.0f}m"
+    ]
+
+    # Crown fire check no cenário central
+    if central_terrain.canopy_base_height_m and central_pred.fireline_intensity_kw_m > 0:
+        transition, I_crit = check_crown_fire_transition(
+            central_pred.fireline_intensity_kw_m,
+            central_terrain.canopy_base_height_m,
+            foliar_moisture_pct=100.0,
+        )
+        if transition:
+            central_pred = replace(central_pred, fire_type=FireType.TORCHING)
+            notes.append(
+                f"Transição para fogo de copas possível (I_critical={I_crit:.0f} kW/m)"
+            )
+
+    # Modelo dominante na vizinhança
+    fm_counter = Counter(
+        fuel_models[t.fuel_model_num].code
+        for _, t, _, _ in pixel_results
+        if t.fuel_model_num in fuel_models
+    )
+    dominant_fm_code = (fm_counter.most_common(1)[0][0]
+                        if fm_counter else central_fm.code)
+
+    waf = (central_wx.wind_midflame_ms / central_wx.wind_speed_10m_ms
+           if (central_wx.wind_speed_10m_ms or 0) > 0 else 0.0)
+
+    priority, score = compute_priority(central_pred, occurrence)
+
+    return TriageResult(
+        occurrence=occurrence,
+        terrain=central_terrain,
+        weather=central_wx,
+        predictions=[central_pred, worst_pred, best_pred],
+        priority=priority,
+        priority_score=score,
+        fuel_model_used=dominant_fm_code,
+        wind_adjustment_factor=waf,
+        notes=notes,
+    )
 
 
 def triage_occurrence(

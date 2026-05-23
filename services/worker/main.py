@@ -43,8 +43,8 @@ from fogos_triage.ingestion.adapters import fogos_to_occurrence
 from fogos_triage.ingestion.fogos_client import FogosFire, fetch_fires
 from fogos_triage.landscape import LandscapeRasters, LandscapeReader, MockLandscapeReader
 from fogos_triage.schemas import TerrainConditions
-from fogos_triage.triage import triage_occurrence
-from fogos_triage.weather import derive_fire_weather, fetch_live_fmc_viirs, fetch_open_meteo
+from fogos_triage.triage import triage_neighbourhood
+from fogos_triage.weather import fetch_live_fmc_viirs, fetch_open_meteo
 
 log = logging.getLogger(__name__)
 
@@ -313,7 +313,7 @@ async def process_fire(
 
     # 3. Triagem
     occurrence = fogos_to_occurrence(fire)
-    terrain = ls_reader.sample(fire.latitude, fire.longitude)
+    terrains = ls_reader.sample_neighbourhood(fire.latitude, fire.longitude)
 
     # Meteo: Open-Meteo no ponto exato do fogo.
     # Vantagem sobre a IPMA da fogos.pt: a IPMA é da estação mais próxima
@@ -365,17 +365,11 @@ async def process_fire(
     except Exception as exc:
         log.warning(f"GEE LFMC falhou para {fire.fire_id}: {exc}")
 
-    weather = derive_fire_weather(
-        weather_raw,
-        stand_height_m=terrain.stand_height_m or 0,
-        canopy_cover_pct=terrain.canopy_cover_pct or 0,
-        has_overstory=(terrain.canopy_cover_pct or 0) > 10,
-        live_h_pct=live_h_pct,
-        live_w_pct=live_w_pct,
-    )
-
+    # derive_fire_weather é chamado per-pixel dentro de triage_neighbourhood
     try:
-        result = triage_occurrence(occurrence, fuel_models, terrain, weather)
+        result = triage_neighbourhood(
+            occurrence, fuel_models, terrains, weather_raw, live_h_pct, live_w_pct
+        )
         await triage_repo.save(result)
         return (f"{fire.fire_id} → {result.priority.value} "
                 f"(score {result.priority_score:.0f}, "
