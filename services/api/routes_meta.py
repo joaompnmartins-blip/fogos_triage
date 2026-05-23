@@ -320,7 +320,7 @@ async def _run_and_update(
                 """UPDATE simulation_jobs
                    SET status='done', completed_at=NOW(), result_json=$1
                    WHERE job_id=$2""",
-                json.dumps(result),
+                result,
                 job_id,
             )
     except Exception as e:
