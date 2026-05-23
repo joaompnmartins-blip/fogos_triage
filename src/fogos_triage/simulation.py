@@ -300,12 +300,17 @@ def _clip_grid_to_perimeter(grid_geojson: dict, perimeter_geojson: dict) -> dict
 def _propagate(
     datasets: dict,
     fuel_models: dict[int, FuelModelPT],
-    weather: WeatherConditions,
+    weather_hourly: list[WeatherConditions],
     cx_proj: float, cy_proj: float,
     duration_h: float,
     snapshot_hours: list[float],
 ) -> list[PerimeterSnapshot]:
-    """Propaga o fogo usando Richards (1990); devolve snapshots do perímetro."""
+    """Propaga o fogo usando Richards (1990); devolve snapshots do perímetro.
+
+    weather_hourly: lista com um WeatherConditions por hora de simulação.
+    A cada timestep seleciona-se a entrada correspondente à hora atual
+    (int(t/60)), permitindo incorporar a previsão horária do Open-Meteo.
+    """
     proj_crs = datasets["elevation"].crs
 
     angles = [2 * math.pi * i / N_INIT_VERTICES for i in range(N_INIT_VERTICES)]
@@ -317,14 +322,6 @@ def _propagate(
         for a in angles
     ]
 
-    m_1h   = (weather.fuel_moisture_1h_pct   or 8.0)  / 100.0
-    m_10h  = (weather.fuel_moisture_10h_pct  or 9.0)  / 100.0
-    m_100h = (weather.fuel_moisture_100h_pct or 10.0) / 100.0
-    m_lh   = (weather.fuel_moisture_live_h_pct or 100.0) / 100.0
-    m_lw   = (weather.fuel_moisture_live_w_pct or 100.0) / 100.0
-    wind_mf = weather.wind_midflame_ms or 0.0
-    wind_dir = weather.wind_direction_deg
-
     snapshots: list[PerimeterSnapshot] = []
     snap_idx = 0
     t = 0.0
@@ -332,6 +329,17 @@ def _propagate(
     snap_minutes = [h * 60.0 for h in snapshot_hours]
 
     while t < total_min and len(verts) >= 3:
+        # Meteo da hora atual — actualiza a cada hora de simulação
+        hour_idx = min(int(t / 60), len(weather_hourly) - 1)
+        wx = weather_hourly[hour_idx]
+        m_1h   = (wx.fuel_moisture_1h_pct   or 8.0)  / 100.0
+        m_10h  = (wx.fuel_moisture_10h_pct  or 9.0)  / 100.0
+        m_100h = (wx.fuel_moisture_100h_pct or 10.0) / 100.0
+        m_lh   = (wx.fuel_moisture_live_h_pct or 100.0) / 100.0
+        m_lw   = (wx.fuel_moisture_live_w_pct or 100.0) / 100.0
+        wind_mf = wx.wind_midflame_ms or 0.0
+        wind_dir = wx.wind_direction_deg
+
         while snap_idx < len(snap_minutes) and t >= snap_minutes[snap_idx]:
             snap = _make_snapshot(verts, snap_minutes[snap_idx] / 60.0, proj_crs)
             if snap:
@@ -512,21 +520,30 @@ def _wgs84_to_proj(lat: float, lon: float, proj_crs) -> tuple[float, float]:
 def run_simulation_sync(
     lat: float,
     lon: float,
-    weather: WeatherConditions,
+    weather_hourly: list[WeatherConditions],
     fuel_models: dict[int, FuelModelPT],
     rasters: LandscapeRasters,
     duration_h: float,
     bbox_km: float = 15.0,
     resolution_m: float = 100.0,
 ) -> dict:
-    """Corre a simulação completa. Devolve dict para gravar em result_json."""
+    """Corre a simulação completa. Devolve dict para gravar em result_json.
+
+    weather_hourly: lista com um WeatherConditions derivado por hora de simulação
+    (índice 0 = hora de ignição, 1 = t+1h, …).  A grelha ROS é calculada
+    com a meteo inicial (índice 0).
+    """
     if not HAS_RASTERIO or not HAS_SHAPELY:
         raise RuntimeError("rasterio e shapely são necessários para simulação espacial")
+    if not weather_hourly:
+        raise ValueError("weather_hourly não pode ser vazio")
 
     snapshot_hours = [h for h in [1.0, 2.0, 3.0, 6.0] if h <= duration_h]
     if duration_h not in snapshot_hours:
         snapshot_hours.append(duration_h)
     snapshot_hours.sort()
+
+    wx0 = weather_hourly[0]
 
     from .landscape import LandscapeReader
     with LandscapeReader(rasters) as reader:
@@ -538,10 +555,13 @@ def run_simulation_sync(
 
         log.info("Simulação: a calcular grelha %.0fm (%.0f×%.0f km)...",
                  resolution_m, bbox_km, bbox_km)
-        grid = _build_ros_grid(datasets, fuel_models, weather, cx, cy, bbox_km, resolution_m)
+        grid = _build_ros_grid(datasets, fuel_models, wx0, cx, cy, bbox_km, resolution_m)
 
-        log.info("Simulação: a propagar %.1fh (dt=%.0f min)...", duration_h, DT_MIN)
-        snapshots = _propagate(datasets, fuel_models, weather, cx, cy, duration_h, snapshot_hours)
+        log.info("Simulação: a propagar %.1fh (dt=%.0f min, %d snapshots meteo)...",
+                 duration_h, DT_MIN, len(weather_hourly))
+        snapshots = _propagate(
+            datasets, fuel_models, weather_hourly, cx, cy, duration_h, snapshot_hours
+        )
 
     if not snapshots:
         raise RuntimeError("Simulação não produziu perímetros válidos")
@@ -562,9 +582,10 @@ def run_simulation_sync(
             "bbox_km":       bbox_km,
             "resolution_m":  resolution_m,
             "ignition":      [lat, lon],
-            "wind_speed_ms": weather.wind_speed_10m_ms,
-            "wind_dir_deg":  weather.wind_direction_deg,
+            "wind_speed_ms": wx0.wind_speed_10m_ms,
+            "wind_dir_deg":  wx0.wind_direction_deg,
             "duration_h":    duration_h,
+            "wx_snapshots":  len(weather_hourly),
         },
     }
 
@@ -572,7 +593,7 @@ def run_simulation_sync(
 async def run_simulation_async(
     lat: float,
     lon: float,
-    weather: WeatherConditions,
+    weather_hourly: list[WeatherConditions],
     fuel_models: dict[int, FuelModelPT],
     rasters: LandscapeRasters,
     duration_h: float,
@@ -584,5 +605,5 @@ async def run_simulation_async(
     return await loop.run_in_executor(
         _executor,
         run_simulation_sync,
-        lat, lon, weather, fuel_models, rasters, duration_h, bbox_km, resolution_m,
+        lat, lon, weather_hourly, fuel_models, rasters, duration_h, bbox_km, resolution_m,
     )

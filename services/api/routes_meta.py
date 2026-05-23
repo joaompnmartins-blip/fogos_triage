@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import math
 import os
 import uuid
 from datetime import datetime, timezone
@@ -250,31 +251,55 @@ async def _run_and_update(
         from fogos_triage.landscape import LandscapeRasters
         from fogos_triage.schemas import WeatherConditions
         from fogos_triage.simulation import run_simulation_async
+        from fogos_triage.weather import derive_fire_weather, fetch_open_meteo
 
         rasters = LandscapeRasters.from_directory(landscape_dir)
         fuel_dict = load_fuel_models_csv(
             os.environ.get("FUEL_MODELS_CSV", "/data/fuel_models_pt.csv")
         )
 
-        weather = WeatherConditions(
-            timestamp=datetime.now(timezone.utc),
-            temperature_c=temperature_c,
-            relative_humidity_pct=humidity_pct,
-            wind_speed_10m_ms=wind_speed_ms,
-            wind_gust_10m_ms=wind_speed_ms,
-            wind_direction_deg=wind_dir_deg,
-            precipitation_mm_24h=0.0,
-            cloud_cover_pct=0.0,
-            wind_midflame_ms=wind_midflame_ms,
-            fuel_moisture_1h_pct=fm_1h,
-            fuel_moisture_10h_pct=fm_10h,
-            fuel_moisture_100h_pct=fm_100h,
-            fuel_moisture_live_h_pct=fm_live_h,
-            fuel_moisture_live_w_pct=fm_live_w,
-        )
+        # Previsão horária do Open-Meteo para toda a duração da simulação.
+        # Fallback para meteo única da triagem se a API falhar.
+        n_hours = int(math.ceil(duration_h)) + 1
+        try:
+            raw_hourly = await fetch_open_meteo(lat, lon, hours_ahead=n_hours)
+        except Exception as exc:
+            log.warning("Open-Meteo falhou para simulação %s: %s — usando meteo da triagem", job_id, exc)
+            raw_hourly = []
+
+        if raw_hourly:
+            # derive_fire_weather aplica Simard 1968 (humidades mortas) + WAF
+            # para cada hora; humidades vivas mantêm-se do snapshot de triagem
+            weather_hourly = [
+                derive_fire_weather(
+                    wx,
+                    live_h_pct=fm_live_h,
+                    live_w_pct=fm_live_w,
+                )
+                for wx in raw_hourly[:n_hours]
+            ]
+            log.info("Simulação %s: %d snapshots horários Open-Meteo", job_id, len(weather_hourly))
+        else:
+            # Fallback: meteo estática da triagem para toda a duração
+            weather_hourly = [WeatherConditions(
+                timestamp=datetime.now(timezone.utc),
+                temperature_c=temperature_c,
+                relative_humidity_pct=humidity_pct,
+                wind_speed_10m_ms=wind_speed_ms,
+                wind_gust_10m_ms=wind_speed_ms,
+                wind_direction_deg=wind_dir_deg,
+                precipitation_mm_24h=0.0,
+                cloud_cover_pct=0.0,
+                wind_midflame_ms=wind_midflame_ms,
+                fuel_moisture_1h_pct=fm_1h,
+                fuel_moisture_10h_pct=fm_10h,
+                fuel_moisture_100h_pct=fm_100h,
+                fuel_moisture_live_h_pct=fm_live_h,
+                fuel_moisture_live_w_pct=fm_live_w,
+            )]
 
         result = await run_simulation_async(
-            lat, lon, weather, fuel_dict, rasters, duration_h, bbox_km,
+            lat, lon, weather_hourly, fuel_dict, rasters, duration_h, bbox_km,
         )
 
         async with pool.acquire() as conn:
