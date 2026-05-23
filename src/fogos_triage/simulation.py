@@ -196,7 +196,6 @@ def _sample_terrain_projected(
         slope_degrees=slope_deg,
         aspect_degrees=aspect_deg,
         fuel_model_num=fuel_num,
-        fuel_model_code=fm.code if fm else f"FM{fuel_num}",
         stand_height_m=stand_height / 10.0 if stand_height is not None else None,
         canopy_cover_pct=canopy_cover,
         canopy_base_height_m=cbh / 10.0 if cbh is not None else None,
