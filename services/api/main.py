@@ -33,8 +33,8 @@ async def lifespan(app: FastAPI):
     """Lifecycle da aplicação: cria pool no arranque, fecha à saída."""
     config = get_config()
 
-    # Garantir TIFFs da Landscape File presentes (download do R2 se necessário).
-    # Só corre se LANDSCAPE_DIR estiver definido (em DEV_MODE normalmente não está).
+    # Pre-aquecer landscape no arranque se R2 estiver configurado.
+    # Falha não-fatal: o download será tentado de novo em cada pedido de simulação.
     if config.landscape_dir and config.r2_account_id:
         try:
             await asyncio.get_event_loop().run_in_executor(
@@ -48,8 +48,9 @@ async def lifespan(app: FastAPI):
                     r2_prefix=config.r2_prefix,
                 ),
             )
+            log.info("Landscape pré-carregada com sucesso no arranque da API")
         except Exception as exc:
-            log.warning("Landscape download falhou no arranque da API: %s", exc)
+            log.error("Landscape download falhou no arranque: %s — será tentado ao simular", exc)
 
     # init_pool regista codecs JSON/JSONB — essencial para que as colunas
     # scenarios_json (triage_results) e result_json (simulation_jobs)

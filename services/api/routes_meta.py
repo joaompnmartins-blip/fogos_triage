@@ -248,10 +248,23 @@ async def _run_and_update(
         )
     try:
         from fogos_triage.fuel_models import load_fuel_models_csv
-        from fogos_triage.landscape import LandscapeRasters
+        from fogos_triage.landscape import LandscapeRasters, ensure_landscape
         from fogos_triage.schemas import WeatherConditions
         from fogos_triage.simulation import run_simulation_async
         from fogos_triage.weather import derive_fire_weather, fetch_open_meteo
+
+        import asyncio as _asyncio
+        await _asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: ensure_landscape(
+                landscape_dir=landscape_dir,
+                r2_account_id=os.environ.get("R2_ACCOUNT_ID"),
+                r2_access_key_id=os.environ.get("R2_ACCESS_KEY_ID"),
+                r2_secret_access_key=os.environ.get("R2_SECRET_ACCESS_KEY"),
+                r2_bucket=os.environ.get("R2_BUCKET", "fogos-landscape"),
+                r2_prefix=os.environ.get("R2_PREFIX", "landscape/"),
+            ),
+        )
 
         rasters = LandscapeRasters.from_directory(landscape_dir)
         fuel_dict = load_fuel_models_csv(
