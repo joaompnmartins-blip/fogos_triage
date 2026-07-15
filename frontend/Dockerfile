@@ -10,10 +10,18 @@ RUN npm ci --prefer-offline
 
 COPY . .
 
-# VITE_API_URL é injectada pelo Railway como build arg e runtime env.
-# O Vite embute-a no bundle no momento do build — não é lida em runtime.
+# Estas variáveis são injectadas pelo Railway como build args.
+# O Vite embute-as no bundle no momento do build — não são lidas em runtime.
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
+ARG VITE_REGION_BBOX
+ENV VITE_REGION_BBOX=$VITE_REGION_BBOX
+ARG VITE_REGION_CENTER
+ENV VITE_REGION_CENTER=$VITE_REGION_CENTER
+ARG VITE_REGION_ZOOM
+ENV VITE_REGION_ZOOM=$VITE_REGION_ZOOM
+ARG VITE_REGION_LABEL
+ENV VITE_REGION_LABEL=$VITE_REGION_LABEL
 
 RUN npm run build
 
