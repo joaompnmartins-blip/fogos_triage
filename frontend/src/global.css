@@ -31,6 +31,9 @@
   --icnf-green-lime: #6b7315;
   --icnf-green-dark: #404f00;
 
+  /* meteograma — validada contra --danger/--p1 (color-formula.md do dataviz skill) */
+  --meteo-humidity: #1E7FA6;
+
   --nav-active-bg:  rgba(107,115,21,.10);
   --dot-shadow:     0 0 6px rgba(107,115,21,.40);
   --scanline-alpha: .025;
@@ -72,6 +75,9 @@
   --icnf-blue-dark:  #21658A;
   --icnf-green-lime: #8C961C;
   --icnf-green-dark: #596300;
+
+  /* meteograma — validada contra --danger/--p1 (color-formula.md do dataviz skill) */
+  --meteo-humidity: #1E9FCC;
 
   --nav-active-bg:  rgba(140,150,28,.08);
   --dot-shadow:     0 0 8px rgba(140,150,28,.60);

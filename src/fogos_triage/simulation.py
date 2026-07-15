@@ -60,6 +60,10 @@ AA_SURFACE = 0.115  # FARSITE fire acceleration constant (eq. [30])
 # bbox pedido é grande. Se excedido, resolution_m é ajustada para cima.
 MAX_GRID_CELLS = 500_000
 
+# Candidatos a horas de snapshot do perímetro — filtrados por <= duration_h
+# (mais duration_h no fim, se ainda não incluída). Cobre durações até 24h.
+SNAPSHOT_HOURS_CANDIDATES = [1.0, 2.0, 3.0, 6.0, 9.0, 12.0, 18.0, 24.0]
+
 
 # ---------------------------------------------------------------------------
 # Estruturas de output
@@ -70,6 +74,9 @@ class PerimeterSnapshot:
     t_h: float
     area_ha: float
     polygon_wgs84: dict
+    ros_max_m_min: float
+    fli_max_kw_m: float
+    flame_max_m: float
 
 
 @dataclass
@@ -301,11 +308,12 @@ def _propagate(
     proj_crs = reader.crs
 
     angles = [2 * math.pi * i / N_INIT_VERTICES for i in range(N_INIT_VERTICES)]
-    # Vértices como (x, y, ros_actual) — ros_actual inicia em 0 (fogo acabou de acender)
+    # Vértices como (x, y, ros_actual, fi_actual) — ambos iniciam em 0
+    # (fogo acabou de acender)
     verts = [
         (cx_proj + INIT_RADIUS_M * math.sin(a),
          cy_proj + INIT_RADIUS_M * math.cos(a),
-         0.0)
+         0.0, 0.0)
         for a in angles
     ]
 
@@ -337,15 +345,15 @@ def _propagate(
         new_verts = []
 
         for i in range(n):
-            x_cur, y_cur, ros_cur = verts[i]
-            x_prev, y_prev, _ = verts[(i - 1) % n]
-            x_next, y_next, _ = verts[(i + 1) % n]
+            x_cur, y_cur, ros_cur, _ = verts[i]
+            x_prev, y_prev, _, _ = verts[(i - 1) % n]
+            x_next, y_next, _, _ = verts[(i + 1) % n]
 
             terrain = reader.sample_projected(x_cur, y_cur)
             fm = fuel_models.get(terrain.fuel_model_num)
 
             if fm is None or fm.is_empty:
-                new_verts.append((x_cur, y_cur, 0.0))
+                new_verts.append((x_cur, y_cur, 0.0, 0.0))
                 continue
 
             try:
@@ -355,11 +363,11 @@ def _propagate(
                     slope_degrees=terrain.slope_degrees,
                 )
             except Exception:
-                new_verts.append((x_cur, y_cur, 0.0))
+                new_verts.append((x_cur, y_cur, 0.0, 0.0))
                 continue
 
             if ros_m_min <= 0:
-                new_verts.append((x_cur, y_cur, 0.0))
+                new_verts.append((x_cur, y_cur, 0.0, 0.0))
                 continue
 
             # Aceleração / desaceleração (FARSITE eq. [29]-[33])
@@ -373,6 +381,11 @@ def _propagate(
                 Tt = -math.log(1.0 - frac) / AA_SURFACE if frac > 0.0 else 0.0
                 ros_step = R_eq * (1.0 - math.exp(-AA_SURFACE * (Tt + DT_MIN)))
                 ros_step = min(ros_step, R_eq)
+
+            # fi_kw (Byram) é calculado para o ROS de equilíbrio (R_eq);
+            # escala-se linearmente para o ROS real do passo (I_B ∝ R,
+            # Byram 1959), consistente com o ros_step já acelerado/travado.
+            fi_step = fi_kw * (ros_step / R_eq) if R_eq > 0 else 0.0
 
             theta_deg = _max_spread_direction_from_phi(
                 wind_direction_deg=wind_dir,
@@ -390,7 +403,7 @@ def _propagate(
                 theta_rad, a, b, c,
                 slope_rad=slope_rad, aspect_rad=aspect_rad,
             )
-            new_verts.append((x_cur + Xt * DT_MIN, y_cur + Yt * DT_MIN, ros_step))
+            new_verts.append((x_cur + Xt * DT_MIN, y_cur + Yt * DT_MIN, ros_step, fi_step))
 
         verts = new_verts
         t += DT_MIN
@@ -411,12 +424,19 @@ def _propagate(
 
 
 def _make_snapshot(verts: list, t_h: float, proj_crs) -> Optional[PerimeterSnapshot]:
-    """Converte vértices projetados num PerimeterSnapshot GeoJSON WGS84."""
+    """Converte vértices projetados num PerimeterSnapshot GeoJSON WGS84.
+
+    ros_max/fli_max/flame_max são o máximo entre os vértices activos do
+    perímetro neste instante — reflectem o ponto mais intenso da frente
+    de fogo, não um valor médio.
+    """
     if len(verts) < 3:
         return None
     try:
         xs = [v[0] for v in verts]
         ys = [v[1] for v in verts]
+        ros_vals = [v[2] for v in verts]
+        fi_vals = [v[3] for v in verts]
         lons, lats = rio_transform(proj_crs, "EPSG:4326", xs, ys)
         coords = list(zip(lons, lats))
         coords.append(coords[0])
@@ -429,7 +449,16 @@ def _make_snapshot(verts: list, t_h: float, proj_crs) -> Optional[PerimeterSnaps
         else:
             area_ha = 0.0
 
-        return PerimeterSnapshot(t_h=t_h, area_ha=round(area_ha, 1), polygon_wgs84=poly_geojson)
+        ros_max = max(ros_vals) if ros_vals else 0.0
+        fli_max = max(fi_vals) if fi_vals else 0.0
+        flame_max = 0.0775 * fli_max ** 0.46 if fli_max > 0 else 0.0
+
+        return PerimeterSnapshot(
+            t_h=t_h, area_ha=round(area_ha, 1), polygon_wgs84=poly_geojson,
+            ros_max_m_min=round(ros_max, 2),
+            fli_max_kw_m=round(fli_max, 1),
+            flame_max_m=round(flame_max, 2),
+        )
     except Exception as e:
         log.warning("Simulação: erro ao criar snapshot t=%.1fh: %s", t_h, e)
         return None
@@ -437,15 +466,15 @@ def _make_snapshot(verts: list, t_h: float, proj_crs) -> Optional[PerimeterSnaps
 
 def _rediscretize(verts: list) -> list:
     """Insere vértices em segmentos longos; remove em segmentos curtos.
-    Vértices como (x, y, ros_actual); ros interpolado linearmente.
+    Vértices como (x, y, ros_actual, fi_actual); ambos interpolados linearmente.
     """
     n = len(verts)
     result = []
     for i in range(n):
-        x1, y1, r1 = verts[i]
-        x2, y2, r2 = verts[(i + 1) % n]
+        x1, y1, r1, f1 = verts[i]
+        x2, y2, r2, f2 = verts[(i + 1) % n]
         dist = math.hypot(x2 - x1, y2 - y1)
-        result.append((x1, y1, r1))
+        result.append((x1, y1, r1, f1))
         if dist > MAX_SEG_M:
             n_insert = int(dist / MAX_SEG_M)
             for k in range(1, n_insert + 1):
@@ -454,6 +483,7 @@ def _rediscretize(verts: list) -> list:
                     x1 + frac * (x2 - x1),
                     y1 + frac * (y2 - y1),
                     r1 + frac * (r2 - r1),
+                    f1 + frac * (f2 - f1),
                 ))
     cleaned = [result[0]]
     for pt in result[1:]:
@@ -464,7 +494,8 @@ def _rediscretize(verts: list) -> list:
 
 def _fix_crossovers(verts: list) -> list:
     """Usa Shapely para corrigir auto-intersecções; devolve maior componente.
-    Preserva ros_actual (3.º elemento) por vizinho mais próximo após correcção.
+    Preserva ros_actual/fi_actual (3.º/4.º elementos) por vizinho mais
+    próximo após correcção.
     """
     if not HAS_SHAPELY or len(verts) < 3:
         return verts
@@ -478,15 +509,15 @@ def _fix_crossovers(verts: list) -> list:
         if poly.is_empty or not isinstance(poly, Polygon):
             return verts
         new_pts = list(poly.exterior.coords[:-1])
-        # Re-atribuir ros_actual pelo vértice original mais próximo
+        # Re-atribuir ros_actual/fi_actual pelo vértice original mais próximo
         result = []
         for nx, ny in new_pts:
-            best_ros, best_d = 0.0, float('inf')
-            for ox, oy, orx in verts:
+            best_ros, best_fi, best_d = 0.0, 0.0, float('inf')
+            for ox, oy, orx, ofi in verts:
                 d = math.hypot(nx - ox, ny - oy)
                 if d < best_d:
-                    best_d, best_ros = d, orx
-            result.append((nx, ny, best_ros))
+                    best_d, best_ros, best_fi = d, orx, ofi
+            result.append((nx, ny, best_ros, best_fi))
         return result
     except Exception:
         return verts
@@ -537,7 +568,7 @@ def run_simulation_sync(
     if not weather_hourly:
         raise ValueError("weather_hourly não pode ser vazio")
 
-    snapshot_hours = [h for h in [1.0, 2.0, 3.0, 6.0] if h <= duration_h]
+    snapshot_hours = [h for h in SNAPSHOT_HOURS_CANDIDATES if h <= duration_h]
     if duration_h not in snapshot_hours:
         snapshot_hours.append(duration_h)
     snapshot_hours.sort()
@@ -583,10 +614,27 @@ def run_simulation_sync(
 
     return {
         "perimeters": [
-            {"t_h": s.t_h, "area_ha": s.area_ha, "geojson": s.polygon_wgs84}
+            {
+                "t_h": s.t_h, "area_ha": s.area_ha, "geojson": s.polygon_wgs84,
+                "ros_max_m_min": s.ros_max_m_min,
+                "fli_max_kw_m": s.fli_max_kw_m,
+                "flame_max_m": s.flame_max_m,
+            }
             for s in snapshots
         ],
         "pixel_grid": clipped_grid,
+        "weather_hourly": [
+            {
+                "t_h": i,
+                "timestamp": wx.timestamp.isoformat() if wx.timestamp else None,
+                "temperature_c": wx.temperature_c,
+                "relative_humidity_pct": wx.relative_humidity_pct,
+                "wind_speed_ms": wx.wind_speed_10m_ms,
+                "wind_direction_deg": wx.wind_direction_deg,
+            }
+            for i, wx in enumerate(weather_hourly)
+            if i <= duration_h
+        ],
         "meta": {
             "bbox_km":               bbox_km,
             "resolution_m":          effective_resolution_m,

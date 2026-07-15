@@ -249,7 +249,7 @@ class FuelModelInfo(BaseModel):
 class SimulationRequest(BaseModel):
     """Pedido de simulação ForeFire."""
     fire_id: str
-    duration_h: float = Field(default=3.0, ge=0.5, le=12.0)
+    duration_h: float = Field(default=3.0, ge=0.5, le=24.0)
     # Override de meteo (se ausente, usa-se a meteo da ocorrência)
     wind_speed_ms: Optional[float] = None
     wind_direction_deg: Optional[float] = None
@@ -272,11 +272,24 @@ class PerimeterSnapshot(BaseModel):
     t_h: float
     area_ha: float
     geojson: dict
+    ros_max_m_min: float
+    fli_max_kw_m: float
+    flame_max_m: float
+
+
+class WeatherHourlyPoint(BaseModel):
+    t_h: int
+    timestamp: Optional[datetime] = None
+    temperature_c: float
+    relative_humidity_pct: float
+    wind_speed_ms: float
+    wind_direction_deg: float
 
 
 class SimulationResultDetail(BaseModel):
     perimeters: list[PerimeterSnapshot]
     pixel_grid: dict
+    weather_hourly: list[WeatherHourlyPoint] = []
     meta: dict
 
 
