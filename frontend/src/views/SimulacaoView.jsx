@@ -394,64 +394,53 @@ function ResultsTable({ perimeters }) {
   )
 }
 
-const METEO_TICK = { fontFamily: 'var(--font-mono)', fontSize: 9, fill: 'var(--dim)' }
+const METEO_TICK = { fontFamily: 'var(--font-mono)', fontSize: 10, fill: 'var(--dim)' }
+const WIND_DEG_TICKS = [0, 90, 180, 270, 360]
+const WIND_DEG_LABELS = { 0: 'N', 90: 'E', 180: 'S', 270: 'O', 360: 'N' }
 
-function MeteoTooltip({ active, payload, label, unit }) {
+function _hourLabel(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return `${String(d.getHours()).padStart(2, '0')}h`
+}
+
+function MeteoTooltip({ active, payload, unit, formatValue }) {
   if (!active || !payload?.length) return null
+  const p = payload[0].payload
+  const value = formatValue ? formatValue(payload[0].value) : fmt(payload[0].value, 1, unit)
   return (
     <div style={{
-      background: 'var(--surface, var(--bg2))', border: '1px solid var(--border)',
+      background: 'var(--bg2)', border: '1px solid var(--border)',
       borderRadius: 4, padding: '4px 8px', fontFamily: 'var(--font-mono)', fontSize: 10,
     }}>
-      <div style={{ color: 'var(--muted)' }}>t={label}h</div>
-      <div style={{ color: payload[0].color }}>{fmt(payload[0].value, 1, unit)}</div>
+      <div style={{ color: 'var(--muted)' }}>{_hourLabel(p.timestamp)} (t+{p.t_h}h)</div>
+      <div style={{ color: payload[0].color, fontWeight: 700 }}>{value}</div>
     </div>
   )
 }
 
-function MeteoRow({ points, dataKey, label, unit, color, domain }) {
+function MeteoRow({ points, dataKey, label, unit, color, domain, yTicks, yTickFormatter, tooltipFormatter }) {
   return (
     <div>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--muted)', marginBottom: 2 }}>
-        {label.toUpperCase()}
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text)',
+        marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6,
+      }}>
+        <span style={{ display: 'inline-block', width: 12, height: 2, background: color }} />
+        {label}
       </div>
-      <ResponsiveContainer width="100%" height={70}>
-        <LineChart data={points} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-          <CartesianGrid stroke="var(--border)" strokeDasharray="2 3" vertical={false} />
-          <XAxis dataKey="t_h" tick={METEO_TICK} axisLine={{ stroke: 'var(--border)' }} tickLine={false} />
-          <YAxis width={30} domain={domain} tick={METEO_TICK} axisLine={false} tickLine={false} />
-          <Tooltip content={<MeteoTooltip unit={unit} />} />
+      <ResponsiveContainer width="100%" height={130}>
+        <LineChart data={points} margin={{ top: 6, right: 12, bottom: 0, left: 0 }}>
+          <CartesianGrid stroke="var(--border)" strokeDasharray="2 3" />
+          <XAxis dataKey="t_h" tick={METEO_TICK} axisLine={{ stroke: 'var(--border)' }} tickLine={false}
+            tickFormatter={t_h => _hourLabel(points.find(p => p.t_h === t_h)?.timestamp)} />
+          <YAxis width={34} domain={domain} ticks={yTicks} tickFormatter={yTickFormatter}
+            tick={METEO_TICK} axisLine={false} tickLine={false} />
+          <Tooltip content={<MeteoTooltip unit={unit} formatValue={tooltipFormatter} />} />
           <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2}
             dot={{ r: 2, fill: color, strokeWidth: 0 }} activeDot={{ r: 4 }} isAnimationActive={false} />
         </LineChart>
       </ResponsiveContainer>
-    </div>
-  )
-}
-
-function WindDirectionRow({ points }) {
-  return (
-    <div>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--muted)', marginBottom: 4 }}>
-        DIREÇÃO DO VENTO
-      </div>
-      <div style={{ display: 'flex', gap: 2, overflowX: 'auto', paddingBottom: 2 }}>
-        {points.map(p => (
-          <div key={p.t_h} title={`t=${p.t_h}h — ${windDirText(p.wind_direction_deg)} (${fmt(p.wind_direction_deg, 0)}°)`}
-            style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-              flex: '0 0 auto', width: 28,
-            }}>
-            <svg width="14" height="14" viewBox="0 0 14 14"
-              style={{ transform: `rotate(${p.wind_direction_deg}deg)` }}>
-              <path d="M7 1 L11 9 L7 6.5 L3 9 Z" fill="var(--p1)" />
-            </svg>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--dim)' }}>
-              {p.t_h}h
-            </span>
-          </div>
-        ))}
-      </div>
     </div>
   )
 }
@@ -462,11 +451,13 @@ function Meteogram({ points }) {
       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--muted)', marginBottom: 6 }}>
         METEOGRAMA — OPEN-METEO
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <MeteoRow points={points} dataKey="temperature_c" label="Temperatura °C" unit="°C" color="var(--danger)" />
-        <MeteoRow points={points} dataKey="relative_humidity_pct" label="Humidade relativa %" unit="%" color="var(--meteo-humidity)" domain={[0, 100]} />
-        <MeteoRow points={points} dataKey="wind_speed_ms" label="Vel. vento m/s" unit="m/s" color="var(--p1)" domain={[0, 'dataMax']} />
-        <WindDirectionRow points={points} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <MeteoRow points={points} dataKey="temperature_c" label="Temperatura (2m, °C)" unit="°C" color="var(--danger)" />
+        <MeteoRow points={points} dataKey="relative_humidity_pct" label="Humidade relativa (2m, %)" unit="%" color="var(--meteo-humidity)" domain={[0, 100]} />
+        <MeteoRow points={points} dataKey="wind_speed_ms" label="Velocidade do vento (10m, m/s)" unit="m/s" color="var(--p1)" domain={[0, 'dataMax']} />
+        <MeteoRow points={points} dataKey="wind_direction_deg" label="Direção do vento (10m)" color="var(--p1)"
+          domain={[0, 360]} yTicks={WIND_DEG_TICKS} yTickFormatter={d => WIND_DEG_LABELS[d] ?? d}
+          tooltipFormatter={v => `${windDirText(v)} (${fmt(v, 0)}°)`} />
       </div>
     </div>
   )
