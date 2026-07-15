@@ -6,6 +6,7 @@ import DetalheView from './views/DetalheView'
 import HistoricoView from './views/HistoricoView'
 import SimulacaoView from './views/SimulacaoView'
 import { fetchHealth } from './api'
+import { REGION_LABEL } from './region'
 
 // ---------------------------------------------------------------------------
 // Clock — live time for sidebar footer
@@ -146,7 +147,7 @@ function Topbar() {
     sub = `#${isDetail[1]}`
   } else if (location.pathname.startsWith('/mapa')) {
     title = 'Mapa'
-    sub = 'Portugal Continental'
+    sub = REGION_LABEL
   } else {
     title = 'Ocorrências Ativas'
     sub = null

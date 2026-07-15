@@ -14,7 +14,12 @@ Loop:
 
 Variáveis de ambiente:
 - DATABASE_URL: DSN Postgres (postgresql://user:pass@host:5432/db)
-- LANDSCAPE_DIR: diretório com os 7 TIFFs da Landscape File PT
+- LANDSCAPE_DIR: diretório com os 8 TIFFs da Landscape File PT (ou, se
+  LANDSCAPE_FILE estiver definido, diretório onde esse ficheiro fica)
+- LANDSCAPE_FILE: nome do ficheiro Landscape File multibanda (opcional —
+  quando definido, o worker lê UM GeoTIFF de 8 bandas em vez dos 8 TIFFs
+  separados, e passa a triar apenas ocorrências dentro da extensão desse
+  ficheiro; usado pelos pilotos regionais, ex. Alto Minho)
 - FUEL_MODELS_CSV: caminho para o CSV dos modelos PT
 - POLL_INTERVAL_S: segundos entre polls (default 120)
 - TRIAGE_MAX_AGE_MIN: minutos a partir dos quais re-triar (default 15)
@@ -56,6 +61,7 @@ class WorkerConfig:
     def __init__(self):
         self.database_url = os.environ["DATABASE_URL"]
         self.landscape_dir = os.environ.get("LANDSCAPE_DIR")
+        self.landscape_file = os.environ.get("LANDSCAPE_FILE")
         self.fuel_models_csv = os.environ.get(
             "FUEL_MODELS_CSV",
             "/data/fuel_models_pt.csv",
@@ -134,6 +140,7 @@ def _ensure_landscape_worker(config: WorkerConfig) -> None:
         r2_secret_access_key=config.r2_secret_access_key,
         r2_bucket=config.r2_bucket,
         r2_prefix=config.r2_prefix,
+        filename=config.landscape_file,
     )
 
 
@@ -189,10 +196,16 @@ async def worker_resources(config: WorkerConfig):
         log.warning("DEV_MODE — usando MockLandscapeReader (terreno fixo)")
         ls_reader = MockLandscapeReader(_default_dev_terrain())
         ls_reader.__enter__()
+    elif config.landscape_file:
+        path = Path(config.landscape_dir) / config.landscape_file
+        log.info(f"A abrir Landscape File multibanda em {path}")
+        ls_reader = LandscapeReader(multiband_path=path)
+        ls_reader.__enter__()
+        log.info(f"  extensão (WGS84): {ls_reader.bounds_wgs84}")
     else:
         log.info(f"A abrir Landscape File em {config.landscape_dir}")
         rasters = LandscapeRasters.from_directory(config.landscape_dir)
-        ls_reader = LandscapeReader(rasters)
+        ls_reader = LandscapeReader(rasters=rasters)
         ls_reader.__enter__()
 
     try:
@@ -234,6 +247,12 @@ async def process_fire(
     fuel_models = resources["fuel_models"]
     ls_reader = resources["landscape"]
     config: WorkerConfig = resources["config"]
+
+    # 0. Fora da extensão do landscape file carregado? Nesse caso a triagem
+    #    usaria terreno fabricado (elevação/declive a 0, fuel model default)
+    #    em vez de dados reais — não ingerir nem triar.
+    if not ls_reader.contains(fire.latitude, fire.longitude):
+        return f"{fire.fire_id} — fora da área de cobertura do landscape file"
 
     occ_repo = OccurrenceRepository(pool)
     triage_repo = TriageResultRepository(pool)

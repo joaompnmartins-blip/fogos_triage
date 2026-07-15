@@ -28,6 +28,24 @@ LANDSCAPE_TIFS = [
     "densidade_copas.tif",
 ]
 
+# Nomes das bandas (via tag `description`) num ficheiro Landscape File
+# combinado (multibanda), na ordem usada pelo ficheiro-piloto Alto Minho.
+BAND_NAME_MAP = {
+    "Elevation": "elevation",
+    "Slope": "slope",
+    "Aspect": "aspect",
+    "Fuel Model": "fuel_model",
+    "Canopy Cover": "canopy_cover",
+    "Stand Height": "stand_height",
+    "Canopy Base Height": "canopy_base_height",
+    "Canopy Bulk Density": "canopy_bulk_density",
+}
+# Fallback caso o ficheiro não tenha as tags `description` nas bandas.
+BAND_ORDER_FALLBACK = [
+    "elevation", "slope", "aspect", "fuel_model",
+    "canopy_cover", "stand_height", "canopy_base_height", "canopy_bulk_density",
+]
+
 
 def ensure_landscape(
     landscape_dir: str | Path,
@@ -36,6 +54,7 @@ def ensure_landscape(
     r2_secret_access_key: str | None = None,
     r2_bucket: str = "fogos-landscape",
     r2_prefix: str = "landscape/",
+    filename: str | None = None,
 ) -> None:
     """
     Garante que os TIFFs da Landscape File estão em landscape_dir.
@@ -43,13 +62,17 @@ def ensure_landscape(
     Se algum ficheiro faltar e as credenciais R2 estiverem presentes,
     descarrega do bucket Cloudflare R2. Bloqueia até o download concluir.
     Levanta RuntimeError se os TIFFs estiverem em falta e não for possível descarregar.
+
+    Se `filename` for dado, assume modo multibanda — garante apenas esse
+    ficheiro único (em vez dos 8 TIFFs de LANDSCAPE_TIFS).
     """
     landscape_path = Path(landscape_dir)
     landscape_path.mkdir(parents=True, exist_ok=True)
 
-    missing = [f for f in LANDSCAPE_TIFS if not (landscape_path / f).exists()]
+    expected = [filename] if filename else LANDSCAPE_TIFS
+    missing = [f for f in expected if not (landscape_path / f).exists()]
     if not missing:
-        log.info("Landscape: %d TIFFs presentes em %s", len(LANDSCAPE_TIFS), landscape_path)
+        log.info("Landscape: %d TIFFs presentes em %s", len(expected), landscape_path)
         return
 
     log.info("Landscape: %d TIFFs em falta — %s", len(missing), missing)
@@ -76,20 +99,20 @@ def ensure_landscape(
     )
 
     prefix = r2_prefix.rstrip("/") + "/"
-    for filename in missing:
-        key = f"{prefix}{filename}"
-        dest = landscape_path / filename
+    for missing_name in missing:
+        key = f"{prefix}{missing_name}"
+        dest = landscape_path / missing_name
         log.info("  A descarregar %s → %s ...", key, dest)
         s3.download_file(r2_bucket, key, str(dest))
         size_mb = dest.stat().st_size / 1_048_576
-        log.info("  %s — %.0f MB", filename, size_mb)
+        log.info("  %s — %.0f MB", missing_name, size_mb)
 
     log.info("Landscape: download completo")
 
 try:
     import rasterio
     from rasterio.transform import rowcol
-    from rasterio.warp import transform as rio_transform
+    from rasterio.warp import transform as rio_transform, transform_bounds as rio_transform_bounds
     HAS_RASTERIO = True
 except ImportError:
     HAS_RASTERIO = False
@@ -151,37 +174,84 @@ class LandscapeReader:
     """
     Reader eficiente para os rasters da LCP.
     Abre os ficheiros uma vez e reutiliza.
+
+    Dois modos, mutuamente exclusivos:
+    - `rasters`: um raster (single-band) por camada (Landscape File PT nacional).
+    - `multiband_path`: um único GeoTIFF multibanda, com as bandas
+      identificadas pela tag `description` (ver BAND_NAME_MAP), ou pela
+      ordem fixa em BAND_ORDER_FALLBACK se as tags estiverem ausentes.
     """
 
-    def __init__(self, rasters: LandscapeRasters):
+    def __init__(
+        self,
+        rasters: LandscapeRasters | None = None,
+        multiband_path: str | Path | None = None,
+    ):
         if not HAS_RASTERIO:
             raise ImportError("rasterio é necessário para LandscapeReader")
+        if (rasters is None) == (multiband_path is None):
+            raise ValueError("Dar exatamente um de: rasters, multiband_path")
         self.rasters = rasters
+        self.multiband_path = Path(multiband_path) if multiband_path else None
         self._datasets: dict[str, "rasterio.DatasetReader"] = {}
+        self._band_index: dict[str, int] = {}
+        self.bounds_wgs84: Optional[tuple[float, float, float, float]] = None
 
     def __enter__(self):
-        for name, path in [
-            ("elevation", self.rasters.elevation),
-            ("slope", self.rasters.slope),
-            ("aspect", self.rasters.aspect),
-            ("fuel_model", self.rasters.fuel_model),
-        ]:
-            self._datasets[name] = rasterio.open(path)
-        # opcionais
-        for name, path in [
-            ("stand_height", self.rasters.stand_height),
-            ("canopy_cover", self.rasters.canopy_cover),
-            ("canopy_base_height", self.rasters.canopy_base_height),
-            ("canopy_bulk_density", self.rasters.canopy_bulk_density),
-        ]:
-            if path is not None and path.exists():
+        if self.multiband_path is not None:
+            ds = rasterio.open(self.multiband_path)
+            self._datasets["_multiband"] = ds
+            descriptions = ds.descriptions or ()
+            for i, desc in enumerate(descriptions, start=1):
+                name = BAND_NAME_MAP.get(desc)
+                if name:
+                    self._band_index[name] = i
+            if not self._band_index:
+                # ficheiro sem tags description — assume ordem fixa
+                for i, name in enumerate(BAND_ORDER_FALLBACK[:ds.count], start=1):
+                    self._band_index[name] = i
+        else:
+            for name, path in [
+                ("elevation", self.rasters.elevation),
+                ("slope", self.rasters.slope),
+                ("aspect", self.rasters.aspect),
+                ("fuel_model", self.rasters.fuel_model),
+            ]:
                 self._datasets[name] = rasterio.open(path)
+            # opcionais
+            for name, path in [
+                ("stand_height", self.rasters.stand_height),
+                ("canopy_cover", self.rasters.canopy_cover),
+                ("canopy_base_height", self.rasters.canopy_base_height),
+                ("canopy_bulk_density", self.rasters.canopy_bulk_density),
+            ]:
+                if path is not None and path.exists():
+                    self._datasets[name] = rasterio.open(path)
+
+        ref_ds = self._ref_dataset()
+        self.bounds_wgs84 = rio_transform_bounds(
+            ref_ds.crs, "EPSG:4326", *ref_ds.bounds,
+        )
         return self
 
     def __exit__(self, *args):
         for ds in self._datasets.values():
             ds.close()
         self._datasets.clear()
+        self._band_index.clear()
+
+    def _ref_dataset(self) -> "rasterio.DatasetReader":
+        """Dataset usado como referência de CRS/transform/extensão."""
+        if self.multiband_path is not None:
+            return self._datasets["_multiband"]
+        return self._datasets["elevation"]
+
+    def contains(self, latitude: float, longitude: float) -> bool:
+        """True se o ponto cai dentro da extensão coberta pelo(s) raster(s)."""
+        if self.bounds_wgs84 is None:
+            return True
+        min_lon, min_lat, max_lon, max_lat = self.bounds_wgs84
+        return min_lon <= longitude <= max_lon and min_lat <= latitude <= max_lat
 
     _NEIGHBOURHOOD_ANGLES_DEG = [0, 45, 90, 135, 180, 225, 270, 315]
 
@@ -221,8 +291,8 @@ class LandscapeReader:
         Lê os valores dos rasters num ponto (lat, lon em WGS84).
         Reprojeta as coordenadas para o CRS dos rasters se necessário.
         """
-        # Usa o CRS do primeiro dataset
-        ref_ds = self._datasets["elevation"]
+        # Usa o CRS do dataset de referência
+        ref_ds = self._ref_dataset()
         target_crs = ref_ds.crs
         if target_crs.to_epsg() != 4326:
             xs, ys = rio_transform("EPSG:4326", target_crs, [longitude], [latitude])
@@ -233,17 +303,25 @@ class LandscapeReader:
         # row, col
         row, col = rowcol(ref_ds.transform, x, y)
 
-        # Lê uma janela 1x1 em cada raster
-        def _read_at(ds_name: str) -> Optional[float]:
-            ds = self._datasets.get(ds_name)
-            if ds is None:
-                return None
+        # Lê uma janela 1x1 na camada pedida (dataset próprio, ou banda do
+        # ficheiro multibanda, consoante o modo)
+        def _read_at(name: str) -> Optional[float]:
+            if self.multiband_path is not None:
+                band = self._band_index.get(name)
+                if band is None:
+                    return None
+                ds = self._datasets["_multiband"]
+            else:
+                ds = self._datasets.get(name)
+                if ds is None:
+                    return None
+                band = 1
             try:
                 window = rasterio.windows.Window(col, row, 1, 1)
-                arr = ds.read(1, window=window)
+                arr = ds.read(band, window=window)
                 val = float(arr[0, 0])
-                # NoData?
-                if ds.nodata is not None and val == ds.nodata:
+                nodata = ds.nodatavals[band - 1] if ds.nodatavals else ds.nodata
+                if nodata is not None and val == nodata:
                     return None
                 return val
             except (IndexError, ValueError):
@@ -301,3 +379,6 @@ class MockLandscapeReader:
 
     def sample(self, latitude: float, longitude: float) -> TerrainConditions:
         return self._terrain
+
+    def contains(self, latitude: float, longitude: float) -> bool:
+        return True

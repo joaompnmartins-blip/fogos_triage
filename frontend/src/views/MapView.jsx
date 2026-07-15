@@ -4,9 +4,7 @@ import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { fetchFiresGeo } from '../api'
 import { PRIORITY_COLOR, PRIORITY_LABEL } from '../constants'
-
-const PT_CENTER = [-8.0, 39.5]
-const PT_BBOX = { minLat: 30, minLng: -32, maxLat: 42.5, maxLng: -5.5 }
+import { REGION_CENTER, REGION_BBOX, REGION_ZOOM } from '../region'
 
 const priorityColorExpr = [
   'match', ['get', 'priority_class'],
@@ -61,8 +59,8 @@ export default function MapView({ apiKey }) {
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: OSM_STYLE,
-      center: PT_CENTER,
-      zoom: 6.5,
+      center: REGION_CENTER,
+      zoom: REGION_ZOOM,
       attributionControl: false,
       maxZoom: 17,
       minZoom: 4,
@@ -135,7 +133,7 @@ export default function MapView({ apiKey }) {
 
     async function loadFires() {
       try {
-        const geojson = await fetchFiresGeo(apiKey, PT_BBOX)
+        const geojson = await fetchFiresGeo(apiKey, REGION_BBOX)
         fireDataRef.current = geojson
         setFireCount(geojson.features?.length ?? 0)
         setLoadError(null)
