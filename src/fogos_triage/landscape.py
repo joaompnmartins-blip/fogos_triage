@@ -15,6 +15,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+import numpy as np
+
 log = logging.getLogger(__name__)
 
 LANDSCAPE_TIFS = [
@@ -246,6 +248,19 @@ class LandscapeReader:
             return self._datasets["_multiband"]
         return self._datasets["elevation"]
 
+    @property
+    def crs(self):
+        return self._ref_dataset().crs
+
+    @property
+    def transform(self):
+        return self._ref_dataset().transform
+
+    @property
+    def native_resolution_m(self) -> float:
+        """Tamanho do pixel (m) no CRS nativo do raster carregado."""
+        return abs(self._ref_dataset().transform.a)
+
     def contains(self, latitude: float, longitude: float) -> bool:
         """True se o ponto cai dentro da extensão coberta pelo(s) raster(s)."""
         if self.bounds_wgs84 is None:
@@ -286,59 +301,63 @@ class LandscapeReader:
 
         return results if results else [self.sample(latitude, longitude)]
 
+    def _read_field(self, name: str, row: int, col: int) -> Optional[float]:
+        """Lê uma janela 1x1 na camada pedida (dataset próprio, ou banda do
+        ficheiro multibanda, consoante o modo)."""
+        if self.multiband_path is not None:
+            band = self._band_index.get(name)
+            if band is None:
+                return None
+            ds = self._datasets["_multiband"]
+        else:
+            ds = self._datasets.get(name)
+            if ds is None:
+                return None
+            band = 1
+        try:
+            window = rasterio.windows.Window(col, row, 1, 1)
+            arr = ds.read(band, window=window)
+            val = float(arr[0, 0])
+            nodata = ds.nodatavals[band - 1] if ds.nodatavals else ds.nodata
+            if nodata is not None and val == nodata:
+                return None
+            return val
+        except (IndexError, ValueError):
+            return None
+
     def sample(self, latitude: float, longitude: float) -> TerrainConditions:
         """
         Lê os valores dos rasters num ponto (lat, lon em WGS84).
         Reprojeta as coordenadas para o CRS dos rasters se necessário.
         """
-        # Usa o CRS do dataset de referência
-        ref_ds = self._ref_dataset()
-        target_crs = ref_ds.crs
+        target_crs = self.crs
         if target_crs.to_epsg() != 4326:
             xs, ys = rio_transform("EPSG:4326", target_crs, [longitude], [latitude])
             x, y = xs[0], ys[0]
         else:
             x, y = longitude, latitude
+        return self.sample_projected(x, y)
 
-        # row, col
-        row, col = rowcol(ref_ds.transform, x, y)
+    def sample_projected(self, x: float, y: float) -> TerrainConditions:
+        """
+        Lê os valores dos rasters num ponto já em coordenadas do CRS nativo
+        (sem reprojeção) — usado quando o chamador já trabalha no CRS
+        projetado, evitando transformar ida-e-volta desnecessariamente.
+        """
+        row, col = rowcol(self.transform, x, y)
 
-        # Lê uma janela 1x1 na camada pedida (dataset próprio, ou banda do
-        # ficheiro multibanda, consoante o modo)
-        def _read_at(name: str) -> Optional[float]:
-            if self.multiband_path is not None:
-                band = self._band_index.get(name)
-                if band is None:
-                    return None
-                ds = self._datasets["_multiband"]
-            else:
-                ds = self._datasets.get(name)
-                if ds is None:
-                    return None
-                band = 1
-            try:
-                window = rasterio.windows.Window(col, row, 1, 1)
-                arr = ds.read(band, window=window)
-                val = float(arr[0, 0])
-                nodata = ds.nodatavals[band - 1] if ds.nodatavals else ds.nodata
-                if nodata is not None and val == nodata:
-                    return None
-                return val
-            except (IndexError, ValueError):
-                return None
-
-        elevation = _read_at("elevation") or 0.0
-        slope_deg = _read_at("slope") or 0.0
-        aspect_deg = _read_at("aspect") or 0.0
-        fuel_num = int(_read_at("fuel_model") or 98)
+        elevation = self._read_field("elevation", row, col) or 0.0
+        slope_deg = self._read_field("slope", row, col) or 0.0
+        aspect_deg = self._read_field("aspect", row, col) or 0.0
+        fuel_num = int(self._read_field("fuel_model", row, col) or 98)
 
         # Slope pode vir em graus ou em percent dependendo do produto
         # Assumimos graus (formato standard FARSITE/landscape file)
         slope_fraction = math.tan(math.radians(slope_deg))
 
-        cbd_raw = _read_at("canopy_bulk_density")
-        sh_raw = _read_at("stand_height")
-        cbh_raw = _read_at("canopy_base_height")
+        cbd_raw = self._read_field("canopy_bulk_density", row, col)
+        sh_raw = self._read_field("stand_height", row, col)
+        cbh_raw = self._read_field("canopy_base_height", row, col)
         return TerrainConditions(
             elevation_m=elevation,
             slope_fraction=slope_fraction,
@@ -347,11 +366,53 @@ class LandscapeReader:
             fuel_model_num=fuel_num,
             # alturas armazenadas em decímetros nos rasters PT
             stand_height_m=sh_raw / 10.0 if sh_raw is not None else None,
-            canopy_cover_pct=_read_at("canopy_cover"),
+            canopy_cover_pct=self._read_field("canopy_cover", row, col),
             canopy_base_height_m=cbh_raw / 10.0 if cbh_raw is not None else None,
             # densidade_copas.tif está em kg/m³ × 100
             canopy_bulk_density_kg_m3=cbd_raw / 100.0 if cbd_raw is not None else None,
         )
+
+    def read_window(
+        self,
+        names: list[str],
+        min_x: float, min_y: float, max_x: float, max_y: float,
+    ) -> tuple[dict[str, np.ndarray], dict[str, Optional[float]], "rasterio.Affine"]:
+        """
+        Lê uma janela (bbox em coordenadas do CRS nativo) de uma vez para
+        cada campo pedido — evita uma leitura rasterio por ponto quando se
+        precisa de amostrar uma grelha densa (ex. grelha de simulação).
+
+        Devolve (arrays, nodata_por_campo, window_transform). Todos os
+        arrays partilham a mesma forma e georreferenciação (os rasters
+        assumem-se alinhados — ver docstring do módulo); `window_transform`
+        mapeia (linha, coluna) da janela para (x, y).
+        Pixels fora da extensão do raster são preenchidos com o nodata da
+        camada (boundless read).
+        """
+        window = rasterio.windows.from_bounds(min_x, min_y, max_x, max_y, self.transform)
+        window = window.round_offsets().round_lengths()
+        window_transform = rasterio.windows.transform(window, self.transform)
+
+        arrays: dict[str, np.ndarray] = {}
+        nodata: dict[str, Optional[float]] = {}
+        for name in names:
+            if self.multiband_path is not None:
+                band = self._band_index.get(name)
+                if band is None:
+                    continue
+                ds = self._datasets["_multiband"]
+            else:
+                ds = self._datasets.get(name)
+                if ds is None:
+                    continue
+                band = 1
+            band_nodata = ds.nodatavals[band - 1] if ds.nodatavals else ds.nodata
+            fill_value = band_nodata if band_nodata is not None else -9999.0
+            arr = ds.read(band, window=window, boundless=True, fill_value=fill_value)
+            arrays[name] = arr
+            nodata[name] = band_nodata
+
+        return arrays, nodata, window_transform
 
 
 # Versão mock para testes sem rasterio

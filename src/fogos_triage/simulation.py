@@ -29,8 +29,6 @@ except ImportError:
 
 try:
     import rasterio
-    import rasterio.windows
-    from rasterio.transform import rowcol
     from rasterio.warp import transform as rio_transform
     HAS_RASTERIO = True
 except ImportError:
@@ -38,8 +36,8 @@ except ImportError:
 
 from .engine import _max_spread_direction_from_phi, _rothermel_direct
 from .fuel_models import FuelModelPT
-from .landscape import LandscapeRasters
-from .schemas import WeatherConditions, TerrainConditions
+from .landscape import LandscapeReader, LandscapeRasters
+from .schemas import WeatherConditions
 
 log = logging.getLogger(__name__)
 
@@ -55,6 +53,12 @@ MIN_SEG_M = 30.0
 INIT_RADIUS_M = 75.0
 N_INIT_VERTICES = 16
 AA_SURFACE = 0.115  # FARSITE fire acceleration constant (eq. [30])
+
+# Limite de células da grelha ROS (bbox completo, antes do clip ao
+# perímetro) — protege tempo de cálculo e tamanho do payload quando a
+# resolução nativa do landscape file é fina (ex. 10m no Alto Minho) e o
+# bbox pedido é grande. Se excedido, resolution_m é ajustada para cima.
+MAX_GRID_CELLS = 500_000
 
 
 # ---------------------------------------------------------------------------
@@ -154,62 +158,11 @@ def _richards_step(
 
 
 # ---------------------------------------------------------------------------
-# Leitura de terreno em coordenadas projetadas
-# ---------------------------------------------------------------------------
-
-def _sample_terrain_projected(
-    datasets: dict,
-    px: float, py: float,
-    fuel_models: dict[int, FuelModelPT],
-) -> tuple[Optional[FuelModelPT], TerrainConditions]:
-    """Lê terreno num ponto em coordenadas projectadas."""
-    ref_ds = datasets["elevation"]
-
-    def _read(name: str) -> Optional[float]:
-        ds = datasets.get(name)
-        if ds is None:
-            return None
-        try:
-            row, col = rowcol(ds.transform, px, py)
-            win = rasterio.windows.Window(col, row, 1, 1)
-            arr = ds.read(1, window=win)
-            val = float(arr[0, 0])
-            if ds.nodata is not None and abs(val - ds.nodata) < 1:
-                return None
-            return val
-        except Exception:
-            return None
-
-    elevation = _read("elevation") or 0.0
-    slope_deg = _read("slope") or 0.0
-    aspect_deg = _read("aspect") or 0.0
-    fuel_num = int(_read("fuel_model") or 98)
-    stand_height = _read("stand_height")
-    canopy_cover = _read("canopy_cover")
-    cbh = _read("canopy_base_height")
-    cbd = _read("canopy_bulk_density")
-
-    fm = fuel_models.get(fuel_num)
-    terrain = TerrainConditions(
-        elevation_m=elevation,
-        slope_fraction=math.tan(math.radians(slope_deg)),
-        slope_degrees=slope_deg,
-        aspect_degrees=aspect_deg,
-        fuel_model_num=fuel_num,
-        stand_height_m=stand_height / 10.0 if stand_height is not None else None,
-        canopy_cover_pct=canopy_cover,
-        canopy_base_height_m=cbh / 10.0 if cbh is not None else None,
-        canopy_bulk_density_kg_m3=cbd / 100.0 if cbd is not None else None,
-    )
-    return fm, terrain
-
-
-# ---------------------------------------------------------------------------
 # Pré-computa grelha ROS/FLI/chama para visualização
 # ---------------------------------------------------------------------------
 
 def _build_ros_grid(
-    datasets: dict,
+    reader: LandscapeReader,
     fuel_models: dict[int, FuelModelPT],
     weather: WeatherConditions,
     cx_proj: float, cy_proj: float,
@@ -217,20 +170,55 @@ def _build_ros_grid(
     resolution_m: float,
 ) -> dict:
     """
-    Constrói uma GeoJSON FeatureCollection com uma célula por pixel (ros, fi, chama).
-    Calculado para toda a grelha; clip ao perímetro feito depois.
+    Constrói uma GeoJSON FeatureCollection com uma célula por ponto de grelha
+    (ros, fi, chama). Calculado para toda a grelha; clip ao perímetro feito
+    depois.
+
+    Só `slope` e `fuel_model` influenciam o cálculo Rothermel de superfície
+    (declive e modelo de combustível) — lidos uma única vez para todo o
+    bbox via `LandscapeReader.read_window`, em vez de uma leitura rasterio
+    por ponto da grelha.
     """
     half = bbox_km * 500.0
-    ref_ds = datasets["elevation"]
-    proj_crs = ref_ds.crs
+    min_x, max_x = cx_proj - half, cx_proj + half
+    min_y, max_y = cy_proj - half, cy_proj + half
+
+    arrays, nodata, window_transform = reader.read_window(
+        ["slope", "fuel_model"], min_x, min_y, max_x, max_y,
+    )
+    slope_arr = arrays.get("slope")
+    fuel_arr = arrays.get("fuel_model")
+    if slope_arr is None or fuel_arr is None:
+        log.warning("Simulação: landscape file sem bandas slope/fuel_model")
+        return {"type": "FeatureCollection", "features": []}
+    height, width = slope_arr.shape
 
     xs = np.arange(cx_proj - half + resolution_m / 2, cx_proj + half, resolution_m)
     ys = np.arange(cy_proj - half + resolution_m / 2, cy_proj + half, resolution_m)
-
     xx, yy = np.meshgrid(xs, ys)
     pts_x = xx.ravel()
     pts_y = yy.ravel()
-    lons, lats = rio_transform(proj_crs, "EPSG:4326", pts_x, pts_y)
+
+    # (x, y) -> (linha, coluna) dentro da janela lida — raster north-up,
+    # sem rotação, pelo que a inversão do transform é aritmética direta.
+    col_idx = np.clip(
+        ((pts_x - window_transform.c) / window_transform.a).astype(int), 0, width - 1
+    )
+    row_idx = np.clip(
+        ((pts_y - window_transform.f) / window_transform.e).astype(int), 0, height - 1
+    )
+
+    slope_raw = slope_arr[row_idx, col_idx].astype(float)
+    fuel_raw = fuel_arr[row_idx, col_idx]
+
+    slope_nodata = nodata.get("slope")
+    fuel_nodata = nodata.get("fuel_model")
+    slope_deg = (slope_raw if slope_nodata is None
+                 else np.where(slope_raw == slope_nodata, 0.0, slope_raw))
+    fuel_num = (fuel_raw.astype(int) if fuel_nodata is None
+                else np.where(fuel_raw == fuel_nodata, 98, fuel_raw).astype(int))
+
+    lons, lats = rio_transform(reader.crs, "EPSG:4326", pts_x, pts_y)
 
     m_1h   = (weather.fuel_moisture_1h_pct   or 8.0)  / 100.0
     m_10h  = (weather.fuel_moisture_10h_pct  or 9.0)  / 100.0
@@ -240,8 +228,9 @@ def _build_ros_grid(
     wind_mf = weather.wind_midflame_ms or 0.0
 
     features = []
-    for px, py, lon, lat in zip(pts_x, pts_y, lons, lats):
-        fm, terrain = _sample_terrain_projected(datasets, px, py, fuel_models)
+    d_lat = resolution_m / 111320.0
+    for lon, lat, slope, fnum in zip(lons, lats, slope_deg, fuel_num):
+        fm = fuel_models.get(int(fnum))
         if fm is None or fm.is_empty:
             ros, fi, flame = 0.0, 0.0, 0.0
         else:
@@ -249,14 +238,13 @@ def _build_ros_grid(
                 ros, fi, *_ = _rothermel_direct(
                     fm, m_1h, m_10h, m_100h, m_lh, m_lw,
                     wind_midflame_ms=wind_mf,
-                    slope_degrees=terrain.slope_degrees,
+                    slope_degrees=float(slope),
                 )
                 flame = 0.0775 * fi ** 0.46 if fi > 0 else 0.0
             except Exception:
                 ros, fi, flame = 0.0, 0.0, 0.0
 
         d_lon = resolution_m / (111320.0 * math.cos(math.radians(lat)))
-        d_lat = resolution_m / 111320.0
         square = [
             [lon - d_lon, lat - d_lat],
             [lon + d_lon, lat - d_lat],
@@ -297,7 +285,7 @@ def _clip_grid_to_perimeter(grid_geojson: dict, perimeter_geojson: dict) -> dict
 # ---------------------------------------------------------------------------
 
 def _propagate(
-    datasets: dict,
+    reader: LandscapeReader,
     fuel_models: dict[int, FuelModelPT],
     weather_hourly: list[WeatherConditions],
     cx_proj: float, cy_proj: float,
@@ -310,7 +298,7 @@ def _propagate(
     A cada timestep seleciona-se a entrada correspondente à hora atual
     (int(t/60)), permitindo incorporar a previsão horária do Open-Meteo.
     """
-    proj_crs = datasets["elevation"].crs
+    proj_crs = reader.crs
 
     angles = [2 * math.pi * i / N_INIT_VERTICES for i in range(N_INIT_VERTICES)]
     # Vértices como (x, y, ros_actual) — ros_actual inicia em 0 (fogo acabou de acender)
@@ -353,7 +341,8 @@ def _propagate(
             x_prev, y_prev, _ = verts[(i - 1) % n]
             x_next, y_next, _ = verts[(i + 1) % n]
 
-            fm, terrain = _sample_terrain_projected(datasets, x_cur, y_cur, fuel_models)
+            terrain = reader.sample_projected(x_cur, y_cur)
+            fm = fuel_models.get(terrain.fuel_model_num)
 
             if fm is None or fm.is_empty:
                 new_verts.append((x_cur, y_cur, 0.0))
@@ -521,16 +510,27 @@ def run_simulation_sync(
     lon: float,
     weather_hourly: list[WeatherConditions],
     fuel_models: dict[int, FuelModelPT],
-    rasters: LandscapeRasters,
     duration_h: float,
+    *,
+    rasters: Optional[LandscapeRasters] = None,
+    multiband_path: Optional[str] = None,
     bbox_km: float = 15.0,
-    resolution_m: float = 100.0,
+    resolution_m: Optional[float] = None,
 ) -> dict:
     """Corre a simulação completa. Devolve dict para gravar em result_json.
 
     weather_hourly: lista com um WeatherConditions derivado por hora de simulação
     (índice 0 = hora de ignição, 1 = t+1h, …).  A grelha ROS é calculada
     com a meteo inicial (índice 0).
+
+    `rasters`/`multiband_path`: exatamente um dos dois (mesmo contrato de
+    `LandscapeReader.__init__`).
+
+    `resolution_m`: se None (default), usa a resolução nativa do landscape
+    file carregado (10m no piloto Alto Minho, 25m no nacional). Sujeito a
+    `MAX_GRID_CELLS` — se `bbox_km` × resolução implicar mais células do
+    que o orçamento, a resolução é ajustada para cima automaticamente; a
+    resolução pedida e a efetivamente usada ficam registadas em `meta`.
     """
     if not HAS_RASTERIO or not HAS_SHAPELY:
         raise RuntimeError("rasterio e shapely são necessários para simulação espacial")
@@ -543,23 +543,33 @@ def run_simulation_sync(
     snapshot_hours.sort()
 
     wx0 = weather_hourly[0]
+    requested_resolution_m = resolution_m
 
-    from .landscape import LandscapeReader
-    with LandscapeReader(rasters) as reader:
-        datasets = reader._datasets
-        proj_crs = datasets["elevation"].crs
+    with LandscapeReader(rasters=rasters, multiband_path=multiband_path) as reader:
+        effective_resolution_m = resolution_m if resolution_m is not None else reader.native_resolution_m
 
-        cx, cy = _wgs84_to_proj(lat, lon, proj_crs)
+        grid_side_cells = (bbox_km * 1000.0) / effective_resolution_m
+        if grid_side_cells * grid_side_cells > MAX_GRID_CELLS:
+            coarsened = (bbox_km * 1000.0) / math.sqrt(MAX_GRID_CELLS)
+            log.warning(
+                "Simulação: %.1fm em %.1fkm implicaria %.0f células "
+                "(limite %d) — resolução ajustada para %.1fm",
+                effective_resolution_m, bbox_km,
+                grid_side_cells * grid_side_cells, MAX_GRID_CELLS, coarsened,
+            )
+            effective_resolution_m = coarsened
+
+        cx, cy = _wgs84_to_proj(lat, lon, reader.crs)
         log.info("Simulação: ignição (%.4f, %.4f) → proj (%.0f, %.0f)", lat, lon, cx, cy)
 
-        log.info("Simulação: a calcular grelha %.0fm (%.0f×%.0f km)...",
-                 resolution_m, bbox_km, bbox_km)
-        grid = _build_ros_grid(datasets, fuel_models, wx0, cx, cy, bbox_km, resolution_m)
+        log.info("Simulação: a calcular grelha %.1fm (%.0f×%.0f km)...",
+                 effective_resolution_m, bbox_km, bbox_km)
+        grid = _build_ros_grid(reader, fuel_models, wx0, cx, cy, bbox_km, effective_resolution_m)
 
         log.info("Simulação: a propagar %.1fh (dt=%.0f min, %d snapshots meteo)...",
                  duration_h, DT_MIN, len(weather_hourly))
         snapshots = _propagate(
-            datasets, fuel_models, weather_hourly, cx, cy, duration_h, snapshot_hours
+            reader, fuel_models, weather_hourly, cx, cy, duration_h, snapshot_hours
         )
 
     if not snapshots:
@@ -578,13 +588,14 @@ def run_simulation_sync(
         ],
         "pixel_grid": clipped_grid,
         "meta": {
-            "bbox_km":       bbox_km,
-            "resolution_m":  resolution_m,
-            "ignition":      [lat, lon],
-            "wind_speed_ms": wx0.wind_speed_10m_ms,
-            "wind_dir_deg":  wx0.wind_direction_deg,
-            "duration_h":    duration_h,
-            "wx_snapshots":  len(weather_hourly),
+            "bbox_km":               bbox_km,
+            "resolution_m":          effective_resolution_m,
+            "resolution_requested_m": requested_resolution_m,  # None = nativa do landscape file
+            "ignition":              [lat, lon],
+            "wind_speed_ms":         wx0.wind_speed_10m_ms,
+            "wind_dir_deg":          wx0.wind_direction_deg,
+            "duration_h":            duration_h,
+            "wx_snapshots":          len(weather_hourly),
         },
     }
 
@@ -594,15 +605,20 @@ async def run_simulation_async(
     lon: float,
     weather_hourly: list[WeatherConditions],
     fuel_models: dict[int, FuelModelPT],
-    rasters: LandscapeRasters,
     duration_h: float,
+    *,
+    rasters: Optional[LandscapeRasters] = None,
+    multiband_path: Optional[str] = None,
     bbox_km: float = 15.0,
-    resolution_m: float = 100.0,
+    resolution_m: Optional[float] = None,
 ) -> dict:
     """Wrapper assíncrono — corre run_simulation_sync num executor."""
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(
         _executor,
-        run_simulation_sync,
-        lat, lon, weather_hourly, fuel_models, rasters, duration_h, bbox_km, resolution_m,
+        lambda: run_simulation_sync(
+            lat, lon, weather_hourly, fuel_models, duration_h,
+            rasters=rasters, multiband_path=multiband_path,
+            bbox_km=bbox_km, resolution_m=resolution_m,
+        ),
     )

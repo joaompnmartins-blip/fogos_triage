@@ -172,6 +172,7 @@ async def create_simulation(
         duration_h=payload.duration_h,
         bbox_km=payload.bbox_km or 15.0,
         landscape_dir=config.landscape_dir,
+        landscape_file=config.landscape_file,
     ))
 
     return SimulationJob(
@@ -239,6 +240,7 @@ async def _run_and_update(
     duration_h: float,
     bbox_km: float,
     landscape_dir: str,
+    landscape_file: Optional[str] = None,
 ):
     """Task em background: corre simulação e grava resultado no DB."""
     async with pool.acquire() as conn:
@@ -263,10 +265,15 @@ async def _run_and_update(
                 r2_secret_access_key=os.environ.get("R2_SECRET_ACCESS_KEY"),
                 r2_bucket=os.environ.get("R2_BUCKET", "fogos-landscape"),
                 r2_prefix=os.environ.get("R2_PREFIX", "landscape/"),
+                filename=landscape_file,
             ),
         )
 
-        rasters = LandscapeRasters.from_directory(landscape_dir)
+        if landscape_file:
+            rasters_kwargs = {"multiband_path": os.path.join(landscape_dir, landscape_file)}
+        else:
+            rasters_kwargs = {"rasters": LandscapeRasters.from_directory(landscape_dir)}
+
         fuel_dict = load_fuel_models_csv(
             os.environ.get("FUEL_MODELS_CSV", "/data/fuel_models_pt.csv")
         )
@@ -312,7 +319,8 @@ async def _run_and_update(
             )]
 
         result = await run_simulation_async(
-            lat, lon, weather_hourly, fuel_dict, rasters, duration_h, bbox_km,
+            lat, lon, weather_hourly, fuel_dict, duration_h,
+            bbox_km=bbox_km, **rasters_kwargs,
         )
 
         async with pool.acquire() as conn:

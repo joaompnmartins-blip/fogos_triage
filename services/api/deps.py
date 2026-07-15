@@ -28,6 +28,10 @@ class APIConfig:
         # Em dev, podemos desligar auth para testes rápidos
         self.require_auth = os.environ.get("REQUIRE_AUTH", "true").lower() == "true"
         self.landscape_dir = os.getenv("LANDSCAPE_DIR", "data/landscape")
+        # Nome do ficheiro Landscape File multibanda (opcional — quando
+        # definido, landscape_dir é o diretório onde esse ficheiro fica;
+        # ver LandscapeReader(multiband_path=...) e services/worker/main.py)
+        self.landscape_file = os.getenv("LANDSCAPE_FILE")
         # Cloudflare R2 — download dos TIFFs no arranque (partilhado com o worker)
         self.r2_account_id = os.environ.get("R2_ACCOUNT_ID")
         self.r2_access_key_id = os.environ.get("R2_ACCESS_KEY_ID")
