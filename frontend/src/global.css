@@ -278,6 +278,17 @@ input, select, textarea { font: inherit; }
 .btn-primary:hover { filter: brightness(1.1); }
 .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
 .btn-ghost:hover { color: var(--text); border-color: var(--inactive); }
+.btn-ghost.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-ghost.active:hover { color: #fff; }
+
+/* Painel flutuante sobre o mapa (toggles de basemap/camada, legenda,
+   dicas de desenho) — opaco em ambos os temas, para não se confundir
+   com o mapa por baixo. */
+.map-overlay-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 4px rgba(0,0,0,.12);
+}
 .btn-danger { background: rgba(192,48,48,.08); color: var(--danger); border: 1px solid rgba(192,48,48,.22); }
 .btn-warn { background: rgba(160,120,24,.08); color: var(--warn); border: 1px solid rgba(160,120,24,.25); }
 .btn-info { background: rgba(29,141,181,.08); color: var(--accent3); border: 1px solid rgba(29,141,181,.22); }

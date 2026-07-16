@@ -158,7 +158,7 @@ export default function SimulacaoView({ apiKey }) {
           position: 'absolute', top: 10, right: 10, zIndex: 10,
           display: 'flex', flexDirection: 'column', gap: 6,
         }}>
-          <div style={{ display: 'flex', gap: 4 }}>
+          <div className="map-overlay-panel" style={{ display: 'flex', gap: 4, borderRadius: 4, padding: 4 }}>
             {['osm', 'satellite'].map(b => (
               <button key={b} className={`btn btn-ghost${basemap === b ? ' active' : ''}`}
                 style={{ fontSize: 10, padding: '3px 8px' }}
@@ -170,7 +170,7 @@ export default function SimulacaoView({ apiKey }) {
 
           {result && (
             <>
-              <div style={{ display: 'flex', gap: 4 }}>
+              <div className="map-overlay-panel" style={{ display: 'flex', gap: 4, borderRadius: 4, padding: 4 }}>
                 {Object.entries(COLOR_LABELS).map(([k, label]) => (
                   <button key={k} className={`btn btn-ghost${layer === k ? ' active' : ''}`}
                     style={{ fontSize: 9, padding: '3px 6px' }}
@@ -179,9 +179,9 @@ export default function SimulacaoView({ apiKey }) {
                   </button>
                 ))}
               </div>
-              <div style={{
+              <div className="map-overlay-panel" style={{
                 display: 'flex', alignItems: 'center', gap: 6,
-                background: 'var(--bg2)', borderRadius: 4, padding: '4px 8px',
+                borderRadius: 4, padding: '4px 8px',
               }}>
                 <span style={{ fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--font-mono)' }}>TRANSP</span>
                 <input type="range" min={0} max={1} step={0.05}
@@ -190,8 +190,8 @@ export default function SimulacaoView({ apiKey }) {
               </div>
               <Legend stops={COLOR_STOPS[layer]} label={COLOR_LABELS[layer]} />
 
-              <div style={{
-                background: 'var(--bg2)', borderRadius: 4, padding: '4px 6px',
+              <div className="map-overlay-panel" style={{
+                borderRadius: 4, padding: '4px 6px',
               }}>
                 <div style={{ fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--font-mono)', marginBottom: 3 }}>
                   PERÍMETROS

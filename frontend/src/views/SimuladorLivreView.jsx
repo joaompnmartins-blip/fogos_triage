@@ -121,17 +121,22 @@ export default function SimuladorLivreView({ apiKey }) {
   function pickMode(mode) {
     const draw = drawRef.current
     if (!draw) return
+    clearInterval(pollRef.current)
     draw.clear()
     setIgnitionPoints([])
+    setJobStatus(null)
     setResult(null)
+    setError(null)
     draw.setMode(mode)
     setDrawMode(mode)
   }
 
-  function handleClear() {
+  function handleReset() {
+    clearInterval(pollRef.current)
     drawRef.current?.clear()
     setIgnitionPoints([])
     setDrawMode(null)
+    setJobStatus(null)
     setResult(null)
     setError(null)
   }
@@ -189,8 +194,8 @@ export default function SimuladorLivreView({ apiKey }) {
           position: 'absolute', top: 10, left: 10, zIndex: 10,
           display: 'flex', flexDirection: 'column', gap: 6,
         }}>
-          <div style={{
-            display: 'flex', gap: 4, background: 'var(--bg2)', borderRadius: 4, padding: 4,
+          <div className="map-overlay-panel" style={{
+            display: 'flex', gap: 4, borderRadius: 4, padding: 4,
           }}>
             <button className={`btn btn-ghost${drawMode === 'point' ? ' active' : ''}`}
               disabled={!mapReady}
@@ -206,17 +211,17 @@ export default function SimuladorLivreView({ apiKey }) {
             </button>
             <button className="btn btn-ghost" disabled={!hasIgnition}
               style={{ fontSize: 10, padding: '3px 8px' }}
-              onClick={handleClear}>
+              onClick={handleReset}>
               Limpar
             </button>
           </div>
           {drawMode === 'point' && (
-            <div className="hint" style={{ fontSize: 10, fontFamily: 'var(--font-mono)', background: 'var(--bg2)', padding: '4px 8px', borderRadius: 4 }}>
+            <div className="hint map-overlay-panel" style={{ fontSize: 10, fontFamily: 'var(--font-mono)', padding: '4px 8px', borderRadius: 4 }}>
               Clique no mapa para marcar o ponto de ignição
             </div>
           )}
           {drawMode === 'linestring' && (
-            <div className="hint" style={{ fontSize: 10, fontFamily: 'var(--font-mono)', background: 'var(--bg2)', padding: '4px 8px', borderRadius: 4 }}>
+            <div className="hint map-overlay-panel" style={{ fontSize: 10, fontFamily: 'var(--font-mono)', padding: '4px 8px', borderRadius: 4 }}>
               Clique para adicionar vértices, duplo clique para terminar a linha
             </div>
           )}
@@ -226,7 +231,7 @@ export default function SimuladorLivreView({ apiKey }) {
           position: 'absolute', top: 10, right: 10, zIndex: 10,
           display: 'flex', flexDirection: 'column', gap: 6,
         }}>
-          <div style={{ display: 'flex', gap: 4 }}>
+          <div className="map-overlay-panel" style={{ display: 'flex', gap: 4, borderRadius: 4, padding: 4 }}>
             {['osm', 'satellite'].map(b => (
               <button key={b} className={`btn btn-ghost${basemap === b ? ' active' : ''}`}
                 style={{ fontSize: 10, padding: '3px 8px' }}
@@ -238,7 +243,7 @@ export default function SimuladorLivreView({ apiKey }) {
 
           {result && (
             <>
-              <div style={{ display: 'flex', gap: 4 }}>
+              <div className="map-overlay-panel" style={{ display: 'flex', gap: 4, borderRadius: 4, padding: 4 }}>
                 {Object.entries(COLOR_LABELS).map(([k, label]) => (
                   <button key={k} className={`btn btn-ghost${layer === k ? ' active' : ''}`}
                     style={{ fontSize: 9, padding: '3px 6px' }}
@@ -247,9 +252,9 @@ export default function SimuladorLivreView({ apiKey }) {
                   </button>
                 ))}
               </div>
-              <div style={{
+              <div className="map-overlay-panel" style={{
                 display: 'flex', alignItems: 'center', gap: 6,
-                background: 'var(--bg2)', borderRadius: 4, padding: '4px 8px',
+                borderRadius: 4, padding: '4px 8px',
               }}>
                 <span style={{ fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--font-mono)' }}>TRANSP</span>
                 <input type="range" min={0} max={1} step={0.05}
@@ -258,8 +263,8 @@ export default function SimuladorLivreView({ apiKey }) {
               </div>
               <Legend stops={COLOR_STOPS[layer]} label={COLOR_LABELS[layer]} />
 
-              <div style={{
-                background: 'var(--bg2)', borderRadius: 4, padding: '4px 6px',
+              <div className="map-overlay-panel" style={{
+                borderRadius: 4, padding: '4px 6px',
               }}>
                 <div style={{ fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--font-mono)', marginBottom: 3 }}>
                   PERÍMETROS
@@ -315,6 +320,16 @@ export default function SimuladorLivreView({ apiKey }) {
               ? <><span className="dot" style={{ marginRight: 6 }} />A calcular…</>
               : '▶ Simular'}
           </button>
+
+          {(hasIgnition || result) && (
+            <button
+              className="btn btn-ghost"
+              onClick={handleReset}
+              style={{ padding: '6px 18px', alignSelf: 'flex-end' }}
+            >
+              ↺ Reiniciar
+            </button>
+          )}
 
           {!hasIgnition && (
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--warn)' }}>

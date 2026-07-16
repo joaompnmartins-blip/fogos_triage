@@ -11,8 +11,8 @@ import { msToKmh } from './SimulationMapLayers'
 
 export function Legend({ stops, label }) {
   return (
-    <div style={{
-      background: 'var(--bg2)', borderRadius: 4, padding: '6px 8px',
+    <div className="map-overlay-panel" style={{
+      borderRadius: 4, padding: '6px 8px',
       fontFamily: 'var(--font-mono)', fontSize: 9,
     }}>
       <div style={{ color: 'var(--muted)', marginBottom: 4 }}>{label.toUpperCase()}</div>
@@ -75,7 +75,7 @@ function MeteoTooltip({ active, payload, unit, formatValue }) {
   const value = formatValue ? formatValue(payload[0].value) : fmt(payload[0].value, 1, unit)
   return (
     <div style={{
-      background: 'var(--bg2)', border: '1px solid var(--border)',
+      background: 'var(--surface)', border: '1px solid var(--border)',
       borderRadius: 4, padding: '4px 8px', fontFamily: 'var(--font-mono)', fontSize: 10,
     }}>
       <div style={{ color: 'var(--muted)' }}>{_hourLabel(p.timestamp)} (t+{p.t_h}h)</div>
