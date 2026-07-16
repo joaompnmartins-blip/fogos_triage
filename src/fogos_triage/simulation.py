@@ -163,7 +163,12 @@ def _richards_step(
     p = xs * sin_t + ys * cos_t
     q = xs * cos_t - ys * sin_t
 
-    denom_sq = b * b * p * p - a * a * q * q
+    # Nota: a soma a²p²+b²q² é sempre > 0 (excepto tangente nula) — ao
+    # contrário de b²p²-a²q², que degenera exactamente onde a tangente do
+    # perímetro é perpendicular a theta (i.e. na ponta da frente de fogo,
+    # a posição mais comum e mais importante), disparando o fallback
+    # errado ali e valores espúrios nos vértices vizinhos.
+    denom_sq = a * a * p * p + b * b * q * q
 
     if denom_sq <= 1e-12:
         return c * sin_t, c * cos_t

@@ -129,7 +129,7 @@ function WindDirectionRow({ points }) {
               flex: '0 0 auto', width: 30,
             }}>
             <svg width="16" height="16" viewBox="0 0 14 14"
-              style={{ transform: `rotate(${p.wind_direction_deg}deg)` }}>
+              style={{ transform: `rotate(${(p.wind_direction_deg + 180) % 360}deg)` }}>
               <path d="M7 1 L11 9 L7 6.5 L3 9 Z" fill="var(--p1)" />
             </svg>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--dim)' }}>
