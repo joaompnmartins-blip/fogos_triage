@@ -7,14 +7,22 @@ Estrutura do .fmd (versão FARSITE 4+):
 
 Devolve modelos num formato preparado para a wildfire_ROS_models.
 
-As unidades nativas do .fmd são:
+Os valores de carga (1H/10H/100H/LiveH/LiveW) em `data/fuel_models_pt.csv`
+são cópia directa da Tabela 2 de Fernandes & Loureiro, "Modelos de
+combustível florestal para Portugal" (UTAD/CITAB, 2021) — confirmado
+número a número (ex. FM223/M-EUC: 8.36/3.81/0/4.51 t/ha vs. 8.37/3.81/
+0.00/4.51 t/ha na tabela; FM211/F-EUC: 4.64/2.96/1.28/1.12 vs. 4.63/2.96/
+1.27/1.12). Essa tabela declara explicitamente "Cargas em t/ha" — **não**
+ton/acre. Depth/XtMoist/PC também batem certo com a tabela (t/ha e m).
+
+As unidades nativas do .fmd genérico são:
 - Loading: tons/acre (English) ou t/ha (metric) — depende do header
 - SAV: 1/ft (English) ou 1/cm (metric)
 - Depth: ft ou cm
 - Heat: BTU/lb ou kJ/kg
 
-Os dados que partilhaste estão em formato MISTO típico do BehavePlus 5:
-- Loading em ton/acre
+Os dados deste CSV estão em formato MISTO típico do BehavePlus 5:
+- Loading em t/ha (metric) — corrigido; era erradamente assumido ton/acre
 - SAV/Depth/Heat em métrico
 """
 from __future__ import annotations
@@ -25,7 +33,6 @@ from pathlib import Path
 
 
 # Constantes de conversão para SI internas
-TON_PER_ACRE_TO_KG_PER_M2 = 0.2242
 INV_CM_TO_INV_M = 100.0
 CM_TO_M = 0.01
 KJ_PER_KG_TO_J_PER_KG = 1000.0
@@ -33,7 +40,7 @@ KJ_PER_KG_TO_J_PER_KG = 1000.0
 # Conversões para English (formato esperado pela wildfire_ROS_models)
 INV_CM_TO_INV_FT = 30.48
 CM_TO_FT = 0.0328084
-TON_ACRE_TO_LB_FT2 = 0.0459137
+T_HA_TO_LB_FT2 = 0.0204816
 KJ_KG_TO_BTU_LB = 0.4299
 
 
@@ -101,12 +108,12 @@ def load_fuel_models_csv(path: str | Path) -> dict[int, FuelModelPT]:
         for row in reader:
             num = int(row["FMNum"])
 
-            # ton/acre → lb/ft²
-            load_1h = float(row["1H_FL"]) / 21.78
-            load_10h = float(row["10H_FL"]) / 21.78
-            load_100h = float(row["100H_FL"]) / 21.78
-            load_live_h = float(row["LiveH_FL"]) / 21.78
-            load_live_w = float(row["LiveW_FL"]) / 21.78
+            # t/ha → lb/ft² (Fernandes & Loureiro 2021, Tabela 2 — ver docstring)
+            load_1h = float(row["1H_FL"]) * T_HA_TO_LB_FT2
+            load_10h = float(row["10H_FL"]) * T_HA_TO_LB_FT2
+            load_100h = float(row["100H_FL"]) * T_HA_TO_LB_FT2
+            load_live_h = float(row["LiveH_FL"]) * T_HA_TO_LB_FT2
+            load_live_w = float(row["LiveW_FL"]) * T_HA_TO_LB_FT2
 
             # 1/cm → 1/ft
             sav_1h = float(row["1HSAV"]) * INV_CM_TO_INV_FT

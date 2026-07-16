@@ -24,6 +24,13 @@ from .schemas import (
     WeatherConditions,
 )
 
+# φ_s (eq 51) usa tan(declive)² — não tem limite superior e diverge perto
+# da vertical. O Rothermel 1972 só foi validado até declives moderados;
+# BehavePlus/FARSITE limitam a entrada a 100% de inclinação (45°) por
+# convenção, evitando ROS irrealista em vertentes muito íngremes (ex.
+# margens de linhas de água em terreno montanhoso).
+MAX_SLOPE_DEG_PHI_S = 45.0
+
 
 # ---------------------------------------------------------------------------
 # Agregação ponderada à BehavePlus
@@ -346,8 +353,9 @@ def _rothermel_direct(
     C = 7.47  * math.exp(-0.133  * sigma ** 0.55)
     E = 0.715 * math.exp(-3.59e-4 * sigma)
     phi_w = C * (wind_ftmin ** B) * (beta_ratio ** (-E)) if wind_ftmin > 0 else 0.0
-    phi_s = (5.275 * beta ** (-0.3) * math.tan(math.radians(slope_degrees)) ** 2
-             if slope_degrees > 0 else 0.0)
+    slope_capped_deg = min(slope_degrees, MAX_SLOPE_DEG_PHI_S)
+    phi_s = (5.275 * beta ** (-0.3) * math.tan(math.radians(slope_capped_deg)) ** 2
+             if slope_capped_deg > 0 else 0.0)
 
     # --- Heat sink por classe (Andrews 2018, Table 6c) ---
     eps_Qig_dead = 0.0
