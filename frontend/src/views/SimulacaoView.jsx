@@ -54,6 +54,10 @@ const COLOR_STOPS = {
 const PERIM_RAMP_FROM = [0xf9, 0x73, 0x16]
 const PERIM_RAMP_TO = [0x7f, 0x1d, 0x1d]
 
+function msToKmh(v) {
+  return v == null ? v : v * 3.6
+}
+
 function _perimStyle(index, total) {
   const frac = total > 1 ? index / (total - 1) : 0
   const rgb = PERIM_RAMP_FROM.map((c0, i) =>
@@ -72,7 +76,6 @@ export default function SimulacaoView({ apiKey }) {
   const [layer, setLayer] = useState('ros')
   const [opacity, setOpacity] = useState(0.75)
   const [durationH, setDurationH] = useState(3)
-  const [windOverride, setWindOverride] = useState({ speed: '', dir: '' })
   const [jobStatus, setJobStatus] = useState(null)
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
@@ -161,8 +164,6 @@ export default function SimulacaoView({ apiKey }) {
     try {
       const job = await postSimulate(apiKey, fireId, {
         duration_h: durationH,
-        wind_speed_ms: windOverride.speed ? parseFloat(windOverride.speed) : undefined,
-        wind_direction_deg: windOverride.dir ? parseFloat(windOverride.dir) : undefined,
       })
       setJobStatus(job.status)
       startPolling(job.job_id)
@@ -272,31 +273,13 @@ export default function SimulacaoView({ apiKey }) {
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--muted)', marginBottom: 4 }}>
               DURAÇÃO
             </div>
-            <div style={{ display: 'flex', gap: 4 }}>
+            <select className="form-input" value={durationH}
+              style={{ fontSize: 12, padding: '5px 8px' }}
+              onChange={e => setDurationH(parseInt(e.target.value, 10))}>
               {[1, 2, 3, 6, 12, 24].map(h => (
-                <button key={h} className={`btn btn-ghost${durationH === h ? ' active' : ''}`}
-                  style={{ fontSize: 11, padding: '4px 10px' }}
-                  onClick={() => setDurationH(h)}>
-                  {h}h
-                </button>
+                <option key={h} value={h}>{h}h</option>
               ))}
-            </div>
-          </div>
-
-          <div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--muted)', marginBottom: 4 }}>
-              VENTO OVERRIDE (opcional)
-            </div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <input className="form-input" type="number" placeholder="m/s"
-                style={{ width: 70, fontSize: 12 }}
-                value={windOverride.speed}
-                onChange={e => setWindOverride(p => ({ ...p, speed: e.target.value }))} />
-              <input className="form-input" type="number" placeholder="° dir"
-                style={{ width: 70, fontSize: 12 }}
-                value={windOverride.dir}
-                onChange={e => setWindOverride(p => ({ ...p, dir: e.target.value }))} />
-            </div>
+            </select>
           </div>
 
           <button
@@ -332,7 +315,7 @@ export default function SimulacaoView({ apiKey }) {
         {result && (
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--dim)', marginTop: 4 }}>
             {'Meteo: Open-Meteo · vento '}
-            {fmt(result.meta.wind_speed_ms, 1)} m/s {fmt(result.meta.wind_dir_deg, 0)}°
+            {fmt(msToKmh(result.meta.wind_speed_ms), 0)} km/h {fmt(result.meta.wind_dir_deg, 0)}°
             {triage && ` · Triagem: ${fmtDateTime(triage.computed_at)}`}
             {` · Resolução: ${result.meta.resolution_m}m`}
           </div>
@@ -395,8 +378,6 @@ function ResultsTable({ perimeters }) {
 }
 
 const METEO_TICK = { fontFamily: 'var(--font-mono)', fontSize: 10, fill: 'var(--dim)' }
-const WIND_DEG_TICKS = [0, 90, 180, 270, 360]
-const WIND_DEG_LABELS = { 0: 'N', 90: 'E', 180: 'S', 270: 'O', 360: 'N' }
 
 function _hourLabel(iso) {
   if (!iso) return ''
@@ -445,7 +426,40 @@ function MeteoRow({ points, dataKey, label, unit, color, domain, yTicks, yTickFo
   )
 }
 
+function WindDirectionRow({ points }) {
+  return (
+    <div>
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text)',
+        marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6,
+      }}>
+        <span style={{ display: 'inline-block', width: 12, height: 2, background: 'var(--p1)' }} />
+        Direção do vento (10m)
+      </div>
+      <div style={{ display: 'flex', gap: 3, overflowX: 'auto', paddingBottom: 2 }}>
+        {points.map(p => (
+          <div key={p.t_h}
+            title={`${_hourLabel(p.timestamp)} (t+${p.t_h}h) — ${windDirText(p.wind_direction_deg)} (${fmt(p.wind_direction_deg, 0)}°)`}
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+              flex: '0 0 auto', width: 30,
+            }}>
+            <svg width="16" height="16" viewBox="0 0 14 14"
+              style={{ transform: `rotate(${p.wind_direction_deg}deg)` }}>
+              <path d="M7 1 L11 9 L7 6.5 L3 9 Z" fill="var(--p1)" />
+            </svg>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--dim)' }}>
+              {_hourLabel(p.timestamp)}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function Meteogram({ points }) {
+  const withKmh = points.map(p => ({ ...p, wind_speed_kmh: msToKmh(p.wind_speed_ms) }))
   return (
     <div>
       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--muted)', marginBottom: 6 }}>
@@ -454,10 +468,8 @@ function Meteogram({ points }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <MeteoRow points={points} dataKey="temperature_c" label="Temperatura (2m, °C)" unit="°C" color="var(--danger)" />
         <MeteoRow points={points} dataKey="relative_humidity_pct" label="Humidade relativa (2m, %)" unit="%" color="var(--meteo-humidity)" domain={[0, 100]} />
-        <MeteoRow points={points} dataKey="wind_speed_ms" label="Velocidade do vento (10m, m/s)" unit="m/s" color="var(--p1)" domain={[0, 'dataMax']} />
-        <MeteoRow points={points} dataKey="wind_direction_deg" label="Direção do vento (10m)" color="var(--p1)"
-          domain={[0, 360]} yTicks={WIND_DEG_TICKS} yTickFormatter={d => WIND_DEG_LABELS[d] ?? d}
-          tooltipFormatter={v => `${windDirText(v)} (${fmt(v, 0)}°)`} />
+        <MeteoRow points={withKmh} dataKey="wind_speed_kmh" label="Velocidade do vento (10m, km/h)" unit="km/h" color="var(--p1)" domain={[0, 'dataMax']} />
+        <WindDirectionRow points={points} />
       </div>
     </div>
   )
