@@ -42,11 +42,15 @@ export function perimStyle(index, total) {
 }
 
 export function renderSimulationLayers(map, result, layer, opacity, visiblePerimeters) {
+  // getLayer/getSource + removeLayer/removeSource, não try/catch: o
+  // MapLibre não lança excepção para um id inexistente, dispara um evento
+  // 'error' interno que é impresso na consola quando não há listener —
+  // o try/catch não o apanha.
   const perimIds = result.perimeters.flatMap(({ t_h }) => [`perim-${t_h}h-fill`, `perim-${t_h}h-line`]);
   ['sim-pixels-fill', 'sim-pixels-outline', ...perimIds]
-    .forEach(id => { try { map.removeLayer(id) } catch {} });
+    .forEach(id => { if (map.getLayer(id)) map.removeLayer(id) });
   ['sim-pixels', ...result.perimeters.map(({ t_h }) => `perim-${t_h}h`)]
-    .forEach(id => { try { map.removeSource(id) } catch {} })
+    .forEach(id => { if (map.getSource(id)) map.removeSource(id) })
 
   if (result.pixel_grid) {
     map.addSource('sim-pixels', { type: 'geojson', data: result.pixel_grid })
