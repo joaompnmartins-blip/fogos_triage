@@ -47,12 +47,30 @@ _executor = ThreadPoolExecutor(max_workers=2)
 # Parâmetros de simulação
 # ---------------------------------------------------------------------------
 
-DT_MIN = 5.0
-MAX_SEG_M = 150.0
-MIN_SEG_M = 30.0
 INIT_RADIUS_M = 75.0
 N_INIT_VERTICES = 16
 AA_SURFACE = 0.115  # FARSITE fire acceleration constant (eq. [30])
+
+# Timestep dinâmico (FARSITE "distance resolution", eq. [29]-[33]): o
+# vértice mais rápido nunca avança mais do que distance_resolution_m por
+# passo. MAX/MIN_TIMESTEP_MIN são tectos de segurança (fogo parado/lento
+# não salta um intervalo de meteo enorme; nunca colapsa para dt≈0).
+MAX_TIMESTEP_MIN = 15.0
+MIN_TIMESTEP_MIN = 0.5
+
+# Espaçamento de vértices do perímetro, como fração de distance_resolution_m
+# (ex. 10m nativo -> espaçamento mantido entre 5m e 20m por _rediscretize).
+PERIM_SPACING_MIN_FACTOR = 0.5
+PERIM_SPACING_MAX_FACTOR = 2.0
+
+# Limite de vértices do perímetro — protege tempo de cálculo quando o
+# espaçamento é fino (10m) e o fogo cresce muito. Ao contrário da grelha
+# (limitada por bbox_km), o tamanho final do perímetro não é conhecido à
+# partida, por isso o ajuste é feito em runtime: se excedido, o
+# espaçamento efetivo é multiplicado por PERIM_COARSEN_FACTOR para as
+# iterações seguintes (unidirecional — não relaxa de volta).
+MAX_PERIMETER_VERTICES = 3000
+PERIM_COARSEN_FACTOR = 1.5
 
 # Limite de células da grelha ROS (bbox completo, antes do clip ao
 # perímetro) — protege tempo de cálculo e tamanho do payload quando a
@@ -288,6 +306,61 @@ def _clip_grid_to_perimeter(grid_geojson: dict, perimeter_geojson: dict) -> dict
 
 
 # ---------------------------------------------------------------------------
+# Cache de terreno para a propagação — evita 1 leitura rasterio por vértice
+# por timestep (mesmo padrão de _build_ros_grid, mas re-lida sob demanda
+# à medida que o perímetro cresce, em vez de uma única vez para um bbox fixo).
+# ---------------------------------------------------------------------------
+
+_TERRAIN_CACHE_MARGIN_M = 300.0
+_TERRAIN_FIELDS = ["slope", "aspect", "fuel_model"]
+
+
+def _refresh_terrain_cache(reader: LandscapeReader, verts: list) -> dict:
+    xs = [v[0] for v in verts]
+    ys = [v[1] for v in verts]
+    min_x, max_x = min(xs) - _TERRAIN_CACHE_MARGIN_M, max(xs) + _TERRAIN_CACHE_MARGIN_M
+    min_y, max_y = min(ys) - _TERRAIN_CACHE_MARGIN_M, max(ys) + _TERRAIN_CACHE_MARGIN_M
+    arrays, nodata, window_transform = reader.read_window(
+        _TERRAIN_FIELDS, min_x, min_y, max_x, max_y,
+    )
+    return {
+        "arrays": arrays, "nodata": nodata, "window_transform": window_transform,
+        "bounds": (min_x, min_y, max_x, max_y),
+    }
+
+
+def _lookup_cached_terrain(cache: dict, x: float, y: float) -> Optional[tuple[float, float, int]]:
+    """Lê (slope_deg, aspect_deg, fuel_model_num) da janela em cache.
+    Devolve None se o ponto cair fora da janela — sinal para recarregar."""
+    slope_arr = cache["arrays"].get("slope")
+    if slope_arr is None:
+        return None
+    wt = cache["window_transform"]
+    col = int((x - wt.c) / wt.a)
+    row = int((y - wt.f) / wt.e)
+    height, width = slope_arr.shape
+    if not (0 <= row < height and 0 <= col < width):
+        return None
+
+    nodata = cache["nodata"]
+
+    def _val(name: str) -> Optional[float]:
+        arr = cache["arrays"].get(name)
+        if arr is None:
+            return None
+        v = float(arr[row, col])
+        nd = nodata.get(name)
+        if nd is not None and v == nd:
+            return None
+        return v
+
+    slope_deg = _val("slope") or 0.0
+    aspect_deg = _val("aspect") or 0.0
+    fuel_num = int(_val("fuel_model") or 98)
+    return slope_deg, aspect_deg, fuel_num
+
+
+# ---------------------------------------------------------------------------
 # Propagação Huygens — loop principal
 # ---------------------------------------------------------------------------
 
@@ -298,12 +371,21 @@ def _propagate(
     cx_proj: float, cy_proj: float,
     duration_h: float,
     snapshot_hours: list[float],
-) -> list[PerimeterSnapshot]:
+    distance_resolution_m: float,
+) -> tuple[list[PerimeterSnapshot], bool]:
     """Propaga o fogo usando Richards (1990); devolve snapshots do perímetro.
 
     weather_hourly: lista com um WeatherConditions por hora de simulação.
     A cada timestep seleciona-se a entrada correspondente à hora atual
     (int(t/60)), permitindo incorporar a previsão horária do Open-Meteo.
+
+    distance_resolution_m: alvo de espaçamento de vértices e também a
+    distância que o vértice mais rápido percorre por timestep (FARSITE
+    eq. [29]-[33]) — o timestep é recalculado a cada iteração a partir
+    do ROS máximo actual, em vez de um DT fixo.
+
+    Devolve (snapshots, perimeter_resolution_coarsened) — o segundo
+    valor indica se MAX_PERIMETER_VERTICES foi alguma vez atingido.
     """
     proj_crs = reader.crs
 
@@ -316,6 +398,12 @@ def _propagate(
          0.0, 0.0)
         for a in angles
     ]
+
+    min_seg_m = PERIM_SPACING_MIN_FACTOR * distance_resolution_m
+    max_seg_m = PERIM_SPACING_MAX_FACTOR * distance_resolution_m
+    coarsened = False
+
+    terrain_cache = _refresh_terrain_cache(reader, verts)
 
     snapshots: list[PerimeterSnapshot] = []
     snap_idx = 0
@@ -341,6 +429,20 @@ def _propagate(
                 snapshots.append(snap)
             snap_idx += 1
 
+        # --- timestep dinâmico (FARSITE "distance resolution") ---
+        # O vértice mais rápido (ros_actual do passo anterior, sem
+        # recalcular Rothermel) não deve avançar mais do que
+        # distance_resolution_m neste passo. Capado também pelo próximo
+        # snapshot pedido e pela próxima fronteira horária de meteo, para
+        # não "saltar" por cima de nenhum dos dois.
+        max_ros = max((v[2] for v in verts), default=0.0)
+        dt_candidate = distance_resolution_m / max_ros if max_ros > 1e-9 else MAX_TIMESTEP_MIN
+        next_hour_boundary = (int(t // 60) + 1) * 60.0
+        caps = [dt_candidate, MAX_TIMESTEP_MIN, next_hour_boundary - t, total_min - t]
+        if snap_idx < len(snap_minutes):
+            caps.append(snap_minutes[snap_idx] - t)
+        dt = max(min(caps), MIN_TIMESTEP_MIN)
+
         n = len(verts)
         new_verts = []
 
@@ -349,8 +451,19 @@ def _propagate(
             x_prev, y_prev, _, _ = verts[(i - 1) % n]
             x_next, y_next, _, _ = verts[(i + 1) % n]
 
-            terrain = reader.sample_projected(x_cur, y_cur)
-            fm = fuel_models.get(terrain.fuel_model_num)
+            cached = _lookup_cached_terrain(terrain_cache, x_cur, y_cur)
+            if cached is None:
+                terrain_cache = _refresh_terrain_cache(reader, verts)
+                cached = _lookup_cached_terrain(terrain_cache, x_cur, y_cur)
+            if cached is not None:
+                slope_deg, aspect_deg, fuel_num = cached
+            else:
+                # fallback raro — ponto fora de qualquer janela razoável
+                terrain = reader.sample_projected(x_cur, y_cur)
+                slope_deg, aspect_deg, fuel_num = (
+                    terrain.slope_degrees, terrain.aspect_degrees, terrain.fuel_model_num,
+                )
+            fm = fuel_models.get(fuel_num)
 
             if fm is None or fm.is_empty:
                 new_verts.append((x_cur, y_cur, 0.0, 0.0))
@@ -360,7 +473,7 @@ def _propagate(
                 ros_m_min, fi_kw, phi_w, phi_s, _, sigma, eff_ms = _rothermel_direct(
                     fm, m_1h, m_10h, m_100h, m_lh, m_lw,
                     wind_midflame_ms=wind_mf,
-                    slope_degrees=terrain.slope_degrees,
+                    slope_degrees=slope_deg,
                 )
             except Exception:
                 new_verts.append((x_cur, y_cur, 0.0, 0.0))
@@ -379,7 +492,7 @@ def _propagate(
                 # Aceleração logarítmica: ros_cur = R_eq*(1 - exp(-AA*Tt))
                 frac = ros_cur / R_eq if ros_cur > 1e-9 else 0.0
                 Tt = -math.log(1.0 - frac) / AA_SURFACE if frac > 0.0 else 0.0
-                ros_step = R_eq * (1.0 - math.exp(-AA_SURFACE * (Tt + DT_MIN)))
+                ros_step = R_eq * (1.0 - math.exp(-AA_SURFACE * (Tt + dt)))
                 ros_step = min(ros_step, R_eq)
 
             # fi_kw (Byram) é calculado para o ROS de equilíbrio (R_eq);
@@ -389,13 +502,13 @@ def _propagate(
 
             theta_deg = _max_spread_direction_from_phi(
                 wind_direction_deg=wind_dir,
-                aspect_degrees=terrain.aspect_degrees,
+                aspect_degrees=aspect_deg,
                 phi_w=phi_w,
                 phi_s=phi_s,
             )
             theta_rad = math.radians(theta_deg)
-            slope_rad = math.radians(terrain.slope_degrees)
-            aspect_rad = math.radians(terrain.aspect_degrees)
+            slope_rad = math.radians(slope_deg)
+            aspect_rad = math.radians(aspect_deg)
 
             a, b, c = _ellipse_dims(ros_step, eff_ms)
             Xt, Yt = _richards_step(
@@ -403,12 +516,23 @@ def _propagate(
                 theta_rad, a, b, c,
                 slope_rad=slope_rad, aspect_rad=aspect_rad,
             )
-            new_verts.append((x_cur + Xt * DT_MIN, y_cur + Yt * DT_MIN, ros_step, fi_step))
+            new_verts.append((x_cur + Xt * dt, y_cur + Yt * dt, ros_step, fi_step))
 
         verts = new_verts
-        t += DT_MIN
-        verts = _rediscretize(verts)
+        t += dt
+        verts = _rediscretize(verts, min_seg_m, max_seg_m)
         verts = _fix_crossovers(verts)
+
+        if len(verts) > MAX_PERIMETER_VERTICES:
+            min_seg_m *= PERIM_COARSEN_FACTOR
+            max_seg_m *= PERIM_COARSEN_FACTOR
+            coarsened = True
+            log.warning(
+                "Simulação: perímetro excedeu %d vértices (%d) — espaçamento "
+                "ajustado para min=%.1fm max=%.1fm",
+                MAX_PERIMETER_VERTICES, len(verts), min_seg_m, max_seg_m,
+            )
+            verts = _rediscretize(verts, min_seg_m, max_seg_m)
 
         if len(verts) < 3:
             log.warning("Simulação: polígono degenerado após crossover fix a t=%.1f min", t)
@@ -420,7 +544,7 @@ def _propagate(
             snapshots.append(snap)
         snap_idx += 1
 
-    return snapshots
+    return snapshots, coarsened
 
 
 def _make_snapshot(verts: list, t_h: float, proj_crs) -> Optional[PerimeterSnapshot]:
@@ -464,7 +588,7 @@ def _make_snapshot(verts: list, t_h: float, proj_crs) -> Optional[PerimeterSnaps
         return None
 
 
-def _rediscretize(verts: list) -> list:
+def _rediscretize(verts: list, min_seg_m: float, max_seg_m: float) -> list:
     """Insere vértices em segmentos longos; remove em segmentos curtos.
     Vértices como (x, y, ros_actual, fi_actual); ambos interpolados linearmente.
     """
@@ -475,8 +599,8 @@ def _rediscretize(verts: list) -> list:
         x2, y2, r2, f2 = verts[(i + 1) % n]
         dist = math.hypot(x2 - x1, y2 - y1)
         result.append((x1, y1, r1, f1))
-        if dist > MAX_SEG_M:
-            n_insert = int(dist / MAX_SEG_M)
+        if dist > max_seg_m:
+            n_insert = int(dist / max_seg_m)
             for k in range(1, n_insert + 1):
                 frac = k / (n_insert + 1)
                 result.append((
@@ -487,7 +611,7 @@ def _rediscretize(verts: list) -> list:
                 ))
     cleaned = [result[0]]
     for pt in result[1:]:
-        if math.hypot(pt[0] - cleaned[-1][0], pt[1] - cleaned[-1][1]) >= MIN_SEG_M:
+        if math.hypot(pt[0] - cleaned[-1][0], pt[1] - cleaned[-1][1]) >= min_seg_m:
             cleaned.append(pt)
     return cleaned
 
@@ -547,6 +671,7 @@ def run_simulation_sync(
     multiband_path: Optional[str] = None,
     bbox_km: float = 15.0,
     resolution_m: Optional[float] = None,
+    distance_resolution_m: Optional[float] = None,
 ) -> dict:
     """Corre a simulação completa. Devolve dict para gravar em result_json.
 
@@ -562,6 +687,14 @@ def run_simulation_sync(
     `MAX_GRID_CELLS` — se `bbox_km` × resolução implicar mais células do
     que o orçamento, a resolução é ajustada para cima automaticamente; a
     resolução pedida e a efetivamente usada ficam registadas em `meta`.
+    Aplica-se apenas à grelha ROS/FLI/chama visualizada, não ao perímetro.
+
+    `distance_resolution_m`: se None (default), usa também a resolução
+    nativa do landscape file. Controla o espaçamento dos vértices do
+    perímetro e o timestep dinâmico da propagação (FARSITE "distance
+    resolution") — independente de `resolution_m`/`bbox_km`, já que a
+    propagação não é limitada pelo bbox. Sujeito a `MAX_PERIMETER_VERTICES`
+    (ajuste unidirecional em runtime — ver `_propagate`).
     """
     if not HAS_RASTERIO or not HAS_SHAPELY:
         raise RuntimeError("rasterio e shapely são necessários para simulação espacial")
@@ -575,20 +708,24 @@ def run_simulation_sync(
 
     wx0 = weather_hourly[0]
     requested_resolution_m = resolution_m
+    requested_distance_resolution_m = distance_resolution_m
 
     with LandscapeReader(rasters=rasters, multiband_path=multiband_path) as reader:
         effective_resolution_m = resolution_m if resolution_m is not None else reader.native_resolution_m
+        effective_distance_resolution_m = (
+            distance_resolution_m if distance_resolution_m is not None else reader.native_resolution_m
+        )
 
         grid_side_cells = (bbox_km * 1000.0) / effective_resolution_m
         if grid_side_cells * grid_side_cells > MAX_GRID_CELLS:
-            coarsened = (bbox_km * 1000.0) / math.sqrt(MAX_GRID_CELLS)
+            coarsened_resolution_m = (bbox_km * 1000.0) / math.sqrt(MAX_GRID_CELLS)
             log.warning(
                 "Simulação: %.1fm em %.1fkm implicaria %.0f células "
                 "(limite %d) — resolução ajustada para %.1fm",
                 effective_resolution_m, bbox_km,
-                grid_side_cells * grid_side_cells, MAX_GRID_CELLS, coarsened,
+                grid_side_cells * grid_side_cells, MAX_GRID_CELLS, coarsened_resolution_m,
             )
-            effective_resolution_m = coarsened
+            effective_resolution_m = coarsened_resolution_m
 
         cx, cy = _wgs84_to_proj(lat, lon, reader.crs)
         log.info("Simulação: ignição (%.4f, %.4f) → proj (%.0f, %.0f)", lat, lon, cx, cy)
@@ -597,10 +734,11 @@ def run_simulation_sync(
                  effective_resolution_m, bbox_km, bbox_km)
         grid = _build_ros_grid(reader, fuel_models, wx0, cx, cy, bbox_km, effective_resolution_m)
 
-        log.info("Simulação: a propagar %.1fh (dt=%.0f min, %d snapshots meteo)...",
-                 duration_h, DT_MIN, len(weather_hourly))
-        snapshots = _propagate(
-            reader, fuel_models, weather_hourly, cx, cy, duration_h, snapshot_hours
+        log.info("Simulação: a propagar %.1fh (distance_resolution=%.1fm, %d snapshots meteo)...",
+                 duration_h, effective_distance_resolution_m, len(weather_hourly))
+        snapshots, perimeter_coarsened = _propagate(
+            reader, fuel_models, weather_hourly, cx, cy, duration_h, snapshot_hours,
+            effective_distance_resolution_m,
         )
 
     if not snapshots:
@@ -639,6 +777,9 @@ def run_simulation_sync(
             "bbox_km":               bbox_km,
             "resolution_m":          effective_resolution_m,
             "resolution_requested_m": requested_resolution_m,  # None = nativa do landscape file
+            "distance_resolution_m": effective_distance_resolution_m,
+            "distance_resolution_requested_m": requested_distance_resolution_m,  # None = nativa
+            "perimeter_resolution_coarsened": perimeter_coarsened,
             "ignition":              [lat, lon],
             "wind_speed_ms":         wx0.wind_speed_10m_ms,
             "wind_dir_deg":          wx0.wind_direction_deg,
@@ -659,6 +800,7 @@ async def run_simulation_async(
     multiband_path: Optional[str] = None,
     bbox_km: float = 15.0,
     resolution_m: Optional[float] = None,
+    distance_resolution_m: Optional[float] = None,
 ) -> dict:
     """Wrapper assíncrono — corre run_simulation_sync num executor."""
     loop = asyncio.get_event_loop()
@@ -668,5 +810,6 @@ async def run_simulation_async(
             lat, lon, weather_hourly, fuel_models, duration_h,
             rasters=rasters, multiband_path=multiband_path,
             bbox_km=bbox_km, resolution_m=resolution_m,
+            distance_resolution_m=distance_resolution_m,
         ),
     )
