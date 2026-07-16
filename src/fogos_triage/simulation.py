@@ -22,6 +22,7 @@ import numpy as np
 
 try:
     from shapely.geometry import MultiPolygon, Polygon, shape
+    from shapely.strtree import STRtree
     from shapely.validation import make_valid
     HAS_SHAPELY = True
 except ImportError:
@@ -291,15 +292,23 @@ def _build_ros_grid(
 
 
 def _clip_grid_to_perimeter(grid_geojson: dict, perimeter_geojson: dict) -> dict:
-    """Remove células fora do perímetro final."""
+    """Remove células fora do perímetro final.
+
+    Usa um índice espacial (STRtree) em vez de testar `.intersects()`
+    contra cada uma das (até 500k) células da grelha — necessário desde
+    que o perímetro final passou a ter centenas/milhares de vértices
+    (resolução de 10m), o que tornava o teste exaustivo o gargalo
+    dominante da simulação (~30s medidos numa grelha de 500k células).
+    """
     if not HAS_SHAPELY:
         return grid_geojson
     try:
         perim = shape(perimeter_geojson)
-        clipped = [
-            f for f in grid_geojson["features"]
-            if perim.intersects(shape(f["geometry"]))
-        ]
+        features = grid_geojson["features"]
+        geoms = [shape(f["geometry"]) for f in features]
+        tree = STRtree(geoms)
+        idx = tree.query(perim, predicate="intersects")
+        clipped = [features[i] for i in idx]
         return {"type": "FeatureCollection", "features": clipped}
     except Exception:
         return grid_geojson
@@ -402,6 +411,11 @@ def _propagate(
     min_seg_m = PERIM_SPACING_MIN_FACTOR * distance_resolution_m
     max_seg_m = PERIM_SPACING_MAX_FACTOR * distance_resolution_m
     coarsened = False
+
+    # Polígono acumulado — só cresce por união (ver _merge_into_accumulated).
+    # Garante que a área já queimada nunca retrocede nem "salta" para uma
+    # forma desligada entre timesteps/snapshots.
+    accumulated_poly = Polygon([(x, y) for x, y, _, _ in verts]) if HAS_SHAPELY else None
 
     terrain_cache = _refresh_terrain_cache(reader, verts)
 
@@ -520,8 +534,15 @@ def _propagate(
 
         verts = new_verts
         t += dt
+        verts, accumulated_poly = _merge_into_accumulated(verts, accumulated_poly)
         verts = _rediscretize(verts, min_seg_m, max_seg_m)
-        verts = _fix_crossovers(verts)
+        # Resincroniza accumulated_poly com o verts simplificado — sem isto,
+        # o polígono acumulado cresce em complexidade sem limite a cada
+        # união (verts fica limitado por _rediscretize, mas o Shapely
+        # Polygon usado na PRÓXIMA união não ficava), tornando cada .union()
+        # progressivamente mais lento ao longo da simulação.
+        if HAS_SHAPELY and len(verts) >= 3:
+            accumulated_poly = Polygon([(x, y) for x, y, _, _ in verts])
 
         if len(verts) > MAX_PERIMETER_VERTICES:
             min_seg_m *= PERIM_COARSEN_FACTOR
@@ -533,9 +554,11 @@ def _propagate(
                 MAX_PERIMETER_VERTICES, len(verts), min_seg_m, max_seg_m,
             )
             verts = _rediscretize(verts, min_seg_m, max_seg_m)
+            if HAS_SHAPELY and len(verts) >= 3:
+                accumulated_poly = Polygon([(x, y) for x, y, _, _ in verts])
 
         if len(verts) < 3:
-            log.warning("Simulação: polígono degenerado após crossover fix a t=%.1f min", t)
+            log.warning("Simulação: polígono degenerado após fusão/rediscretização a t=%.1f min", t)
             break
 
     while snap_idx < len(snap_minutes):
@@ -616,35 +639,72 @@ def _rediscretize(verts: list, min_seg_m: float, max_seg_m: float) -> list:
     return cleaned
 
 
-def _fix_crossovers(verts: list) -> list:
-    """Usa Shapely para corrigir auto-intersecções; devolve maior componente.
-    Preserva ros_actual/fi_actual (3.º/4.º elementos) por vizinho mais
-    próximo após correcção.
+def _reassign_ros_fi(new_pts: list, source_verts: list) -> list:
+    """Atribui ros_actual/fi_actual a new_pts pelo vizinho mais próximo em
+    source_verts — vectorizado com numpy (era um duplo loop Python O(n²),
+    caro com as centenas/milhares de vértices que a resolução de 10m já
+    produz)."""
+    if not new_pts:
+        return []
+    new_xy = np.array(new_pts)
+    old_xy = np.array([(v[0], v[1]) for v in source_verts])
+    old_ros = np.array([v[2] for v in source_verts])
+    old_fi = np.array([v[3] for v in source_verts])
+    dists = np.hypot(
+        new_xy[:, 0:1] - old_xy[None, :, 0],
+        new_xy[:, 1:2] - old_xy[None, :, 1],
+    )
+    nearest_idx = np.argmin(dists, axis=1)
+    return [
+        (float(nx), float(ny), float(old_ros[i]), float(old_fi[i]))
+        for (nx, ny), i in zip(new_pts, nearest_idx)
+    ]
+
+
+def _merge_into_accumulated(new_verts: list, accumulated_poly):
+    """Funde a forma deste timestep (new_verts, possivelmente
+    auto-intersectante) no polígono acumulado, em vez de reconstruir do
+    zero — garante que a área já queimada nunca retrocede nem "salta"
+    para uma forma desligada (a área queimada mantém-se sempre queimada).
+
+    Devolve (novos_vertices_com_ros_fi, novo_accumulated_poly). Em caso de
+    forma inválida/vazia, devolve new_verts e accumulated_poly inalterados.
     """
-    if not HAS_SHAPELY or len(verts) < 3:
-        return verts
+    if not HAS_SHAPELY or len(new_verts) < 3:
+        return new_verts, accumulated_poly
     try:
-        pts_2d = [(v[0], v[1]) for v in verts]
-        poly = Polygon(pts_2d)
-        if not poly.is_valid:
-            poly = make_valid(poly)
-        if isinstance(poly, MultiPolygon):
-            poly = max(poly.geoms, key=lambda p: p.area)
-        if poly.is_empty or not isinstance(poly, Polygon):
-            return verts
-        new_pts = list(poly.exterior.coords[:-1])
-        # Re-atribuir ros_actual/fi_actual pelo vértice original mais próximo
-        result = []
-        for nx, ny in new_pts:
-            best_ros, best_fi, best_d = 0.0, 0.0, float('inf')
-            for ox, oy, orx, ofi in verts:
-                d = math.hypot(nx - ox, ny - oy)
-                if d < best_d:
-                    best_d, best_ros, best_fi = d, orx, ofi
-            result.append((nx, ny, best_ros, best_fi))
-        return result
-    except Exception:
-        return verts
+        pts_2d = [(v[0], v[1]) for v in new_verts]
+        candidate = Polygon(pts_2d)
+        if not candidate.is_valid:
+            candidate = make_valid(candidate)
+        if candidate.is_empty or not isinstance(candidate, (Polygon, MultiPolygon)):
+            log.warning("Simulação: candidato inválido/vazio neste timestep — mantém acumulado")
+            return new_verts, accumulated_poly
+
+        merged = accumulated_poly.union(candidate) if accumulated_poly is not None else candidate
+
+        if isinstance(merged, MultiPolygon):
+            geoms = sorted(merged.geoms, key=lambda p: p.area, reverse=True)
+            main = geoms[0]
+            if len(geoms) > 1 and geoms[1].area > 0.01 * main.area:
+                log.warning(
+                    "Simulação: união produziu componente secundário não "
+                    "negligenciável (%.3f%% do principal) — descartado",
+                    100.0 * geoms[1].area / main.area,
+                )
+            merged_shape = main
+        else:
+            merged_shape = merged
+
+        if merged_shape.is_empty or not isinstance(merged_shape, Polygon):
+            return new_verts, accumulated_poly
+
+        new_pts = list(merged_shape.exterior.coords[:-1])
+        result = _reassign_ros_fi(new_pts, new_verts)
+        return result, merged_shape
+    except Exception as e:
+        log.warning("Simulação: erro a fundir polígono acumulado: %s", e)
+        return new_verts, accumulated_poly
 
 
 # ---------------------------------------------------------------------------
