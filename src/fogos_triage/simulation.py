@@ -21,7 +21,7 @@ from typing import Optional
 import numpy as np
 
 try:
-    from shapely.geometry import MultiPolygon, Polygon, shape
+    from shapely.geometry import LineString, MultiPolygon, Point, Polygon, shape
     from shapely.strtree import STRtree
     from shapely.validation import make_valid
     HAS_SHAPELY = True
@@ -381,6 +381,7 @@ def _propagate(
     duration_h: float,
     snapshot_hours: list[float],
     distance_resolution_m: float,
+    ignition_points_proj: Optional[list[tuple[float, float]]] = None,
 ) -> tuple[list[PerimeterSnapshot], bool]:
     """Propaga o fogo usando Richards (1990); devolve snapshots do perímetro.
 
@@ -393,20 +394,28 @@ def _propagate(
     eq. [29]-[33]) — o timestep é recalculado a cada iteração a partir
     do ROS máximo actual, em vez de um DT fixo.
 
+    ignition_points_proj: pontos de ignição (coordenadas já projetadas),
+    2+ para uma linha de ignição. Se None, ignição pontual em
+    (cx_proj, cy_proj) — comportamento idêntico ao anterior.
+
     Devolve (snapshots, perimeter_resolution_coarsened) — o segundo
     valor indica se MAX_PERIMETER_VERTICES foi alguma vez atingido.
     """
     proj_crs = reader.crs
 
-    angles = [2 * math.pi * i / N_INIT_VERTICES for i in range(N_INIT_VERTICES)]
+    # Forma inicial de ignição: buffer à volta de um ponto (círculo,
+    # quad_segs=4 dá os mesmos 16 vértices de sempre) ou de uma linha
+    # (LineString.buffer dá naturalmente uma "cápsula" ao longo dela) —
+    # uma só implementação para os dois casos.
+    if ignition_points_proj and len(ignition_points_proj) >= 2:
+        ignition_base = LineString(ignition_points_proj)
+    else:
+        px, py = ignition_points_proj[0] if ignition_points_proj else (cx_proj, cy_proj)
+        ignition_base = Point(px, py)
+    ignition_shape = ignition_base.buffer(INIT_RADIUS_M, quad_segs=4)
     # Vértices como (x, y, ros_actual, fi_actual) — ambos iniciam em 0
     # (fogo acabou de acender)
-    verts = [
-        (cx_proj + INIT_RADIUS_M * math.sin(a),
-         cy_proj + INIT_RADIUS_M * math.cos(a),
-         0.0, 0.0)
-        for a in angles
-    ]
+    verts = [(x, y, 0.0, 0.0) for x, y in ignition_shape.exterior.coords[:-1]]
 
     min_seg_m = PERIM_SPACING_MIN_FACTOR * distance_resolution_m
     max_seg_m = PERIM_SPACING_MAX_FACTOR * distance_resolution_m
@@ -415,7 +424,7 @@ def _propagate(
     # Polígono acumulado — só cresce por união (ver _merge_into_accumulated).
     # Garante que a área já queimada nunca retrocede nem "salta" para uma
     # forma desligada entre timesteps/snapshots.
-    accumulated_poly = Polygon([(x, y) for x, y, _, _ in verts]) if HAS_SHAPELY else None
+    accumulated_poly = ignition_shape
 
     terrain_cache = _refresh_terrain_cache(reader, verts)
 
@@ -716,6 +725,14 @@ def _wgs84_to_proj(lat: float, lon: float, proj_crs) -> tuple[float, float]:
     return xs[0], ys[0]
 
 
+def _wgs84_list_to_proj(points: list[tuple[float, float]], proj_crs) -> list[tuple[float, float]]:
+    """Converte uma lista de (lat, lon) para o CRS projetado, de uma vez."""
+    lons = [lon for _, lon in points]
+    lats = [lat for lat, _ in points]
+    xs, ys = rio_transform("EPSG:4326", proj_crs, lons, lats)
+    return list(zip(xs, ys))
+
+
 # ---------------------------------------------------------------------------
 # Ponto de entrada principal (síncrono — corre em thread)
 # ---------------------------------------------------------------------------
@@ -732,6 +749,7 @@ def run_simulation_sync(
     bbox_km: float = 15.0,
     resolution_m: Optional[float] = None,
     distance_resolution_m: Optional[float] = None,
+    ignition_points: Optional[list[tuple[float, float]]] = None,
 ) -> dict:
     """Corre a simulação completa. Devolve dict para gravar em result_json.
 
@@ -755,6 +773,13 @@ def run_simulation_sync(
     resolution") — independente de `resolution_m`/`bbox_km`, já que a
     propagação não é limitada pelo bbox. Sujeito a `MAX_PERIMETER_VERTICES`
     (ajuste unidirecional em runtime — ver `_propagate`).
+
+    `ignition_points`: se None (default), ignição pontual em `(lat, lon)`
+    — comportamento idêntico ao anterior. Se dado, `(lat, lon)` são
+    ignorados para a forma inicial (mas continuam a ir para `meta`); 1
+    ponto = ignição pontual "livre" noutro local, 2+ = linha de ignição
+    (buffer ao longo da linha — ver `_propagate`). A grelha ROS é
+    centrada no centróide dos pontos dados.
     """
     if not HAS_RASTERIO or not HAS_SHAPELY:
         raise RuntimeError("rasterio e shapely são necessários para simulação espacial")
@@ -787,8 +812,17 @@ def run_simulation_sync(
             )
             effective_resolution_m = coarsened_resolution_m
 
-        cx, cy = _wgs84_to_proj(lat, lon, reader.crs)
-        log.info("Simulação: ignição (%.4f, %.4f) → proj (%.0f, %.0f)", lat, lon, cx, cy)
+        if ignition_points:
+            ignition_points_proj = _wgs84_list_to_proj(ignition_points, reader.crs)
+            xs = [p[0] for p in ignition_points_proj]
+            ys = [p[1] for p in ignition_points_proj]
+            cx, cy = sum(xs) / len(xs), sum(ys) / len(ys)  # centróide, só para centrar a grelha
+            log.info("Simulação: ignição livre (%d ponto(s)) → centróide proj (%.0f, %.0f)",
+                      len(ignition_points), cx, cy)
+        else:
+            ignition_points_proj = None
+            cx, cy = _wgs84_to_proj(lat, lon, reader.crs)
+            log.info("Simulação: ignição (%.4f, %.4f) → proj (%.0f, %.0f)", lat, lon, cx, cy)
 
         log.info("Simulação: a calcular grelha %.1fm (%.0f×%.0f km)...",
                  effective_resolution_m, bbox_km, bbox_km)
@@ -798,7 +832,7 @@ def run_simulation_sync(
                  duration_h, effective_distance_resolution_m, len(weather_hourly))
         snapshots, perimeter_coarsened = _propagate(
             reader, fuel_models, weather_hourly, cx, cy, duration_h, snapshot_hours,
-            effective_distance_resolution_m,
+            effective_distance_resolution_m, ignition_points_proj,
         )
 
     if not snapshots:
@@ -841,6 +875,7 @@ def run_simulation_sync(
             "distance_resolution_requested_m": requested_distance_resolution_m,  # None = nativa
             "perimeter_resolution_coarsened": perimeter_coarsened,
             "ignition":              [lat, lon],
+            "ignition_points":       ignition_points,  # None = ignição pontual em (lat, lon)
             "wind_speed_ms":         wx0.wind_speed_10m_ms,
             "wind_dir_deg":          wx0.wind_direction_deg,
             "duration_h":            duration_h,
@@ -861,6 +896,7 @@ async def run_simulation_async(
     bbox_km: float = 15.0,
     resolution_m: Optional[float] = None,
     distance_resolution_m: Optional[float] = None,
+    ignition_points: Optional[list[tuple[float, float]]] = None,
 ) -> dict:
     """Wrapper assíncrono — corre run_simulation_sync num executor."""
     loop = asyncio.get_event_loop()
@@ -871,5 +907,6 @@ async def run_simulation_async(
             rasters=rasters, multiband_path=multiband_path,
             bbox_km=bbox_km, resolution_m=resolution_m,
             distance_resolution_m=distance_resolution_m,
+            ignition_points=ignition_points,
         ),
     )

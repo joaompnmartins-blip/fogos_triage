@@ -296,3 +296,34 @@ class SimulationResultDetail(BaseModel):
 class SimulationJobDetail(SimulationJob):
     """Detalhe completo — inclui resultado quando status=done."""
     result: Optional[SimulationResultDetail] = None
+
+
+# ---------------------------------------------------------------------------
+# Simulação livre — ignição definida à mão (ponto ou linha), independente
+# de qualquer ocorrência real do fogos.pt. Mesmo motor (run_simulation_*),
+# fluxo/persistência próprios (ver services/api/routes_freesim.py).
+# ---------------------------------------------------------------------------
+
+
+class FreeSimulationRequest(BaseModel):
+    """Pedido de simulação livre — ignição definida pelo utilizador."""
+    # Lista de (lat, lon); 1 ponto = ignição pontual, 2+ = linha de ignição
+    ignition_points: list[tuple[float, float]] = Field(min_length=1, max_length=50)
+    duration_h: float = Field(default=3.0, ge=0.5, le=24.0)
+    bbox_km: Optional[float] = Field(default=None, ge=2.0, le=50.0)
+
+
+class FreeSimulationJob(BaseModel):
+    job_id: str
+    ignition_points: list[tuple[float, float]]
+    status: str  # "pending"/"running"/"done"/"failed"
+    requested_at: datetime
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    duration_h: float
+    error_message: Optional[str] = None
+
+
+class FreeSimulationJobDetail(FreeSimulationJob):
+    """Detalhe completo — inclui resultado quando status=done."""
+    result: Optional[SimulationResultDetail] = None

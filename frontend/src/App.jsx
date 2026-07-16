@@ -5,6 +5,7 @@ import ListaView from './views/ListaView'
 import DetalheView from './views/DetalheView'
 import HistoricoView from './views/HistoricoView'
 import SimulacaoView from './views/SimulacaoView'
+import SimuladorLivreView from './views/SimuladorLivreView'
 import { fetchHealth } from './api'
 import { REGION_LABEL } from './region'
 
@@ -101,6 +102,13 @@ function Sidebar({ health, onChangeKey, apiKey, theme, onToggleTheme }) {
           <span className="nav-icon">≡</span>
           <span>Ocorrências</span>
         </NavLink>
+        <NavLink
+          to="/simulador"
+          className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+        >
+          <span className="nav-icon">✎</span>
+          <span>Simulador Livre</span>
+        </NavLink>
         <div className="nav-sep" />
       </nav>
 
@@ -148,6 +156,9 @@ function Topbar() {
   } else if (location.pathname.startsWith('/mapa')) {
     title = 'Mapa'
     sub = REGION_LABEL
+  } else if (location.pathname.startsWith('/simulador')) {
+    title = 'Simulador Livre'
+    sub = 'Ignição hipotética'
   } else {
     title = 'Ocorrências Ativas'
     sub = null
@@ -183,6 +194,7 @@ function AppShell({ apiKey, onChangeKey, health, theme, onToggleTheme }) {
             <Route path="/fogo/:fireId" element={<DetalheView apiKey={apiKey} />} />
             <Route path="/fogo/:fireId/historico" element={<HistoricoView apiKey={apiKey} />} />
             <Route path="/fogo/:fireId/simulacao" element={<SimulacaoView apiKey={apiKey} />} />
+            <Route path="/simulador" element={<SimuladorLivreView apiKey={apiKey} />} />
             <Route path="*" element={<Navigate to="/mapa" replace />} />
           </Routes>
         </div>

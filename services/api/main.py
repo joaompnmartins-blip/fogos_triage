@@ -20,6 +20,7 @@ from fogos_triage.landscape import ensure_landscape
 
 log = logging.getLogger(__name__)
 from .routes_fires import router as fires_router
+from .routes_freesim import router_free_jobs, router_free_sim
 from .routes_meta import (
     router_fuels,
     router_health,
@@ -113,6 +114,8 @@ def create_app() -> FastAPI:
     app.include_router(router_fuels)
     app.include_router(router_sim)
     app.include_router(router_jobs)
+    app.include_router(router_free_sim)
+    app.include_router(router_free_jobs)
     app.include_router(router_health)
 
     return app

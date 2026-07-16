@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
-import { useParams, Link } from 'react-router-dom'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { fetchFireDetail, postSimulate, getSimulationJob } from '../api'
-import { fmt, fmtDateTime } from '../constants'
+import { TerraDraw, TerraDrawPointMode, TerraDrawLineStringMode } from 'terra-draw'
+import { TerraDrawMapLibreGLAdapter } from 'terra-draw-maplibre-gl-adapter'
+import { postFreeSimulate, getFreeSimulationJob } from '../api'
+import { fmt } from '../constants'
+import { REGION_CENTER, REGION_ZOOM } from '../region'
 import {
   COLOR_LABELS, COLOR_STOPS, msToKmh, perimStyle, renderSimulationLayers,
 } from '../components/SimulationMapLayers'
@@ -27,12 +29,24 @@ const SATELLITE_STYLE = {
   layers: [{ id: 'satellite-bg', type: 'raster', source: 'satellite' }],
 }
 
-export default function SimulacaoView({ apiKey }) {
-  const { fireId } = useParams()
+// Extrai [[lat,lon], ...] das features desenhadas (Point ou LineString)
+function _ignitionFromSnapshot(snapshot) {
+  const feature = snapshot.find(f => f.geometry.type === 'Point' || f.geometry.type === 'LineString')
+  if (!feature) return []
+  const coords = feature.geometry.type === 'Point'
+    ? [feature.geometry.coordinates]
+    : feature.geometry.coordinates
+  return coords.map(([lon, lat]) => [lat, lon])
+}
+
+export default function SimuladorLivreView({ apiKey }) {
   const mapRef = useRef(null)
   const containerRef = useRef(null)
+  const drawRef = useRef(null)
 
-  const [fire, setFire] = useState(null)
+  const [mapReady, setMapReady] = useState(false)
+  const [drawMode, setDrawMode] = useState(null) // null | 'point' | 'linestring'
+  const [ignitionPoints, setIgnitionPoints] = useState([])
   const [basemap, setBasemap] = useState('osm')
   const [layer, setLayer] = useState('ros')
   const [opacity, setOpacity] = useState(0.75)
@@ -44,28 +58,35 @@ export default function SimulacaoView({ apiKey }) {
   const pollRef = useRef(null)
 
   useEffect(() => {
-    fetchFireDetail(apiKey, fireId)
-      .then(setFire)
-      .catch(e => setError(e.message))
-  }, [apiKey, fireId])
-
-  useEffect(() => {
-    if (!containerRef.current || mapRef.current || !fire) return
+    if (!containerRef.current || mapRef.current) return
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: OSM_STYLE,
-      center: [fire.longitude, fire.latitude],
-      zoom: 12,
+      center: REGION_CENTER,
+      zoom: REGION_ZOOM,
       attributionControl: false,
     })
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right')
     map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right')
-    new maplibregl.Marker({ color: '#ef4444' })
-      .setLngLat([fire.longitude, fire.latitude])
-      .addTo(map)
+
+    const draw = new TerraDraw({
+      adapter: new TerraDrawMapLibreGLAdapter({ map }),
+      modes: [new TerraDrawPointMode(), new TerraDrawLineStringMode()],
+    })
+    draw.on('finish', () => {
+      setIgnitionPoints(_ignitionFromSnapshot(draw.getSnapshot()))
+      setDrawMode(null)
+    })
+    drawRef.current = draw
+
+    map.on('load', () => {
+      draw.start()
+      setMapReady(true)
+    })
+
     mapRef.current = map
-    return () => { map.remove(); mapRef.current = null }
-  }, [fire])
+    return () => { draw.stop(); map.remove(); mapRef.current = null; drawRef.current = null }
+  }, [])
 
   useEffect(() => {
     const map = mapRef.current
@@ -97,10 +118,28 @@ export default function SimulacaoView({ apiKey }) {
     })
   }
 
+  function pickMode(mode) {
+    const draw = drawRef.current
+    if (!draw) return
+    draw.clear()
+    setIgnitionPoints([])
+    setResult(null)
+    draw.setMode(mode)
+    setDrawMode(mode)
+  }
+
+  function handleClear() {
+    drawRef.current?.clear()
+    setIgnitionPoints([])
+    setDrawMode(null)
+    setResult(null)
+    setError(null)
+  }
+
   function startPolling(jobId) {
     pollRef.current = setInterval(async () => {
       try {
-        const job = await getSimulationJob(apiKey, jobId)
+        const job = await getFreeSimulationJob(apiKey, jobId)
         setJobStatus(job.status)
         if (job.status === 'done') {
           clearInterval(pollRef.current)
@@ -123,9 +162,7 @@ export default function SimulacaoView({ apiKey }) {
     setResult(null)
     setError(null)
     try {
-      const job = await postSimulate(apiKey, fireId, {
-        duration_h: durationH,
-      })
+      const job = await postFreeSimulate(apiKey, { ignitionPoints, duration_h: durationH })
       setJobStatus(job.status)
       startPolling(job.job_id)
     } catch (e) {
@@ -134,25 +171,56 @@ export default function SimulacaoView({ apiKey }) {
     }
   }
 
-  if (!fire) return <div className="state-center" style={{ height: '100%' }}>A carregar…</div>
-
-  const triage = fire.triage
   const isRunning = jobStatus === 'pending' || jobStatus === 'running'
+  const hasIgnition = ignitionPoints.length > 0
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
 
       <div className="breadcrumb" style={{ flexShrink: 0 }}>
-        <Link to="/lista">Ocorrências</Link>
-        <span className="sep">›</span>
-        <Link to={`/fogo/${fireId}`}>{[fire.municipality, fire.district].filter(Boolean).join(', ')}</Link>
-        <span className="sep">›</span>
-        <span>Simulação</span>
+        <span>Simulador Livre</span>
       </div>
 
       {/* Mapa */}
       <div style={{ flex: '0 0 60%', position: 'relative' }}>
         <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+
+        <div style={{
+          position: 'absolute', top: 10, left: 10, zIndex: 10,
+          display: 'flex', flexDirection: 'column', gap: 6,
+        }}>
+          <div style={{
+            display: 'flex', gap: 4, background: 'var(--bg2)', borderRadius: 4, padding: 4,
+          }}>
+            <button className={`btn btn-ghost${drawMode === 'point' ? ' active' : ''}`}
+              disabled={!mapReady}
+              style={{ fontSize: 10, padding: '3px 8px' }}
+              onClick={() => pickMode('point')}>
+              ● Ponto
+            </button>
+            <button className={`btn btn-ghost${drawMode === 'linestring' ? ' active' : ''}`}
+              disabled={!mapReady}
+              style={{ fontSize: 10, padding: '3px 8px' }}
+              onClick={() => pickMode('linestring')}>
+              ╱ Linha
+            </button>
+            <button className="btn btn-ghost" disabled={!hasIgnition}
+              style={{ fontSize: 10, padding: '3px 8px' }}
+              onClick={handleClear}>
+              Limpar
+            </button>
+          </div>
+          {drawMode === 'point' && (
+            <div className="hint" style={{ fontSize: 10, fontFamily: 'var(--font-mono)', background: 'var(--bg2)', padding: '4px 8px', borderRadius: 4 }}>
+              Clique no mapa para marcar o ponto de ignição
+            </div>
+          )}
+          {drawMode === 'linestring' && (
+            <div className="hint" style={{ fontSize: 10, fontFamily: 'var(--font-mono)', background: 'var(--bg2)', padding: '4px 8px', borderRadius: 4 }}>
+              Clique para adicionar vértices, duplo clique para terminar a linha
+            </div>
+          )}
+        </div>
 
         <div style={{
           position: 'absolute', top: 10, right: 10, zIndex: 10,
@@ -239,7 +307,7 @@ export default function SimulacaoView({ apiKey }) {
 
           <button
             className="btn btn-primary"
-            disabled={isRunning || !triage}
+            disabled={isRunning || !hasIgnition}
             onClick={handleSimulate}
             style={{ padding: '6px 18px', alignSelf: 'flex-end' }}
           >
@@ -248,9 +316,9 @@ export default function SimulacaoView({ apiKey }) {
               : '▶ Simular'}
           </button>
 
-          {!triage && (
+          {!hasIgnition && (
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--warn)' }}>
-              Sem triagem — simulação não disponível
+              Desenhe um ponto ou linha de ignição no mapa
             </span>
           )}
         </div>
@@ -271,7 +339,6 @@ export default function SimulacaoView({ apiKey }) {
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--dim)', marginTop: 4 }}>
             {'Meteo: Open-Meteo · vento '}
             {fmt(msToKmh(result.meta.wind_speed_ms), 0)} km/h {fmt(result.meta.wind_dir_deg, 0)}°
-            {triage && ` · Triagem: ${fmtDateTime(triage.computed_at)}`}
             {` · Resolução: ${result.meta.resolution_m}m`}
           </div>
         )}

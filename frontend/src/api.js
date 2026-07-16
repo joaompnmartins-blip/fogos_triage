@@ -81,3 +81,21 @@ export async function postSimulate(apiKey, fireId, { duration_h = 3, wind_speed_
 export async function getSimulationJob(apiKey, jobId) {
   return get(`/jobs/${encodeURIComponent(jobId)}`, apiKey)
 }
+
+export async function postFreeSimulate(apiKey, { ignitionPoints, duration_h = 3, bbox_km } = {}) {
+  const res = await fetch(`${API_BASE}/free-simulate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...auth(apiKey) },
+    body: JSON.stringify({
+      ignition_points: ignitionPoints,
+      duration_h,
+      bbox_km: bbox_km || null,
+    }),
+  })
+  if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`)
+  return res.json()
+}
+
+export async function getFreeSimulationJob(apiKey, jobId) {
+  return get(`/free-jobs/${encodeURIComponent(jobId)}`, apiKey)
+}

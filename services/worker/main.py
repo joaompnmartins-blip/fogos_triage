@@ -90,6 +90,7 @@ _MIGRATIONS = [
     "001_initial_schema.sql",
     "002_add_fwi.sql",
     "003_add_fuel_moisture.sql",
+    "004_free_simulation_jobs.sql",
 ]
 
 
