@@ -75,8 +75,8 @@ PERIM_COARSEN_FACTOR = 1.5
 
 # Limite de células da grelha ROS (bbox completo, antes do clip ao
 # perímetro) — protege tempo de cálculo e tamanho do payload quando a
-# resolução nativa do landscape file é fina (ex. 10m no Alto Minho) e o
-# bbox pedido é grande. Se excedido, resolution_m é ajustada para cima.
+# resolução nativa do landscape file é fina (ex. 10m) e o bbox pedido é
+# grande. Se excedido, resolution_m é ajustada para cima.
 MAX_GRID_CELLS = 500_000
 
 # Candidatos a horas de snapshot do perímetro — filtrados por <= duration_h
@@ -766,7 +766,7 @@ def run_simulation_sync(
     `LandscapeReader.__init__`).
 
     `resolution_m`: se None (default), usa a resolução nativa do landscape
-    file carregado (10m no piloto Alto Minho, 25m no nacional). Sujeito a
+    file carregado (10m). Sujeito a
     `MAX_GRID_CELLS` — se `bbox_km` × resolução implicar mais células do
     que o orçamento, a resolução é ajustada para cima automaticamente; a
     resolução pedida e a efetivamente usada ficam registadas em `meta`.
