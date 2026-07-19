@@ -39,10 +39,26 @@ function _ignitionFromSnapshot(snapshot) {
   return coords.map(([lon, lat]) => [lat, lon])
 }
 
+// Cria e regista uma nova instância TerraDraw no mapa. Re-instanciar (em vez
+// de stop()/start() na mesma instância) é o que evita depender do estado
+// interno da lib — depois de um map.setStyle() as sources antigas do
+// TerraDraw já não existem, e stop() tenta removê-las (rebenta) tal como um
+// clear() posterior tentaria escrever nelas.
+function _attachDraw(map, onFinish) {
+  const draw = new TerraDraw({
+    adapter: new TerraDrawMapLibreGLAdapter({ map }),
+    modes: [new TerraDrawPointMode(), new TerraDrawLineStringMode()],
+  })
+  draw.on('finish', onFinish)
+  draw.start()
+  return draw
+}
+
 export default function SimuladorLivreView({ apiKey }) {
   const mapRef = useRef(null)
   const containerRef = useRef(null)
   const drawRef = useRef(null)
+  const basemapInitRef = useRef(true)  // skip first run do efeito de basemap
 
   const [mapReady, setMapReady] = useState(false)
   const [drawMode, setDrawMode] = useState(null) // null | 'point' | 'linestring'
@@ -57,6 +73,11 @@ export default function SimuladorLivreView({ apiKey }) {
   const [visiblePerimeters, setVisiblePerimeters] = useState(new Set())
   const pollRef = useRef(null)
 
+  const onDrawFinish = () => {
+    setIgnitionPoints(_ignitionFromSnapshot(drawRef.current.getSnapshot()))
+    setDrawMode(null)
+  }
+
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
     const map = new maplibregl.Map({
@@ -69,39 +90,26 @@ export default function SimuladorLivreView({ apiKey }) {
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right')
     map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right')
 
-    const draw = new TerraDraw({
-      adapter: new TerraDrawMapLibreGLAdapter({ map }),
-      modes: [new TerraDrawPointMode(), new TerraDrawLineStringMode()],
-    })
-    draw.on('finish', () => {
-      setIgnitionPoints(_ignitionFromSnapshot(draw.getSnapshot()))
-      setDrawMode(null)
-    })
-    drawRef.current = draw
-
     map.on('load', () => {
-      draw.start()
+      drawRef.current = _attachDraw(map, onDrawFinish)
       setMapReady(true)
     })
 
     mapRef.current = map
-    return () => { draw.stop(); map.remove(); mapRef.current = null; drawRef.current = null }
+    return () => { drawRef.current?.stop(); map.remove(); mapRef.current = null; drawRef.current = null }
   }, [])
 
   useEffect(() => {
+    if (basemapInitRef.current) { basemapInitRef.current = false; return }
     const map = mapRef.current
     if (!map) return
     map.setStyle(basemap === 'osm' ? OSM_STYLE : SATELLITE_STYLE)
     map.once('style.load', () => {
       // setStyle() destrói todas as sources/layers, incluindo as do
-      // TerraDraw — sem reiniciar, um clear() posterior (reset/troca de
-      // modo) rebenta com "Cannot read properties of undefined (reading
-      // 'setData')" porque map.getSource() já não encontra a source.
-      const draw = drawRef.current
-      if (draw) {
-        draw.stop()
-        draw.start()
-      }
+      // TerraDraw — reinstancia-se em vez de reiniciar a mesma instância
+      // (ver _attachDraw). O desenho em curso perde-se visualmente de
+      // qualquer forma quando o estilo muda, por isso reset de estado aqui.
+      drawRef.current = _attachDraw(map, onDrawFinish)
       setIgnitionPoints([])
       setDrawMode(null)
       if (result) renderSimulationLayers(map, result, layer, opacity, visiblePerimeters)
