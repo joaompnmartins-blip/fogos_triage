@@ -237,7 +237,7 @@ export default function SimuladorLivreView({ apiKey }) {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
 
       <div className="breadcrumb" style={{ flexShrink: 0 }}>
-        <span>Simulador Livre</span>
+        <span>Simulador</span>
       </div>
 
       {/* Mapa */}

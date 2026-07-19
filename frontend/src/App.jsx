@@ -107,7 +107,7 @@ function Sidebar({ health, onChangeKey, apiKey, theme, onToggleTheme }) {
           className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
         >
           <span className="nav-icon">✎</span>
-          <span>Simulador Livre</span>
+          <span>Simulador</span>
         </NavLink>
         <div className="nav-sep" />
       </nav>
@@ -157,7 +157,7 @@ function Topbar() {
     title = 'Mapa'
     sub = REGION_LABEL
   } else if (location.pathname.startsWith('/simulador')) {
-    title = 'Simulador Livre'
+    title = 'Simulador'
     sub = 'Ignição hipotética'
   } else {
     title = 'Ocorrências Ativas'
