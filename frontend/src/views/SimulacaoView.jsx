@@ -37,6 +37,7 @@ export default function SimulacaoView({ apiKey }) {
   const [layer, setLayer] = useState('ros')
   const [opacity, setOpacity] = useState(0.75)
   const [durationH, setDurationH] = useState(3)
+  const [useGusts, setUseGusts] = useState(false)
   const [jobStatus, setJobStatus] = useState(null)
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
@@ -125,6 +126,7 @@ export default function SimulacaoView({ apiKey }) {
     try {
       const job = await postSimulate(apiKey, fireId, {
         duration_h: durationH,
+        useGusts,
       })
       setJobStatus(job.status)
       startPolling(job.job_id)
@@ -237,6 +239,16 @@ export default function SimulacaoView({ apiKey }) {
             <DurationSelect value={durationH} onChange={setDurationH} />
           </div>
 
+          <label className="filter-check" style={{ alignSelf: 'flex-end', marginBottom: 6 }}>
+            <input
+              type="checkbox"
+              checked={useGusts}
+              disabled={isRunning}
+              onChange={e => setUseGusts(e.target.checked)}
+            />
+            Usar rajadas (Open-Meteo)
+          </label>
+
           <button
             className="btn btn-primary"
             disabled={isRunning || !triage}
@@ -266,6 +278,7 @@ export default function SimulacaoView({ apiKey }) {
         {result && (
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--dim)', marginTop: 4 }}>
             {'Meteo: Open-Meteo · vento '}
+            {result.meta.use_gusts ? 'rajada ' : ''}
             {fmt(msToKmh(result.meta.wind_speed_ms), 0)} km/h {fmt(result.meta.wind_dir_deg, 0)}°
             {triage && ` · Triagem: ${fmtDateTime(triage.computed_at)}`}
             {` · Resolução: ${result.meta.resolution_m}m`}

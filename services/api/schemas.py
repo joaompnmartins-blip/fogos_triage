@@ -255,6 +255,9 @@ class SimulationRequest(BaseModel):
     # Override de meteo (se ausente, usa-se a meteo da ocorrência)
     wind_speed_ms: Optional[float] = None
     wind_direction_deg: Optional[float] = None
+    # Usa a velocidade de rajada (Open-Meteo) em vez do vento sustentado
+    # em todas as horas da simulação — ver fogos_triage.triage.gust_weather
+    use_gusts: bool = False
     # Override de bbox (se ausente, usa-se janela default 20×20 km)
     bbox_km: Optional[float] = Field(default=None, ge=2.0, le=50.0)
 

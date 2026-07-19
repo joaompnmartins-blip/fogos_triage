@@ -62,7 +62,7 @@ export async function fetchFireHistory(apiKey, fireId) {
   return get(`/fires/${encodeURIComponent(fireId)}/history`, apiKey)
 }
 
-export async function postSimulate(apiKey, fireId, { duration_h = 3, wind_speed_ms, wind_direction_deg, bbox_km } = {}) {
+export async function postSimulate(apiKey, fireId, { duration_h = 3, wind_speed_ms, wind_direction_deg, useGusts, bbox_km } = {}) {
   const res = await fetch(`${API_BASE}/simulate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...auth(apiKey) },
@@ -71,6 +71,7 @@ export async function postSimulate(apiKey, fireId, { duration_h = 3, wind_speed_
       duration_h,
       wind_speed_ms: wind_speed_ms || null,
       wind_direction_deg: wind_direction_deg || null,
+      use_gusts: !!useGusts,
       bbox_km: bbox_km || null,
     }),
   })
