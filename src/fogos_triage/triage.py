@@ -24,7 +24,7 @@ from .severity import classify_severity
 from .weather import derive_fire_weather
 
 
-NEIGHBOURHOOD_RADIUS_M = 200.0
+NEIGHBOURHOOD_RADIUS_M = 50.0
 
 _DEFAULT_TERRAIN = TerrainConditions(
     elevation_m=0.0, slope_fraction=0.0, slope_degrees=0.0,
@@ -41,7 +41,8 @@ def triage_neighbourhood(
     live_w_pct: Optional[float] = None,
 ) -> TriageResult:
     """
-    Triagem com amostragem de vizinhança (9 pixels, raio 200 m).
+    Triagem com amostragem de vizinhança (grelha densa à resolução do
+    raster, até 50 m — ver LandscapeReader.sample_neighbourhood).
 
     Para cada pixel: deriva meteo com WAF per-pixel (canopy/height dos rasters),
     corre Rothermel, e recolhe o ROS resultante. O pixel representativo

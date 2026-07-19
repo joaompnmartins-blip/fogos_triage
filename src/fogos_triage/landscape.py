@@ -268,32 +268,40 @@ class LandscapeReader:
         min_lon, min_lat, max_lon, max_lat = self.bounds_wgs84
         return min_lon <= longitude <= max_lon and min_lat <= latitude <= max_lat
 
-    _NEIGHBOURHOOD_ANGLES_DEG = [0, 45, 90, 135, 180, 225, 270, 315]
-
     def sample_neighbourhood(
         self,
         latitude: float,
         longitude: float,
-        radius_m: float = 200.0,
+        radius_m: float = 50.0,
     ) -> list[TerrainConditions]:
         """
-        Amostra 9 pontos: ignição + 8 direcções (N/NE/E/SE/S/SW/W/NW) a radius_m.
+        Amostra uma grelha densa de pontos dentro de radius_m do ponto de
+        ignição, espaçada à resolução nativa do raster (nunca mais fina que
+        radius_m/10, para limitar o nº de leituras por ciclo). Com o
+        raster PT a 10m e radius_m=50, dá ~81 pontos (grelha 11×11
+        recortada ao círculo), em vez de amostrar só o perímetro.
         O primeiro elemento é sempre o ponto de ignição.
         Pixels fora da extensão do raster são ignorados silenciosamente.
         """
-        d_lat = radius_m / 111320.0
-        d_lon = radius_m / (111320.0 * math.cos(math.radians(latitude)))
+        spacing_m = max(self.native_resolution_m, radius_m / 10.0)
+        n_steps = max(1, int(radius_m // spacing_m))
 
-        points = [(latitude, longitude)]
-        for a_deg in self._NEIGHBOURHOOD_ANGLES_DEG:
-            a_rad = math.radians(a_deg)
-            points.append((
-                latitude  + d_lat * math.cos(a_rad),
-                longitude + d_lon * math.sin(a_rad),
-            ))
+        offsets_m = [(0.0, 0.0)]
+        for i in range(-n_steps, n_steps + 1):
+            for j in range(-n_steps, n_steps + 1):
+                if i == 0 and j == 0:
+                    continue
+                dx, dy = i * spacing_m, j * spacing_m
+                if dx * dx + dy * dy <= radius_m * radius_m:
+                    offsets_m.append((dx, dy))
+
+        d_lat_per_m = 1.0 / 111320.0
+        d_lon_per_m = 1.0 / (111320.0 * math.cos(math.radians(latitude)))
 
         results = []
-        for lat_p, lon_p in points:
+        for dx, dy in offsets_m:
+            lat_p = latitude + dy * d_lat_per_m
+            lon_p = longitude + dx * d_lon_per_m
             try:
                 results.append(self.sample(lat_p, lon_p))
             except Exception:
@@ -434,9 +442,9 @@ class MockLandscapeReader:
         self,
         latitude: float,
         longitude: float,
-        radius_m: float = 200.0,
+        radius_m: float = 50.0,
     ) -> list[TerrainConditions]:
-        return [self._terrain] * 9
+        return [self._terrain] * 81
 
     def sample(self, latitude: float, longitude: float) -> TerrainConditions:
         return self._terrain
