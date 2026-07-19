@@ -4,23 +4,23 @@
 
 export const ROS_COLOR_EXPR = [
   'interpolate', ['linear'], ['coalesce', ['get', 'ros_m_min'], 0],
-  0, '#3b82f6', 1, '#22c55e', 5, '#f97316', 20, '#ef4444',
+  1, '#3b82f6', 5, '#22c55e', 15, '#f97316', 30, '#ef4444',
 ]
 export const FLI_COLOR_EXPR = [
   'interpolate', ['linear'], ['coalesce', ['get', 'fi_kw_m'], 0],
-  0, '#3b82f6', 100, '#22c55e', 500, '#f97316', 2000, '#ef4444',
+  500, '#3b82f6', 2000, '#22c55e', 4000, '#f97316', 10000, '#ef4444',
 ]
 export const FLAME_COLOR_EXPR = [
   'interpolate', ['linear'], ['coalesce', ['get', 'flame_m'], 0],
-  0, '#3b82f6', 1, '#22c55e', 2.5, '#f97316', 4, '#ef4444',
+  1.5, '#3b82f6', 2.5, '#22c55e', 3.5, '#f97316', 10, '#ef4444',
 ]
 
 export const COLOR_EXPRS = { ros: ROS_COLOR_EXPR, fi: FLI_COLOR_EXPR, flame: FLAME_COLOR_EXPR }
 export const COLOR_LABELS = { ros: 'ROS m/min', fi: 'FLI kW/m', flame: 'Chama m' }
 export const COLOR_STOPS = {
-  ros:   [{ v: 0, c: '#3b82f6' }, { v: 1, c: '#22c55e' }, { v: 5, c: '#f97316' }, { v: '20+', c: '#ef4444' }],
-  fi:    [{ v: 0, c: '#3b82f6' }, { v: 100, c: '#22c55e' }, { v: 500, c: '#f97316' }, { v: '2000+', c: '#ef4444' }],
-  flame: [{ v: 0, c: '#3b82f6' }, { v: 1, c: '#22c55e' }, { v: 2.5, c: '#f97316' }, { v: '4+', c: '#ef4444' }],
+  ros:   [{ v: 1, c: '#3b82f6' }, { v: 5, c: '#22c55e' }, { v: 15, c: '#f97316' }, { v: '30+', c: '#ef4444' }],
+  fi:    [{ v: 500, c: '#3b82f6' }, { v: 2000, c: '#22c55e' }, { v: 4000, c: '#f97316' }, { v: '10000+', c: '#ef4444' }],
+  flame: [{ v: 1.5, c: '#3b82f6' }, { v: 2.5, c: '#22c55e' }, { v: 3.5, c: '#f97316' }, { v: '10+', c: '#ef4444' }],
 }
 
 // Rampa sequencial (tempo decorrido é uma grandeza ordenada) — um único
