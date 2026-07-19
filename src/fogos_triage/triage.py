@@ -5,7 +5,6 @@ Orquestra: ocorrência → terreno + meteo → motor → resultado priorizado.
 """
 from __future__ import annotations
 
-import math
 from collections import Counter
 from dataclasses import replace
 from typing import Optional
@@ -16,11 +15,12 @@ from .schemas import (
     FireBehaviorPrediction,
     FireType,
     Occurrence,
-    Priority,
+    SeverityCategory,
     TerrainConditions,
     TriageResult,
     WeatherConditions,
 )
+from .severity import classify_severity
 from .weather import derive_fire_weather
 
 
@@ -263,77 +263,17 @@ def _best_weather(wx: WeatherConditions) -> WeatherConditions:
 def compute_priority(
     behavior: FireBehaviorPrediction,
     occurrence: Occurrence,
-) -> tuple[Priority, float]:
+) -> tuple[SeverityCategory, float]:
     """
-    Score de prioridade contínuo 0-100, alinhado com as classes FWI ANEPC.
+    Classificação de severidade 1-7 (Tedim et al. 2018, Tabela 3) — ver
+    src/fogos_triage/severity.py para os limiares, a fonte completa, e
+    a justificação da substituição do antigo score composto 0-100
+    (sem fonte publicada — ver CLASSIFICACAO_TRIAGEM.md).
 
-    Limiares de score → prioridade (calibrados para FLI típico de cada classe):
-      P0 ≥ 87  — Extremo    FLI ≥ 10 000 kW/m, copa ativa, incontrolável
-      P1 ≥ 67  — Muito El.  FLI  4 000-10 000, copa passiva, só meios aéreos pesados
-      P2 ≥ 47  — Elevado    FLI  2 000- 4 000, meios aéreos necessários
-      P3 ≥ 22  — Moderado   FLI    500- 2 000, terrestres efetivos
-      P4 < 22  — Baixo      FLI  <    500    , sapadores
-
-    Fórmula:
-      score = (0.50×I + 0.25×T + 0.25×R) × crown_modifier
-      I = intensidade log-scale, calibrada: 500→25, 2000→50, 4000→70, 10000→90
-      T = tática por comprimento de chama (limiares FWI)
-      R = velocidade de propagação
-      crown_modifier = 1.20 (torching) / 1.50 (crowning)
+    A FLI (fireline intensity) é o critério pivô — é o que a própria
+    Tabela 3 usa para capacidade de controlo. `occurrence` mantém-se
+    como parâmetro por compatibilidade de assinatura (não usado na
+    classificação; era também ignorado na fórmula anterior).
     """
-    fli = max(behavior.fireline_intensity_kw_m, 1.0)
-    L   = behavior.flame_length_m
-    ros = behavior.ros_m_per_min
-
-    # Intensidade — calibrada nos limiares FWI: 500→25, 2000→50, 4000→70, 10000→90
-    intensity_score = max(0.0, min(100.0, 50.0 * math.log10(fli) - 110.0))
-
-    # Tática — limiares alinhados com FWI (Baixo/Moderado/Elevado/Muito El./Extremo)
-    if L < 1.3:
-        tactic_score = 10    # Baixo: sapadores
-    elif L < 2.5:
-        tactic_score = 35    # Moderado: terrestres
-    elif L < 3.5:
-        tactic_score = 60    # Elevado: máquinas + aéreos
-    elif L < 10.0:
-        tactic_score = 82    # Muito Elevado: só aéreos pesados
-    else:
-        tactic_score = 95    # Extremo: flancos e retaguarda
-
-    # ROS (m/min)
-    if ros < 1:
-        ros_score = 5
-    elif ros < 5:
-        ros_score = 25
-    elif ros < 15:
-        ros_score = 55
-    elif ros < 30:
-        ros_score = 78
-    else:
-        ros_score = 92
-
-    # Modificador crown fire — mais agressivo para distinguir P1 de P0
-    crown_modifier = 1.0
-    if behavior.fire_type == FireType.TORCHING:
-        crown_modifier = 1.20   # copa passiva: eleva P2→P1, P1→P0
-    elif behavior.fire_type == FireType.CROWNING:
-        crown_modifier = 1.50   # copa ativa: eleva para P0 em quase todos os casos
-
-    score = min(100.0,
-                (0.50 * intensity_score
-                 + 0.25 * tactic_score
-                 + 0.25 * ros_score) * crown_modifier)
-
-    # Mapeamento alinhado com classes FWI
-    if score >= 87:
-        prio = Priority.P0_EXTREME
-    elif score >= 67:
-        prio = Priority.P1_CRITICAL
-    elif score >= 47:
-        prio = Priority.P2_HIGH
-    elif score >= 22:
-        prio = Priority.P3_WATCH
-    else:
-        prio = Priority.P4_CONTROLLED
-
-    return prio, score
+    category = classify_severity(behavior.fireline_intensity_kw_m)
+    return SeverityCategory(category), behavior.fireline_intensity_kw_m

@@ -57,8 +57,9 @@ def run_scenario(name, occurrence, terrain, raw_weather):
               f"FL={pred.flame_length_m:5.2f} m  "
               f"tipo={pred.fire_type.value}")
     print()
-    print(f"PRIORIDADE: {result.priority.value} (score {result.priority_score:.1f}/100)")
-    print(f"Categoria táctica central: {result.central_prediction.tactic_category}")
+    print(f"SEVERIDADE: categoria {result.priority.value} "
+          f"(FLI central {result.priority_score:.0f} kW/m, EWE={result.central_prediction.is_ewe})")
+    print(f"Capacidade de controlo: {result.central_prediction.control_description}")
     if result.notes:
         print(f"Notas: {'; '.join(result.notes)}")
     print()

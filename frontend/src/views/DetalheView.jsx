@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { fetchFireDetail } from '../api'
-import { PriorityBadge, FireTypeBadge } from '../components/PriorityBadge'
-import { fmt, fmtDateTime, fmtDuration, windDirText, TACTIC_LABEL, PRIORITY_COLOR } from '../constants'
+import { SeverityBadge, FireTypeBadge } from '../components/SeverityBadge'
+import { fmt, fmtDateTime, fmtDuration, windDirText, SEVERITY_COLOR } from '../constants'
 
 function InfoRow({ label, value, unit, color }) {
   return (
@@ -18,12 +18,6 @@ function InfoRow({ label, value, unit, color }) {
 function ScenarioCard({ scenario }) {
   if (!scenario) return null
   const labels = { central: 'Central', worst: 'Pior caso', best: 'Melhor caso' }
-  const tacticColors = {
-    direct_attack_manual: 'var(--success)',
-    direct_attack_difficult: 'var(--warn)',
-    indirect_attack_machinery: 'var(--p1)',
-    indirect_attack_only: 'var(--danger)',
-  }
   const labelColor = {
     worst: 'var(--danger)',
     best: 'var(--accent2)',
@@ -70,17 +64,17 @@ function ScenarioCard({ scenario }) {
 
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
         <FireTypeBadge type={scenario.fire_type} />
-        {scenario.tactic_category && (
+        {scenario.control_description && (
           <span
             className="badge"
             style={{
               background: 'transparent',
-              color: tacticColors[scenario.tactic_category] || 'var(--muted)',
-              border: `1px solid ${tacticColors[scenario.tactic_category] || 'var(--border2)'}40`,
+              color: SEVERITY_COLOR[scenario.severity_category] || 'var(--muted)',
+              border: `1px solid ${SEVERITY_COLOR[scenario.severity_category] || 'var(--border2)'}40`,
               fontSize: 9,
             }}
           >
-            {TACTIC_LABEL[scenario.tactic_category] || scenario.tactic_category}
+            {scenario.control_description}
           </span>
         )}
       </div>
@@ -117,7 +111,7 @@ export default function DetalheView({ apiKey }) {
   const t = fire.triage
   const wx = t?.weather
   const terrain = t?.terrain
-  const priorityColor = t ? PRIORITY_COLOR[t.priority_class] : 'var(--muted)'
+  const priorityColor = t ? SEVERITY_COLOR[t.priority_class] : 'var(--muted)'
   const scenarios = t?.scenarios || []
   const central = scenarios.find(s => s.scenario === 'central')
   const worst = scenarios.find(s => s.scenario === 'worst')
@@ -146,7 +140,7 @@ export default function DetalheView({ apiKey }) {
 
       {/* Hero */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
-        {t && <PriorityBadge priority={t.priority_class} size="lg" />}
+        {t && <SeverityBadge category={t.priority_class} size="lg" />}
         {central && <FireTypeBadge type={central.fire_type} />}
         {fire.is_important && <span className="badge badge-danger">IMPORTANTE</span>}
         <div style={{ flex: 1 }}>
@@ -191,7 +185,7 @@ export default function DetalheView({ apiKey }) {
           <InfoRow label="Veículos" value={fire.vehicles} />
           {fire.aerial > 0 && <InfoRow label="Aéreos" value={fire.aerial} />}
           {fire.heli_fight > 0 && <InfoRow label="Heli-combate" value={fire.heli_fight} />}
-          {t && <InfoRow label="Score triagem" value={fmt(t.priority_score, 0)} color={priorityColor} />}
+          {t && <InfoRow label="Intensidade (central)" value={fmt(t.priority_score, 0)} unit="kW/m" color={priorityColor} />}
           {t && <InfoRow label="Combustível" value={t.fuel_model_code} />}
         </div>
 

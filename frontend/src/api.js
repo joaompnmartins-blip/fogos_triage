@@ -34,12 +34,12 @@ export async function fetchHealth() {
   }
 }
 
-export async function fetchFires(apiKey, { limit = 50, cursor, district, minPriority, onlyTriaged } = {}) {
+export async function fetchFires(apiKey, { limit = 50, cursor, district, minCategory, onlyTriaged } = {}) {
   return get('/fires', apiKey, {
     limit,
     cursor,
     district: district || undefined,
-    min_priority: minPriority || undefined,
+    min_category: minCategory || undefined,
     only_triaged: onlyTriaged ? 'true' : undefined,
   })
 }

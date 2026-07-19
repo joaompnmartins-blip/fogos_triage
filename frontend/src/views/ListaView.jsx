@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fetchFires } from '../api'
-import { PriorityBadge, FireTypeBadge } from '../components/PriorityBadge'
-import { fmt, fmtTime, fmtDuration, PRIORITY_COLOR } from '../constants'
+import { SeverityBadge, FireTypeBadge } from '../components/SeverityBadge'
+import { fmt, fmtTime, fmtDuration, SEVERITY_COLOR } from '../constants'
 
 function FireCard({ fire, onClick }) {
   const t = fire.triage
   const central = t?.central
-  const priorityColor = t ? PRIORITY_COLOR[t.priority_class] : 'var(--icnf-blue-light)'
+  const priorityColor = t ? SEVERITY_COLOR[t.priority_class] : 'var(--icnf-blue-light)'
 
   return (
     <div
@@ -29,7 +29,7 @@ function FireCard({ fire, onClick }) {
           </div>
         )}
         <div className="fire-card-meta">
-          {t ? <PriorityBadge priority={t.priority_class} /> : (
+          {t ? <SeverityBadge category={t.priority_class} /> : (
             <span className="badge badge-closed">SEM TRIAGEM</span>
           )}
           {central && <FireTypeBadge type={central.fire_type} />}
@@ -77,7 +77,7 @@ export default function ListaView({ apiKey }) {
   const [cursor, setCursor] = useState(null)
   const [hasMore, setHasMore] = useState(false)
   const [total, setTotal] = useState(0)
-  const [filter, setFilter] = useState({ minPriority: '', onlyTriaged: false })
+  const [filter, setFilter] = useState({ minCategory: '', onlyTriaged: false })
   const navigate = useNavigate()
 
   const load = useCallback(async ({ reset = true, currentCursor } = {}) => {
@@ -88,7 +88,7 @@ export default function ListaView({ apiKey }) {
       const result = await fetchFires(apiKey, {
         limit: 50,
         cursor: reset ? null : currentCursor,
-        minPriority: filter.minPriority || undefined,
+        minCategory: filter.minCategory || undefined,
         onlyTriaged: filter.onlyTriaged,
       })
       setFires(prev => reset ? result.items : [...prev, ...result.items])
@@ -116,7 +116,7 @@ export default function ListaView({ apiKey }) {
   }
 
   const triaged = fires.filter(f => f.triage).length
-  const critical = fires.filter(f => f.triage && ['P0', 'P1', 'P2'].includes(f.triage.priority_class)).length
+  const critical = fires.filter(f => f.triage && Number(f.triage.priority_class) >= 5).length
 
   return (
     <div className="content-scroll">
@@ -131,7 +131,7 @@ export default function ListaView({ apiKey }) {
           <div className="stat-val r">{loading ? '…' : triaged}</div>
         </div>
         <div className="stat-card d">
-          <div className="stat-label">Alta prioridade (P0–P2)</div>
+          <div className="stat-label">EWE (categoria 5-7)</div>
           <div className="stat-val d">{loading ? '…' : critical}</div>
         </div>
       </div>
@@ -145,13 +145,13 @@ export default function ListaView({ apiKey }) {
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           <select
             className="filter-select"
-            value={filter.minPriority}
-            onChange={e => setFilter(f => ({ ...f, minPriority: e.target.value }))}
+            value={filter.minCategory}
+            onChange={e => setFilter(f => ({ ...f, minCategory: e.target.value }))}
           >
-            <option value="">Todas as prioridades</option>
-            <option value="P1">P1 e acima</option>
-            <option value="P2">P2 e acima</option>
-            <option value="P3">P3 e acima</option>
+            <option value="">Todas as categorias</option>
+            <option value="5">5+ (EWE)</option>
+            <option value="3">3 e acima</option>
+            <option value="2">2 e acima</option>
           </select>
           <label className="filter-check">
             <input

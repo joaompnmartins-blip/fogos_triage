@@ -13,6 +13,8 @@ from typing import Optional
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from fogos_triage.severity import SEVERITY_TABLE, classify_severity, severity_info
+
 from .deps import get_pool, require_api_key
 from .schemas import (
     FireBehaviorDetail,
@@ -38,16 +40,10 @@ router = APIRouter(prefix="/fires", tags=["fires"])
 # ---------------------------------------------------------------------------
 
 
-def _tactic_category(flame_length_m: float) -> str:
-    """Categoria táctica alinhada com classes FWI ANEPC."""
-    if flame_length_m < 1.3:
-        return "direct_attack_manual"
-    elif flame_length_m < 2.5:
-        return "direct_attack_difficult"
-    elif flame_length_m < 3.5:
-        return "indirect_attack_machinery"
-    else:
-        return "indirect_attack_only"
+def _severity(fireline_intensity_kw_m: float) -> tuple[int, str]:
+    """Categoria 1-7 e capacidade de controlo (Tedim et al. 2018, Tabela 3) pela FLI."""
+    category = classify_severity(fireline_intensity_kw_m)
+    return category, severity_info(category).control_description
 
 
 def _encode_cursor(score: float, fire_id: str) -> str:
@@ -70,6 +66,7 @@ def _row_to_list_item(row: asyncpg.Record) -> FireListItem:
     """Converte uma linha da view active_fires_with_triage em FireListItem."""
     triage = None
     if row["priority_class"] is not None:
+        central_category, central_control = _severity(row["central_fireline_intensity_kw_m"] or 0.0)
         central = FireBehaviorSummary(
             scenario="central",
             ros_m_per_min=row["central_ros_m_per_min"] or 0.0,
@@ -78,7 +75,8 @@ def _row_to_list_item(row: asyncpg.Record) -> FireListItem:
             flame_length_m=row["central_flame_length_m"] or 0.0,
             fire_type=row["central_fire_type"] or "surface",
             direction_max_spread_deg=row.get("central_direction_deg") or 0.0,
-            tactic_category=_tactic_category(row["central_flame_length_m"] or 0.0),
+            severity_category=central_category,
+            control_description=central_control,
         )
         triage = TriageSummary(
             priority_class=row["priority_class"],
@@ -133,10 +131,11 @@ async def list_fires(
     limit: int = Query(default=50, ge=1, le=200),
     cursor: Optional[str] = Query(default=None, description="Cursor de paginação"),
     district: Optional[str] = Query(default=None, description="Filtrar por distrito"),
-    min_priority: Optional[str] = Query(
+    min_category: Optional[int] = Query(
         default=None,
-        pattern="^P[1-4]$",
-        description="Devolver apenas P1/P2/... e acima",
+        ge=1,
+        le=7,
+        description="Devolver apenas categoria N (Tedim et al. 2018) e acima",
     ),
     only_triaged: bool = Query(default=False, description="Excluir ocorrências sem triagem"),
 ):
@@ -151,10 +150,10 @@ async def list_fires(
         params.append(district)
         conditions.append(f"district ILIKE ${len(params)}")
 
-    if min_priority:
-        # P1 → score >= 70, P2 → >= 50, P3 → >= 25, P4 → >= 0
-        thresholds = {"P1": 70.0, "P2": 50.0, "P3": 25.0, "P4": 0.0}
-        params.append(thresholds[min_priority])
+    if min_category:
+        # priority_score guarda a FLI (kW/m) do cenário central — o mesmo
+        # critério pivô usado por classify_severity() em severity.py.
+        params.append(SEVERITY_TABLE[min_category].fli_floor_kw_m)
         conditions.append(f"priority_score >= ${len(params)}")
 
     if only_triaged:
@@ -319,8 +318,10 @@ async def get_fire_detail(
     triage_detail = None
     if tri is not None:
         scenarios_json = tri["scenarios_json"]
-        scenarios = [
-            FireBehaviorDetail(
+        scenarios = []
+        for s in scenarios_json:
+            s_category, s_control = _severity(s["fireline_intensity_kw_m"])
+            scenarios.append(FireBehaviorDetail(
                 scenario=s["scenario"],
                 ros_m_per_min=s["ros_m_per_min"],
                 ros_km_per_h=s["ros_m_per_min"] * 0.06,
@@ -331,10 +332,9 @@ async def get_fire_detail(
                 direction_max_spread_deg=s["direction_max_spread_deg"],
                 effective_wind_ms=s["effective_wind_ms"],
                 fire_type=s["fire_type"],
-                tactic_category=_tactic_category(s["flame_length_m"]),
-            )
-            for s in scenarios_json
-        ]
+                severity_category=s_category,
+                control_description=s_control,
+            ))
 
         ws_ms = wx["wind_speed_ms"] if wx else None
         ws_kmh = wx["wind_speed_kmh"] if wx else None

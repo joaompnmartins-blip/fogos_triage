@@ -62,13 +62,14 @@ class FireBehaviorSummary(BaseModel):
     flame_length_m: float
     fire_type: str  # "surface"/"torching"/"crowning"/"no_burn"
     direction_max_spread_deg: float
-    tactic_category: str  # derivado do flame_length
+    severity_category: int  # 1-7 (Tedim et al. 2018) — 7 = mais grave
+    control_description: str  # Tedim et al. 2018, Tabela 3 — capacidade de controlo
 
 
 class TriageSummary(BaseModel):
     """Triagem resumida para a lista de fogos."""
-    priority_class: str  # P1/P2/P3/P4
-    priority_score: float
+    priority_class: str  # categoria 1-7 (Tedim et al. 2018) — 7 = mais grave
+    priority_score: float  # FLI (kW/m) do cenário central
     fuel_model_code: str
     computed_at: datetime
     central: FireBehaviorSummary
@@ -130,14 +131,15 @@ class FireBehaviorDetail(BaseModel):
     direction_max_spread_deg: float
     effective_wind_ms: float
     fire_type: str
-    tactic_category: str
+    severity_category: int  # 1-7 (Tedim et al. 2018) — 7 = mais grave
+    control_description: str  # Tedim et al. 2018, Tabela 3 — capacidade de controlo
 
 
 class TriageDetail(BaseModel):
     """Triagem completa com todos os cenários e diagnóstico."""
     computed_at: datetime
-    priority_class: str
-    priority_score: float
+    priority_class: str  # categoria 1-7 (Tedim et al. 2018) — 7 = mais grave
+    priority_score: float  # FLI (kW/m) do cenário central
     fuel_model_code: str
     fuel_model_num: int
     terrain: TerrainDetail

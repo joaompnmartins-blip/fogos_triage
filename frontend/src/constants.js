@@ -1,17 +1,47 @@
-export const PRIORITY_COLOR = {
-  P0: '#e05050',
-  P1: '#d4622a',
-  P2: '#c89a2a',
-  P3: '#8C961C',
-  P4: '#429ABD',
+// Severidade 1-7 (Tedim et al. 2018, Tabela 3) — 7 = mais grave (numeração
+// nativa do artigo, inverte a intuição do antigo esquema P0-P4). Categorias
+// 5-7 = Extreme Wildfire Event (EWE); ver src/fogos_triage/severity.py.
+//
+// Paleta validada com a skill dataviz (node validate_palette.js, --ordinal):
+// duas rampas de 1 matiz cada (azul 1-4, vermelho 5-7 EWE) em vez de 7
+// matizes distintos — 7 matizes separáveis por daltonismo não cabem no
+// arco azul→vermelho (ΔE insuficiente entre passos adjacentes). A cor
+// nunca é o único sinal: o número da categoria e o rótulo "EWE"
+// acompanham sempre o badge (mesmo padrão alpha-blended do antigo
+// PRIORITY_COLOR, válido em claro e escuro).
+export const SEVERITY_COLOR = {
+  1: '#86b6ef',
+  2: '#5598e7',
+  3: '#2a78d6',
+  4: '#184f95',
+  5: '#f0a09a',
+  6: '#d9453f',
+  7: '#7a1414',
 }
 
-export const PRIORITY_LABEL = {
-  P0: 'EXTREMO',
-  P1: 'CRÍTICO',
-  P2: 'ELEVADO',
-  P3: 'MÉDIO',
-  P4: 'BAIXO',
+export const SEVERITY_LABEL = {
+  1: 'FÁCIL',
+  2: 'MODERADO',
+  3: 'DIFÍCIL',
+  4: 'MUITO DIFÍCIL',
+  5: 'EWE',
+  6: 'EWE',
+  7: 'EWE',
+}
+
+export const SEVERITY_IS_EWE = { 1: false, 2: false, 3: false, 4: false, 5: true, 6: true, 7: true }
+
+// Capacidade de controlo por categoria (Tedim et al. 2018, Tabela 3) —
+// substitui o antigo TACTIC_LABEL (esquema de 4 níveis por comprimento de
+// chama, duplicado em 3 sítios independentes antes desta migração).
+export const CONTROL_LABEL = {
+  1: 'Bastante fácil',
+  2: 'Moderadamente difícil',
+  3: 'Muito difícil',
+  4: 'Extremamente difícil',
+  5: 'Virtualmente impossível',
+  6: 'Impossível',
+  7: 'Impossível',
 }
 
 export const FIRE_TYPE_LABEL = {
@@ -26,13 +56,6 @@ export const FIRE_TYPE_COLOR = {
   torching: '#c89a2a',
   crowning: '#e05050',
   no_burn: '#4d6650',
-}
-
-export const TACTIC_LABEL = {
-  direct_attack_manual: 'Ataque direto manual',
-  direct_attack_difficult: 'Ataque direto difícil',
-  indirect_attack_machinery: 'Indireto c/ máquinas',
-  indirect_attack_only: 'Indireto — desimpedir',
 }
 
 const WIND_DIRS = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSO','SO','OSO','O','ONO','NO','NNO']

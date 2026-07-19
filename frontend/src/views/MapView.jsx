@@ -3,16 +3,18 @@ import { useNavigate } from 'react-router-dom'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { fetchFiresGeo } from '../api'
-import { PRIORITY_COLOR, PRIORITY_LABEL } from '../constants'
+import { SEVERITY_COLOR, SEVERITY_LABEL, CONTROL_LABEL } from '../constants'
 import { REGION_CENTER, REGION_BBOX, REGION_ZOOM } from '../region'
 
 const priorityColorExpr = [
   'match', ['get', 'priority_class'],
-  'P0', PRIORITY_COLOR.P0,
-  'P1', PRIORITY_COLOR.P1,
-  'P2', PRIORITY_COLOR.P2,
-  'P3', PRIORITY_COLOR.P3,
-  'P4', PRIORITY_COLOR.P4,
+  '1', SEVERITY_COLOR[1],
+  '2', SEVERITY_COLOR[2],
+  '3', SEVERITY_COLOR[3],
+  '4', SEVERITY_COLOR[4],
+  '5', SEVERITY_COLOR[5],
+  '6', SEVERITY_COLOR[6],
+  '7', SEVERITY_COLOR[7],
   '#888888',
 ]
 
@@ -154,9 +156,9 @@ export default function MapView({ apiKey }) {
     map.on('mouseenter', 'fires-dot', (e) => {
       map.getCanvas().style.cursor = 'pointer'
       const p = e.features[0].properties
-      const priority = p.priority_class || '—'
-      const pLabel = PRIORITY_LABEL[priority] || ''
-      const pColor = PRIORITY_COLOR[priority] || '#888'
+      const category = p.priority_class || null
+      const pLabel = SEVERITY_LABEL[category] || '—'
+      const pColor = SEVERITY_COLOR[category] || '#888'
       const loc = [p.municipality, p.district].filter(Boolean).join(' · ')
       const flame = p.flame_length_m != null ? `${Number(p.flame_length_m).toFixed(1)}m` : '—'
       popup
@@ -164,7 +166,7 @@ export default function MapView({ apiKey }) {
         .setHTML(`
           <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#d4e5d0;line-height:1.6">
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-              <span style="color:${pColor};font-weight:500">${priority} ${pLabel}</span>
+              <span style="color:${pColor};font-weight:500">${category ?? '—'} ${pLabel}</span>
             </div>
             <div style="color:#8ab08a">${loc || p.parish || '—'}</div>
             <div style="color:#4d6650;font-size:10px;margin-top:2px">Chama ${flame}</div>
@@ -220,14 +222,22 @@ export default function MapView({ apiKey }) {
 
       <div className="map-info-panel">
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 8 }}>
-          Prioridade
+          Severidade (Tedim et al. 2018)
         </div>
         <div className="map-legend">
-          {['P0', 'P1', 'P2', 'P3', 'P4'].map(p => (
-            <div key={p} className="map-legend-item">
-              <div className="map-legend-dot" style={{ background: PRIORITY_COLOR[p] }} />
-              <span style={{ color: 'var(--text)' }}>{p}</span>
-              <span>{PRIORITY_LABEL[p]}</span>
+          {[7, 6, 5].map(cat => (
+            <div key={cat} className="map-legend-item" title={CONTROL_LABEL[cat]}>
+              <div className="map-legend-dot" style={{ background: SEVERITY_COLOR[cat], outline: '1.5px solid rgba(255,255,255,0.4)', outlineOffset: '1px' }} />
+              <span style={{ color: 'var(--text)' }}>{cat}</span>
+              <span>EWE</span>
+            </div>
+          ))}
+          <div style={{ height: 1, background: 'var(--border)', margin: '3px 0' }} />
+          {[4, 3, 2, 1].map(cat => (
+            <div key={cat} className="map-legend-item" title={CONTROL_LABEL[cat]}>
+              <div className="map-legend-dot" style={{ background: SEVERITY_COLOR[cat] }} />
+              <span style={{ color: 'var(--text)' }}>{cat}</span>
+              <span>{SEVERITY_LABEL[cat]}</span>
             </div>
           ))}
           <div className="map-legend-item" style={{ marginTop: 4 }}>

@@ -28,7 +28,7 @@ FAKE_FIRE_ROW = {
     "status_code": 7, "status_name": "Em Resolução", "is_important": False,
     "operatives": 16, "vehicles": 5, "aerial": 0,
     "started_at": NOW, "api_updated_at": NOW,
-    "priority_class": "P2", "priority_score": 58.3,
+    "priority_class": "2", "priority_score": 1850.0,
     "central_ros_m_per_min": 4.2, "central_fireline_intensity_kw_m": 1850.0,
     "central_flame_length_m": 2.5, "central_fire_type": "surface",
     "central_direction_deg": 135.0, "fuel_model_code": "FM233",
@@ -46,7 +46,7 @@ FAKE_OCCURRENCE_ROW = {
 
 FAKE_TRIAGE_ROW = {
     "fire_id": "20260674022", "computed_at": NOW,
-    "priority_class": "P2", "priority_score": 58.3,
+    "priority_class": "2", "priority_score": 1850.0,
     "fuel_model_code": "FM233", "fuel_model_num": 233,
     "elevation_m": 120.0, "slope_degrees": 8.0, "aspect_degrees": 200.0,
     "stand_height_m": 2.0, "canopy_cover_pct": 0.0, "canopy_base_height_m": None,
@@ -225,9 +225,9 @@ with TestClient(app) as client:
             check("fire_id correto", item["fire_id"] == "20260674022")
             check("tem triagem", item["triage"] is not None)
             if item["triage"]:
-                check("prioridade P2", item["triage"]["priority_class"] == "P2")
-                tc = item["triage"]["central"]["tactic_category"]
-                check(f"tactic_category={tc}", tc == "indirect_attack_machinery")
+                check("categoria 2 (Tedim et al. 2018)", item["triage"]["priority_class"] == "2")
+                cd = item["triage"]["central"]["control_description"]
+                check(f"control_description={cd}", cd == "Moderadamente difícil")
 
     print("\n=== 5. Detalhe de fogo ===")
     r = client.get("/fires/20260674022", headers=AUTH)

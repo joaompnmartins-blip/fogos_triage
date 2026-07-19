@@ -9,17 +9,25 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
+from enum import Enum, IntEnum
 from typing import Optional
 
+from .severity import classify_severity, is_ewe as _is_ewe, severity_info
 
-class Priority(str, Enum):
-    """Categorias de prioridade operacional (alinhadas com classes FWI ANEPC)."""
-    P0_EXTREME = "P0"    # Extremo FWI: copa ativa, incontrolável à cabeça (FLI ≥10 000 kW/m)
-    P1_CRITICAL = "P1"   # Muito Elevado: copa passiva, só meios aéreos pesados (FLI 4 000-10 000)
-    P2_HIGH = "P2"       # Elevado: meios aéreos necessários à cabeça (FLI 2 000-4 000)
-    P3_WATCH = "P3"      # Moderado: meios terrestres efetivos (FLI 500-2 000)
-    P4_CONTROLLED = "P4" # Baixo: sapadores, controlo direto (FLI < 500)
+
+class SeverityCategory(IntEnum):
+    """Categoria de severidade 1-7 (Tedim et al. 2018, Tabela 3) — ver
+    src/fogos_triage/severity.py para os limiares e a fonte completa.
+    Substitui a antiga `Priority` P0-P4 (score composto sem fonte
+    publicada). Nota: ao contrário do esquema P0-P4 antigo, aqui o
+    número MAIS ALTO é mais grave (numeração nativa do artigo)."""
+    CAT_1 = 1
+    CAT_2 = 2
+    CAT_3 = 3
+    CAT_4 = 4
+    CAT_5_EWE = 5
+    CAT_6_EWE = 6
+    CAT_7_EWE = 7
 
 
 class FireType(str, Enum):
@@ -118,26 +126,23 @@ class FireBehaviorPrediction:
     crown_ros_m_per_min: Optional[float] = None
     crown_fraction_burned: Optional[float] = None
 
-    # Métricas derivadas para o frontend
+    # Métricas derivadas — classificação Tedim et al. 2018 (ver severity.py)
     @property
-    def tactic_category(self) -> str:
-        """
-        Categoria táctica baseada no comprimento de chama.
-        Limiares alinhados com as classes FWI ANEPC (Índices_FWI.pdf):
-          < 1.3m  → Baixo      — sapadores, ataque direto
-          < 2.5m  → Moderado   — terrestres efetivos
-          < 3.5m  → Elevado    — máquinas, meios aéreos necessários
-          ≥ 3.5m  → Muito Elevado / Extremo — só indireto / flancos
-        """
-        L = self.flame_length_m
-        if L < 1.3:
-            return "direct_attack_manual"
-        elif L < 2.5:
-            return "direct_attack_difficult"
-        elif L < 3.5:
-            return "indirect_attack_machinery"
-        else:
-            return "indirect_attack_only"
+    def severity_category(self) -> int:
+        """Categoria 1-7 pela FLI deste cenário (Tedim et al. 2018)."""
+        return classify_severity(self.fireline_intensity_kw_m)
+
+    @property
+    def control_description(self) -> str:
+        """Descrição de capacidade de controlo (Tabela 3), substitui o
+        antigo `tactic_category` — ex. "Bastante fácil", "Impossível"."""
+        return severity_info(self.severity_category).control_description
+
+    @property
+    def is_ewe(self) -> bool:
+        """True se cumpre a definição estrita de Extreme Wildfire Event
+        (FLI≥10 000 kW/m OU ROS>50 m/min; ver severity.py)."""
+        return _is_ewe(self.fireline_intensity_kw_m, self.ros_m_per_min)
 
 
 @dataclass
@@ -150,8 +155,8 @@ class TriageResult:
     terrain: TerrainConditions
     weather: WeatherConditions
     predictions: list[FireBehaviorPrediction]  # típicamente 3: central, pior, melhor
-    priority: Priority
-    priority_score: float          # 0-100 contínuo
+    priority: SeverityCategory
+    priority_score: float          # FLI (kW/m) do cenário central — critério pivô de severity.py
 
     # Exposição (calculada à parte)
     distance_to_settlement_m: Optional[float] = None

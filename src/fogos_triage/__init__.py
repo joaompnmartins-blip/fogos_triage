@@ -6,11 +6,12 @@ from .schemas import (
     FireBehaviorPrediction,
     FireType,
     Occurrence,
-    Priority,
+    SeverityCategory,
     TerrainConditions,
     TriageResult,
     WeatherConditions,
 )
+from .severity import SEVERITY_TABLE, classify_severity, is_ewe, severity_info
 from .triage import compute_priority, triage_occurrence
 
 __version__ = "0.1.0"
@@ -21,10 +22,14 @@ __all__ = [
     "FireBehaviorPrediction",
     "FireType",
     "Occurrence",
-    "Priority",
+    "SeverityCategory",
     "TerrainConditions",
     "TriageResult",
     "WeatherConditions",
+    "SEVERITY_TABLE",
+    "classify_severity",
+    "is_ewe",
+    "severity_info",
     "compute_priority",
     "triage_occurrence",
 ]

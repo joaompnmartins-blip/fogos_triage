@@ -83,7 +83,7 @@ class TriageResultRepository:
                     central.fire_type.value,
                     central.direction_max_spread_deg,
                     scenarios_json,
-                    result.priority.value,
+                    str(result.priority.value),
                     result.priority_score,
                     result.weather.wind_midflame_ms,
                     result.wind_adjustment_factor,
