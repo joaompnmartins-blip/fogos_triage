@@ -414,7 +414,7 @@ export default function SimuladorLivreView({ apiKey }) {
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--dim)', marginTop: 4 }}>
             {'Meteo: Open-Meteo · vento '}
             {result.meta.use_gusts ? 'rajada ' : ''}
-            {fmt(msToKmh(result.meta.wind_speed_ms), 0)} km/h {fmt(result.meta.wind_dir_deg, 0)}°
+            {fmt(msToKmh(result.meta.use_gusts ? result.meta.wind_gust_ms : result.meta.wind_speed_ms), 0)} km/h {fmt(result.meta.wind_dir_deg, 0)}°
             {` · Resolução: ${result.meta.resolution_m}m`}
           </div>
         )}

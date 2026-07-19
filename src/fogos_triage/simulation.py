@@ -883,6 +883,7 @@ def run_simulation_sync(
             "ignition":              [lat, lon],
             "ignition_points":       ignition_points,  # None = ignição pontual em (lat, lon)
             "wind_speed_ms":         wx0.wind_speed_10m_ms,
+            "wind_gust_ms":          wx0.wind_gust_10m_ms,
             "wind_dir_deg":          wx0.wind_direction_deg,
             "duration_h":            duration_h,
             "wx_snapshots":          len(weather_hourly),

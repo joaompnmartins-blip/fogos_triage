@@ -210,13 +210,20 @@ def _predict_scenario(
 def gust_weather(wx: WeatherConditions) -> WeatherConditions:
     """
     Substitui o vento sustentado pela velocidade de rajada
-    (wind_gusts_10m, Open-Meteo), aplicando o mesmo WAF já calculado para
-    o vento sustentado (não uma percentagem sintética). Humidades dos
-    combustíveis mantêm-se — uma rajada dura segundos, não muda a humidade.
+    (wind_gusts_10m, Open-Meteo) no vento midflame (única entrada de vento
+    que o motor Rothermel lê — engine.py nunca usa wind_speed_10m_ms),
+    aplicando o mesmo WAF já calculado para o vento sustentado (não uma
+    percentagem sintética). Humidades dos combustíveis mantêm-se — uma
+    rajada dura segundos, não muda a humidade.
+
+    wind_speed_10m_ms e wind_gust_10m_ms mantêm-se ambos no valor
+    original (não sobrepostos) — só são campos de referência/exibição,
+    para o vento sustentado e a rajada continuarem distintos mesmo
+    quando é a rajada a conduzir a simulação.
 
     Usada pelo cenário "Rajadas" da triagem (ver triage_occurrence /
     triage_neighbourhood) e pelo override "usar rajadas" da simulação
-    ForeFire (services/api/routes_meta.py).
+    ForeFire (services/api/routes_meta.py, routes_freesim.py).
     """
     if not wx.wind_speed_10m_ms or wx.wind_gust_10m_ms is None:
         return wx
@@ -224,7 +231,6 @@ def gust_weather(wx: WeatherConditions) -> WeatherConditions:
     return replace(
         wx,
         wind_midflame_ms=wx.wind_gust_10m_ms * waf,
-        wind_speed_10m_ms=wx.wind_gust_10m_ms,
     )
 
 

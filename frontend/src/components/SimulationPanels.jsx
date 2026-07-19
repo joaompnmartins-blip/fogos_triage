@@ -84,7 +84,18 @@ function WindBarb({ dir, speedKmh, color, size = 32 }) {
   )
 }
 
-const RESULTS_HEADERS = ['Hora', 'Temp (°C)', 'HR (%)', 'Vento (km/h)', 'Área (ha)', 'ROS máx', 'FLI máx', 'Chama máx']
+const RESULTS_HEADERS = ['Hora', 'Temp (°C)', 'HR (%)', 'Vento (km/h)', 'Rajada (km/h)', 'Área (ha)', 'ROS máx', 'FLI máx', 'Chama máx']
+
+function WindCell({ dir, speedKmh, color }) {
+  if (speedKmh == null) return '—'
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+      title={`${windDirText(dir)} (${fmt(dir, 0)}°) · ${fmt(speedKmh, 0)} km/h`}>
+      <WindBarb dir={dir} speedKmh={speedKmh} color={color} size={22} />
+      <span style={{ color }}>{fmt(speedKmh, 0)}</span>
+    </div>
+  )
+}
 
 export function ResultsTable({ perimeters, weatherHourly = [] }) {
   const wxByHour = new Map(weatherHourly.map(w => [w.t_h, w]))
@@ -112,16 +123,10 @@ export function ResultsTable({ perimeters, weatherHourly = [] }) {
                 <td style={{ padding: '6px 8px', color: 'var(--danger)' }}>{wx ? fmt(wx.temperature_c, 0) : '—'}</td>
                 <td style={{ padding: '6px 8px', color: 'var(--meteo-humidity)' }}>{wx ? fmt(wx.relative_humidity_pct, 0) : '—'}</td>
                 <td style={{ padding: '6px 8px' }}>
-                  {wx ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}
-                      title={`${windDirText(wx.wind_direction_deg)} (${fmt(wx.wind_direction_deg, 0)}°)`}>
-                      <WindBarb dir={wx.wind_direction_deg} speedKmh={spdKmh} color="var(--p1)" size={22} />
-                      <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25 }}>
-                        <span style={{ color: 'var(--p1)' }}>{fmt(spdKmh, 0)}</span>
-                        {gustKmh != null && <span style={{ color: 'var(--meteo-gust)' }}>{fmt(gustKmh, 0)}</span>}
-                      </span>
-                    </div>
-                  ) : '—'}
+                  <WindCell dir={wx?.wind_direction_deg} speedKmh={spdKmh} color="var(--p1)" />
+                </td>
+                <td style={{ padding: '6px 8px' }}>
+                  <WindCell dir={wx?.wind_direction_deg} speedKmh={gustKmh} color="var(--meteo-gust)" />
                 </td>
                 <td style={{ padding: '6px 8px' }}>{fmt(p.area_ha, 0)}</td>
                 <td style={{ padding: '6px 8px', color: 'var(--warn)' }}>{fmt(p.ros_max_m_min, 1, 'm/min')}</td>
@@ -133,7 +138,7 @@ export function ResultsTable({ perimeters, weatherHourly = [] }) {
         </tbody>
       </table>
       <div style={{ fontSize: 9, color: 'var(--dim)', marginTop: 4, fontFamily: 'var(--font-mono)' }}>
-        * ROS/FLI/Chama máx entre os vértices activos do perímetro nesse instante · vento: velocidade / rajada (Open-Meteo)
+        * ROS/FLI/Chama máx entre os vértices activos do perímetro nesse instante · barbelas de vento/rajada usam a mesma direção (Open-Meteo não dá direção separada para a rajada)
       </div>
     </div>
   )
