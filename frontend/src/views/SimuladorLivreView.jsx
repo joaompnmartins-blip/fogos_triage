@@ -39,12 +39,37 @@ function _ignitionFromSnapshot(snapshot) {
   return coords.map(([lon, lat]) => [lat, lon])
 }
 
-// Cria e regista uma nova instância TerraDraw no mapa. Re-instanciar (em vez
-// de stop()/start() na mesma instância) é o que evita depender do estado
-// interno da lib — depois de um map.setStyle() as sources antigas do
-// TerraDraw já não existem, e stop() tenta removê-las (rebenta) tal como um
-// clear() posterior tentaria escrever nelas.
+// Prefixo de sources/layers do TerraDrawMapLibreGLAdapter quando não se
+// passa prefixId (ver node_modules/terra-draw-maplibre-gl-adapter) — usado
+// para poder remover manualmente quaisquer resíduos antes de reinstanciar.
+const _DRAW_PREFIX = 'td'
+
+// Remove sources/layers do TerraDraw que possam ter ficado do mapa, sem
+// assumir nada sobre se a instância anterior os registou/desregistou com
+// sucesso — cada remoção é guardada por uma verificação de existência, para
+// nunca rebentar em cima de estado que já não está lá (ex.: depois de um
+// map.setStyle(), que destrói tudo).
+function _teardownDrawLayers(map) {
+  for (const id of [
+    `${_DRAW_PREFIX}-point`, `${_DRAW_PREFIX}-point-marker`,
+    `${_DRAW_PREFIX}-linestring`,
+    `${_DRAW_PREFIX}-polygon`, `${_DRAW_PREFIX}-polygon-outline`,
+  ]) {
+    if (map.getLayer(id)) map.removeLayer(id)
+  }
+  for (const id of [`${_DRAW_PREFIX}-point`, `${_DRAW_PREFIX}-linestring`, `${_DRAW_PREFIX}-polygon`]) {
+    if (map.getSource(id)) map.removeSource(id)
+  }
+}
+
+// Cria e regista uma instância TerraDraw nova. Nunca reutiliza/reinicia uma
+// instância existente (stop()/clear() assumem que as suas próprias sources
+// ainda existem no mapa — depois de um map.setStyle() ou de qualquer outra
+// falha de sincronização isso deixa de ser verdade e rebenta com "Cannot
+// read properties of undefined (reading 'setData')"). Faz sempre tábua rasa
+// primeiro, por isso é seguro chamar isto a qualquer momento.
 function _attachDraw(map, onFinish) {
+  _teardownDrawLayers(map)
   const draw = new TerraDraw({
     adapter: new TerraDrawMapLibreGLAdapter({ map }),
     modes: [new TerraDrawPointMode(), new TerraDrawLineStringMode()],
@@ -96,7 +121,12 @@ export default function SimuladorLivreView({ apiKey }) {
     })
 
     mapRef.current = map
-    return () => { drawRef.current?.stop(); map.remove(); mapRef.current = null; drawRef.current = null }
+    return () => {
+      try { drawRef.current?.stop() } catch { /* mapa vai ser destruído já a seguir */ }
+      map.remove()
+      mapRef.current = null
+      drawRef.current = null
+    }
   }, [])
 
   useEffect(() => {
@@ -138,10 +168,12 @@ export default function SimuladorLivreView({ apiKey }) {
   }
 
   function pickMode(mode) {
-    const draw = drawRef.current
-    if (!draw) return
+    const map = mapRef.current
+    if (!map) return
     clearInterval(pollRef.current)
-    draw.clear()
+    // Reinstancia em vez de draw.clear() — ver _attachDraw.
+    const draw = _attachDraw(map, onDrawFinish)
+    drawRef.current = draw
     setIgnitionPoints([])
     setJobStatus(null)
     setResult(null)
@@ -151,8 +183,10 @@ export default function SimuladorLivreView({ apiKey }) {
   }
 
   function handleReset() {
+    const map = mapRef.current
+    if (!map) return
     clearInterval(pollRef.current)
-    drawRef.current?.clear()
+    drawRef.current = _attachDraw(map, onDrawFinish)
     setIgnitionPoints([])
     setDrawMode(null)
     setJobStatus(null)
