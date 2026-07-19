@@ -131,7 +131,7 @@ export default function ListaView({ apiKey }) {
           <div className="stat-val r">{loading ? '…' : triaged}</div>
         </div>
         <div className="stat-card d">
-          <div className="stat-label">EWE (categoria 5-7)</div>
+          <div className="stat-label">Extremo (categoria 5-7)</div>
           <div className="stat-val d">{loading ? '…' : critical}</div>
         </div>
       </div>
@@ -149,7 +149,7 @@ export default function ListaView({ apiKey }) {
             onChange={e => setFilter(f => ({ ...f, minCategory: e.target.value }))}
           >
             <option value="">Todas as categorias</option>
-            <option value="5">5+ (EWE)</option>
+            <option value="5">5+ (Extremo)</option>
             <option value="3">3 e acima</option>
             <option value="2">2 e acima</option>
           </select>

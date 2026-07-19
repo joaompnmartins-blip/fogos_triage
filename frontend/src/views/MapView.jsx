@@ -222,20 +222,20 @@ export default function MapView({ apiKey }) {
 
       <div className="map-info-panel">
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 8 }}>
-          Severidade (Tedim et al. 2018)
+          Classificação
         </div>
         <div className="map-legend">
-          {[7, 6, 5].map(cat => (
+          {[1, 2, 3, 4].map(cat => (
             <div key={cat} className="map-legend-item" title={CONTROL_LABEL[cat]}>
-              <div className="map-legend-dot" style={{ background: SEVERITY_COLOR[cat], outline: '1.5px solid rgba(255,255,255,0.4)', outlineOffset: '1px' }} />
+              <div className="map-legend-dot" style={{ background: SEVERITY_COLOR[cat] }} />
               <span style={{ color: 'var(--text)' }}>{cat}</span>
-              <span>EWE</span>
+              <span>{SEVERITY_LABEL[cat]}</span>
             </div>
           ))}
           <div style={{ height: 1, background: 'var(--border)', margin: '3px 0' }} />
-          {[4, 3, 2, 1].map(cat => (
+          {[5, 6, 7].map(cat => (
             <div key={cat} className="map-legend-item" title={CONTROL_LABEL[cat]}>
-              <div className="map-legend-dot" style={{ background: SEVERITY_COLOR[cat] }} />
+              <div className="map-legend-dot" style={{ background: SEVERITY_COLOR[cat], outline: '1.5px solid rgba(255,255,255,0.4)', outlineOffset: '1px' }} />
               <span style={{ color: 'var(--text)' }}>{cat}</span>
               <span>{SEVERITY_LABEL[cat]}</span>
             </div>

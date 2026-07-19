@@ -2,21 +2,19 @@
 // nativa do artigo, inverte a intuição do antigo esquema P0-P4). Categorias
 // 5-7 = Extreme Wildfire Event (EWE); ver src/fogos_triage/severity.py.
 //
-// Paleta validada com a skill dataviz (node validate_palette.js, --ordinal):
-// duas rampas de 1 matiz cada (azul 1-4, vermelho 5-7 EWE) em vez de 7
-// matizes distintos — 7 matizes separáveis por daltonismo não cabem no
-// arco azul→vermelho (ΔE insuficiente entre passos adjacentes). A cor
-// nunca é o único sinal: o número da categoria e o rótulo "EWE"
-// acompanham sempre o badge (mesmo padrão alpha-blended do antigo
-// PRIORITY_COLOR, válido em claro e escuro).
+// Cores extraídas directamente da Tabela 3 do artigo (rasterização a
+// 150 DPI, ver ewe_cores_tedim2018.md) — fidelidade à fonte, em vez da
+// rampa CVD-safe calculada anteriormente. #EFF50B (cat. 2) e #FC311C
+// (cat. 4) têm contraste baixo sobre fundo claro; a cor nunca é o único
+// sinal — o número da categoria e o rótulo acompanham sempre o badge.
 export const SEVERITY_COLOR = {
-  1: '#86b6ef',
-  2: '#5598e7',
-  3: '#2a78d6',
-  4: '#184f95',
-  5: '#f0a09a',
-  6: '#d9453f',
-  7: '#7a1414',
+  1: '#538135',
+  2: '#EFF50B',
+  3: '#F9A307',
+  4: '#FC311C',
+  5: '#D21804',
+  6: '#A51203',
+  7: '#630A01',
 }
 
 export const SEVERITY_LABEL = {
@@ -24,9 +22,9 @@ export const SEVERITY_LABEL = {
   2: 'MODERADO',
   3: 'DIFÍCIL',
   4: 'MUITO DIFÍCIL',
-  5: 'EWE',
-  6: 'EWE',
-  7: 'EWE',
+  5: 'EXTREMO 1',
+  6: 'EXTREMO 2',
+  7: 'EXTREMO 3',
 }
 
 export const SEVERITY_IS_EWE = { 1: false, 2: false, 3: false, 4: false, 5: true, 6: true, 7: true }
