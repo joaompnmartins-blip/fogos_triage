@@ -92,7 +92,18 @@ export default function SimuladorLivreView({ apiKey }) {
     const map = mapRef.current
     if (!map) return
     map.setStyle(basemap === 'osm' ? OSM_STYLE : SATELLITE_STYLE)
-    map.once('styledata', () => {
+    map.once('style.load', () => {
+      // setStyle() destrói todas as sources/layers, incluindo as do
+      // TerraDraw — sem reiniciar, um clear() posterior (reset/troca de
+      // modo) rebenta com "Cannot read properties of undefined (reading
+      // 'setData')" porque map.getSource() já não encontra a source.
+      const draw = drawRef.current
+      if (draw) {
+        draw.stop()
+        draw.start()
+      }
+      setIgnitionPoints([])
+      setDrawMode(null)
       if (result) renderSimulationLayers(map, result, layer, opacity, visiblePerimeters)
     })
   }, [basemap])
