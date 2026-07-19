@@ -58,15 +58,10 @@ FAKE_TRIAGE_ROW = {
          "heat_per_unit_area_kj_m2": 12000.0, "reaction_intensity_kw_m2": 250.0,
          "direction_max_spread_deg": 135.0, "effective_wind_ms": 2.1,
          "fire_type": "surface"},
-        {"scenario": "worst", "ros_m_per_min": 7.1,
+        {"scenario": "gusts", "ros_m_per_min": 7.1,
          "fireline_intensity_kw_m": 3200.0, "flame_length_m": 3.3,
          "heat_per_unit_area_kj_m2": 13500.0, "reaction_intensity_kw_m2": 270.0,
          "direction_max_spread_deg": 135.0, "effective_wind_ms": 2.5,
-         "fire_type": "surface"},
-        {"scenario": "best", "ros_m_per_min": 2.3,
-         "fireline_intensity_kw_m": 980.0, "flame_length_m": 1.9,
-         "heat_per_unit_area_kj_m2": 10000.0, "reaction_intensity_kw_m2": 220.0,
-         "direction_max_spread_deg": 135.0, "effective_wind_ms": 1.7,
          "fire_type": "surface"},
     ],
     "notes": ["Cenário de teste"],
@@ -237,7 +232,7 @@ with TestClient(app) as client:
         check("triagem no detalhe", body.get("triage") is not None)
         if body.get("triage"):
             scs = body["triage"]["scenarios"]
-            check(f"3 cenarios (got {len(scs)})", len(scs) == 3)
+            check(f"2 cenarios (got {len(scs)})", len(scs) == 2)
             check("meteo presente",
                   body["triage"]["weather"]["source"] == "open_meteo")
     r = client.get("/fires/inexistente", headers=AUTH)

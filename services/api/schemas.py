@@ -55,7 +55,7 @@ class WeatherSummary(BaseModel):
 
 class FireBehaviorSummary(BaseModel):
     """Predição de comportamento (cenário central simplificado)."""
-    scenario: str  # "central"/"worst"/"best"
+    scenario: str  # "central"/"gusts"
     ros_m_per_min: float
     ros_km_per_h: float
     fireline_intensity_kw_m: float

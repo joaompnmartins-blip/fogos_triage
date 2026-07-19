@@ -534,7 +534,7 @@ input, select, textarea { font: inherit; }
 
 .scenario-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 12px;
   margin-bottom: 20px;
 }
@@ -554,9 +554,8 @@ input, select, textarea { font: inherit; }
   top: 0; left: 0; right: 0;
   height: 3px;
 }
-.scenario-card.worst::before  { background: var(--danger); }
+.scenario-card.gusts::before   { background: var(--danger); }
 .scenario-card.central::before { background: var(--accent2); }
-.scenario-card.best::before   { background: var(--success); }
 
 .scenario-label {
   font-family: var(--font-mono);

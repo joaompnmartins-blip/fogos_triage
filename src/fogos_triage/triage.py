@@ -44,11 +44,10 @@ def triage_neighbourhood(
     Triagem com amostragem de vizinhança (9 pixels, raio 200 m).
 
     Para cada pixel: deriva meteo com WAF per-pixel (canopy/height dos rasters),
-    corre Rothermel, e recolhe o ROS resultante.  Os cenários são construídos
-    a partir da distribuição de ROS:
-      central → mediana (P50)
-      pior    → máximo  (pixel mais desfavorável)
-      melhor  → mínimo  (pixel mais favorável)
+    corre Rothermel, e recolhe o ROS resultante. O pixel representativo
+    (mediana de ROS, P50) dá o terreno/combustível usados nos 2 cenários:
+      "Vento Geral" (central) → vento sustentado (Open-Meteo)
+      "Rajadas"     (gusts)   → vento de rajada (Open-Meteo), mesmo WAF
 
     O modelo de combustível reportado é o dominante (moda) na vizinhança.
     Fallback para triagem pixel-único se nenhum pixel produzir ROS válido.
@@ -87,30 +86,18 @@ def triage_neighbourhood(
     pixel_results.sort(key=lambda x: x[0].ros_m_per_min)
     n = len(pixel_results)
 
-    best_pred,    _,               _,          _           = pixel_results[0]
-    central_pred, central_terrain, central_fm, central_wx  = pixel_results[n // 2]
-    worst_pred,   _,               _,          _           = pixel_results[-1]
-
-    best_pred    = replace(best_pred,    scenario="best")
+    central_pred, central_terrain, central_fm, central_wx = pixel_results[n // 2]
     central_pred = replace(central_pred, scenario="central")
-    worst_pred   = replace(worst_pred,   scenario="worst")
+
+    gust_wx = _gust_weather(central_wx)
+    gust_pred = predict_surface_fire(central_fm, central_terrain, gust_wx, "gusts")
 
     notes = [
         f"Multi-pixel: {n}/{len(terrains)} px válidos, raio {NEIGHBOURHOOD_RADIUS_M:.0f}m"
     ]
 
-    # Crown fire check no cenário central
-    if central_terrain.canopy_base_height_m and central_pred.fireline_intensity_kw_m > 0:
-        transition, I_crit = check_crown_fire_transition(
-            central_pred.fireline_intensity_kw_m,
-            central_terrain.canopy_base_height_m,
-            foliar_moisture_pct=100.0,
-        )
-        if transition:
-            central_pred = replace(central_pred, fire_type=FireType.TORCHING)
-            notes.append(
-                f"Transição para fogo de copas possível (I_critical={I_crit:.0f} kW/m)"
-            )
+    central_pred = _check_crown(central_pred, central_terrain, notes)
+    gust_pred = _check_crown(gust_pred, central_terrain, notes)
 
     # Modelo dominante na vizinhança
     fm_counter = Counter(
@@ -130,7 +117,7 @@ def triage_neighbourhood(
         occurrence=occurrence,
         terrain=central_terrain,
         weather=central_wx,
-        predictions=[central_pred, worst_pred, best_pred],
+        predictions=[central_pred, gust_pred],
         priority=priority,
         priority_score=score,
         fuel_model_used=dominant_fm_code,
@@ -153,7 +140,8 @@ def triage_occurrence(
     - terrain: já feita amostragem dos rasters
     - weather: já enriquecida com derivações de fogo
 
-    Devolve TriageResult com 3 cenários: central, pior, melhor.
+    Devolve TriageResult com 2 cenários: "Vento Geral" (central, vento
+    sustentado) e "Rajadas" (gusts, vento de rajada do Open-Meteo).
     """
     fm = fuel_models.get(terrain.fuel_model_num)
     if fm is None:
@@ -180,24 +168,14 @@ def triage_occurrence(
             has_overstory=has_overstory,
         )
 
-    # 3 cenários
-    predictions = []
-    predictions.append(_predict_scenario(fm, terrain, weather, "central"))
-    predictions.append(_predict_scenario(fm, terrain, _worst_weather(weather), "worst"))
-    predictions.append(_predict_scenario(fm, terrain, _best_weather(weather), "best"))
+    # 2 cenários: "Vento Geral" (central) e "Rajadas" (gusts)
+    central = _predict_scenario(fm, terrain, weather, "central")
+    gusts = _predict_scenario(fm, terrain, _gust_weather(weather), "gusts")
 
-    # Crown fire check no cenário central
-    central = predictions[0]
-    if terrain.canopy_base_height_m and central.fireline_intensity_kw_m > 0:
-        transition, I_crit = check_crown_fire_transition(
-            central.fireline_intensity_kw_m,
-            terrain.canopy_base_height_m,
-            foliar_moisture_pct=100.0,
-        )
-        if transition:
-            central.fire_type = FireType.TORCHING
-            notes.append(f"Transição para fogo de copas possível "
-                         f"(I_critical={I_crit:.0f} kW/m)")
+    central = _check_crown(central, terrain, notes)
+    gusts = _check_crown(gusts, terrain, notes)
+
+    predictions = [central, gusts]
 
     # WAF efetivo usado
     waf = (weather.wind_midflame_ms / weather.wind_speed_10m_ms
@@ -228,36 +206,45 @@ def _predict_scenario(
     return predict_surface_fire(fm, terrain, weather, scenario_name)
 
 
-def _worst_weather(wx: WeatherConditions) -> WeatherConditions:
+def _gust_weather(wx: WeatherConditions) -> WeatherConditions:
     """
-    Cenário pior caso plausível:
-    - vento midflame +20%
-    - humidade dos finos -25%
+    Cenário "Rajadas": usa a velocidade de rajada (wind_gusts_10m, Open-Meteo)
+    em vez do vento sustentado, aplicando o mesmo WAF já calculado para o
+    vento sustentado (não uma percentagem sintética). Humidades dos
+    combustíveis mantêm-se — uma rajada dura segundos, não muda a humidade.
     """
+    if not wx.wind_speed_10m_ms or wx.wind_gust_10m_ms is None:
+        return wx
+    waf = (wx.wind_midflame_ms or 0) / wx.wind_speed_10m_ms
     return replace(
         wx,
-        wind_midflame_ms=(wx.wind_midflame_ms or 0) * 1.20,
-        wind_speed_10m_ms=wx.wind_speed_10m_ms * 1.20,
-        fuel_moisture_1h_pct=(wx.fuel_moisture_1h_pct or 8) * 0.75,
-        fuel_moisture_10h_pct=(wx.fuel_moisture_10h_pct or 9) * 0.85,
-        fuel_moisture_100h_pct=(wx.fuel_moisture_100h_pct or 10) * 0.90,
+        wind_midflame_ms=wx.wind_gust_10m_ms * waf,
+        wind_speed_10m_ms=wx.wind_gust_10m_ms,
     )
 
 
-def _best_weather(wx: WeatherConditions) -> WeatherConditions:
-    """
-    Cenário melhor caso plausível:
-    - vento midflame -20%
-    - humidade dos finos +25%
-    """
-    return replace(
-        wx,
-        wind_midflame_ms=(wx.wind_midflame_ms or 0) * 0.80,
-        wind_speed_10m_ms=wx.wind_speed_10m_ms * 0.80,
-        fuel_moisture_1h_pct=(wx.fuel_moisture_1h_pct or 8) * 1.25,
-        fuel_moisture_10h_pct=(wx.fuel_moisture_10h_pct or 9) * 1.15,
-        fuel_moisture_100h_pct=(wx.fuel_moisture_100h_pct or 10) * 1.10,
+def _check_crown(
+    pred: FireBehaviorPrediction,
+    terrain: TerrainConditions,
+    notes: list[str],
+) -> FireBehaviorPrediction:
+    """Aplica o critério de transição para fogo de copas (Van Wagner) a um
+    cenário. Independente por cenário — vento de rajada pode cruzar o
+    limiar de copas mesmo quando o vento sustentado não cruza."""
+    if not (terrain.canopy_base_height_m and pred.fireline_intensity_kw_m > 0):
+        return pred
+    transition, I_crit = check_crown_fire_transition(
+        pred.fireline_intensity_kw_m,
+        terrain.canopy_base_height_m,
+        foliar_moisture_pct=100.0,
     )
+    if transition:
+        pred = replace(pred, fire_type=FireType.TORCHING)
+        notes.append(
+            f"Transição para fogo de copas possível no cenário '{pred.scenario}' "
+            f"(I_critical={I_crit:.0f} kW/m)"
+        )
+    return pred
 
 
 def compute_priority(

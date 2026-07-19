@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { fetchFireDetail } from '../api'
 import { SeverityBadge, FireTypeBadge } from '../components/SeverityBadge'
-import { fmt, fmtDateTime, fmtDuration, windDirText, SEVERITY_COLOR } from '../constants'
+import { fmt, fmtDateTime, fmtDuration, windDirText, SEVERITY_COLOR, SEVERITY_LABEL } from '../constants'
 
 function InfoRow({ label, value, unit, color }) {
   return (
@@ -17,10 +17,9 @@ function InfoRow({ label, value, unit, color }) {
 
 function ScenarioCard({ scenario }) {
   if (!scenario) return null
-  const labels = { central: 'Central', worst: 'Pior caso', best: 'Melhor caso' }
+  const labels = { central: 'Vento Geral', gusts: 'Rajadas' }
   const labelColor = {
-    worst: 'var(--danger)',
-    best: 'var(--accent2)',
+    gusts: 'var(--danger)',
     central: 'var(--muted)',
   }[scenario.scenario] || 'var(--muted)'
 
@@ -64,7 +63,7 @@ function ScenarioCard({ scenario }) {
 
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
         <FireTypeBadge type={scenario.fire_type} />
-        {scenario.control_description && (
+        {scenario.severity_category != null && (
           <span
             className="badge"
             style={{
@@ -74,7 +73,7 @@ function ScenarioCard({ scenario }) {
               fontSize: 9,
             }}
           >
-            {scenario.control_description}
+            {scenario.severity_category} {SEVERITY_LABEL[scenario.severity_category]}
           </span>
         )}
       </div>
@@ -114,8 +113,7 @@ export default function DetalheView({ apiKey }) {
   const priorityColor = t ? SEVERITY_COLOR[t.priority_class] : 'var(--muted)'
   const scenarios = t?.scenarios || []
   const central = scenarios.find(s => s.scenario === 'central')
-  const worst = scenarios.find(s => s.scenario === 'worst')
-  const best = scenarios.find(s => s.scenario === 'best')
+  const gusts = scenarios.find(s => s.scenario === 'gusts')
 
   return (
     <div className="content-scroll">
@@ -162,9 +160,8 @@ export default function DetalheView({ apiKey }) {
             <div className="section-title">Cenários de Comportamento</div>
           </div>
           <div className="scenario-grid">
-            <ScenarioCard scenario={worst} />
             <ScenarioCard scenario={central} />
-            <ScenarioCard scenario={best} />
+            <ScenarioCard scenario={gusts} />
           </div>
         </>
       ) : (

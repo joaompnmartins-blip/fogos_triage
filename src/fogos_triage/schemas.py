@@ -108,9 +108,10 @@ class Occurrence:
 class FireBehaviorPrediction:
     """
     Resultado do motor de fogo para uma ocorrência num cenário meteo.
-    Pode haver vários por ocorrência (central, pior, melhor).
+    2 por ocorrência: "central" (Vento Geral, vento sustentado) e "gusts"
+    (Rajadas, vento de rajada do Open-Meteo).
     """
-    scenario: str                  # "central", "worst", "best"
+    scenario: str                  # "central", "gusts"
 
     # Comportamento principal (Rothermel + Byram)
     ros_m_per_min: float
@@ -154,7 +155,7 @@ class TriageResult:
     occurrence: Occurrence
     terrain: TerrainConditions
     weather: WeatherConditions
-    predictions: list[FireBehaviorPrediction]  # típicamente 3: central, pior, melhor
+    predictions: list[FireBehaviorPrediction]  # 2: central (Vento Geral), gusts (Rajadas)
     priority: SeverityCategory
     priority_score: float          # FLI (kW/m) do cenário central — critério pivô de severity.py
 
