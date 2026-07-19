@@ -223,6 +223,50 @@ def predict_surface_fire(
     )
 
 
+def _size_class(sav_ftinv: float) -> int:
+    """Subclasse de SAV para os pesos g_ij (Albini 1976a; Andrews 2018,
+    Table 6a). Partículas com SAV < 16 ft⁻¹ ficam fora de qualquer
+    subclasse (excluídas do peso, g_ij=0)."""
+    if sav_ftinv >= 1200:
+        return 0
+    if sav_ftinv >= 192:
+        return 1
+    if sav_ftinv >= 96:
+        return 2
+    if sav_ftinv >= 48:
+        return 3
+    if sav_ftinv >= 16:
+        return 4
+    return -1
+
+
+def _g_weights(components: list[tuple[float, float]]) -> list[float]:
+    """Pesos g_ij para carga líquida (Albini 1976a; Andrews 2018, Table 6a).
+
+    `components`: lista de (f_i, sav_i) de uma categoria (mortos ou vivos).
+    Devolve g_i por componente — a soma dos f_j de todos os componentes j
+    que caem na mesma subclasse de SAV que i (não só o próprio f_i).
+    Usado exclusivamente para a carga líquida (wn); σ e humidade
+    característicos continuam a usar f_ij directamente.
+
+    Quando cada componente cai numa subclasse própria (caso comum — 1h/
+    10h/100h têm SAV tipicamente bem separados), g_i reduz-se a f_i e o
+    resultado é idêntico ao de usar f_ij. Diverge quando dois componentes
+    da mesma categoria partilham subclasse (ex. herbáceo e lenhoso vivos
+    ambos ≥1200 ft⁻¹) — omissão histórica documentada em Andrews 2018
+    (repete o "technical oversight" do NFDRS 1978, Cohen 1985): sem isto,
+    a carga líquida é subestimada nesses casos.
+    """
+    class_sums: dict[int, float] = {}
+    classes: list[int] = []
+    for f_i, sav_i in components:
+        c = _size_class(sav_i)
+        classes.append(c)
+        if c >= 0:
+            class_sums[c] = class_sums.get(c, 0.0) + f_i
+    return [class_sums.get(c, 0.0) if c >= 0 else 0.0 for c in classes]
+
+
 def _rothermel_direct(
     fm: FuelModelPT,
     m_1h: float, m_10h: float, m_100h: float,
@@ -333,9 +377,19 @@ def _rothermel_direct(
     # η_s — amortecimento mineral (eq 56)
     eta_s = 0.174 * S_e ** (-0.19)
 
-    # --- Intensidade de reação (Andrews 2018, Table 6b) — cargas ponderadas por área ---
-    wn_dead = f_1h * fm.load_1h + f_tr * w_tr + f_10h * fm.load_10h + f_100h * fm.load_100h
-    wn_live = (f_lh * w_live_h + f_lw * fm.load_live_w) if A_live > 0 else 0.0
+    # --- Intensidade de reação (Andrews 2018, Table 6b) — carga líquida
+    # ponderada por g_ij (subclasses de SAV), não f_ij directamente; ver
+    # docstring de _g_weights ---
+    g_1h, g_tr, g_10h, g_100h = _g_weights([
+        (f_1h, fm.sav_1h), (f_tr, fm.sav_live_h),
+        (f_10h, sav_10h), (f_100h, sav_100h),
+    ])
+    wn_dead = g_1h * fm.load_1h + g_tr * w_tr + g_10h * fm.load_10h + g_100h * fm.load_100h
+    if A_live > 0:
+        g_lh, g_lw = _g_weights([(f_lh, fm.sav_live_h), (f_lw, fm.sav_live_w)])
+        wn_live = g_lh * w_live_h + g_lw * fm.load_live_w
+    else:
+        wn_live = 0.0
     I_R_dead = gamma * wn_dead * (1.0 - S_T) * fm.heat_dead * eta_M_dead * eta_s
     I_R_live = (gamma * wn_live * (1.0 - S_T) * fm.heat_live * eta_M_live * eta_s
                 if A_live > 0 else 0.0)

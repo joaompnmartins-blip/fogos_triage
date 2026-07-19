@@ -24,6 +24,14 @@ As unidades nativas do .fmd genérico são:
 Os dados deste CSV estão em formato MISTO típico do BehavePlus 5:
 - Loading em t/ha (metric) — corrigido; era erradamente assumido ton/acre
 - SAV/Depth/Heat em métrico
+
+Os valores de SAV (1HSAV/LiveHSAV/LiveWSAV) também foram confirmados
+número a número contra a coluna "SVR" (m⁻¹) da Tabela 2 de Fernandes &
+Loureiro (2021) — ex. FM226/M-H: SVR 1hr/herb./arb. = 5500/8000/4500
+m⁻¹ na tabela. Os valores anteriores no CSV (ex. 43/68/34) não batiam
+certo com a tabela sob nenhuma conversão simples — substituídos pelos
+valores da Tabela 2, interpretados em m⁻¹ (não cm⁻¹ como se assumia
+antes).
 """
 from __future__ import annotations
 
@@ -32,13 +40,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-# Constantes de conversão para SI internas
-INV_CM_TO_INV_M = 100.0
-CM_TO_M = 0.01
-KJ_PER_KG_TO_J_PER_KG = 1000.0
-
 # Conversões para English (formato esperado pela wildfire_ROS_models)
-INV_CM_TO_INV_FT = 30.48
+INV_M_TO_INV_FT = 0.3048        # 1/m -> 1/ft (SAV; Fernandes & Loureiro dão SVR em m⁻¹)
 CM_TO_FT = 0.0328084
 T_HA_TO_LB_FT2 = 0.0204816
 KJ_KG_TO_BTU_LB = 0.4299
@@ -115,10 +118,10 @@ def load_fuel_models_csv(path: str | Path) -> dict[int, FuelModelPT]:
             load_live_h = float(row["LiveH_FL"]) * T_HA_TO_LB_FT2
             load_live_w = float(row["LiveW_FL"]) * T_HA_TO_LB_FT2
 
-            # 1/cm → 1/ft
-            sav_1h = float(row["1HSAV"]) * INV_CM_TO_INV_FT
-            sav_live_h = float(row["LiveHSAV"]) * INV_CM_TO_INV_FT
-            sav_live_w = float(row["LiveWSAV"]) * INV_CM_TO_INV_FT
+            # 1/m → 1/ft (Fernandes & Loureiro 2021, Tabela 2 — ver docstring)
+            sav_1h = float(row["1HSAV"]) * INV_M_TO_INV_FT
+            sav_live_h = float(row["LiveHSAV"]) * INV_M_TO_INV_FT
+            sav_live_w = float(row["LiveWSAV"]) * INV_M_TO_INV_FT
 
             # cm → ft
             depth = float(row["Depth"]) * CM_TO_FT
@@ -157,7 +160,9 @@ def load_fuel_models_fmd(path: str | Path) -> dict[int, FuelModelPT]:
     FMNum FMCode 1H 10H 100H LiveH LiveW Type 1HSAV LiveHSAV LiveWSAV Depth XtMoist DHt LHt [FMName]
 
     NOTA: o parsing exato depende da versão do .fmd. Adapta-se quando tivermos
-    o ficheiro real para confirmar separadores e ordem.
+    o ficheiro real para confirmar separadores e ordem. Unidades assumidas
+    iguais às de `load_fuel_models_csv` (t/ha, SAV em 1/m) — ver docstring
+    do módulo.
     """
     path = Path(path)
     models: dict[int, FuelModelPT] = {}
@@ -176,15 +181,15 @@ def load_fuel_models_fmd(path: str | Path) -> dict[int, FuelModelPT]:
                 continue
 
             code = parts[1]
-            load_1h_ta = float(parts[2])
-            load_10h_ta = float(parts[3])
-            load_100h_ta = float(parts[4])
-            load_live_h_ta = float(parts[5])
-            load_live_w_ta = float(parts[6])
+            load_1h_tha = float(parts[2])
+            load_10h_tha = float(parts[3])
+            load_100h_tha = float(parts[4])
+            load_live_h_tha = float(parts[5])
+            load_live_w_tha = float(parts[6])
             fmtype = parts[7]
-            sav_1h_cm = float(parts[8])
-            sav_live_h_cm = float(parts[9])
-            sav_live_w_cm = float(parts[10])
+            sav_1h_m = float(parts[8])
+            sav_live_h_m = float(parts[9])
+            sav_live_w_m = float(parts[10])
             depth_cm = float(parts[11])
             xt_moist_pct = float(parts[12])
             dht_kj = float(parts[13])
@@ -196,14 +201,14 @@ def load_fuel_models_fmd(path: str | Path) -> dict[int, FuelModelPT]:
                 code=code,
                 name=name,
                 is_dynamic=(fmtype.strip().lower() == "dynamic"),
-                load_1h=load_1h_ta / 21.78,
-                load_10h=load_10h_ta / 21.78,
-                load_100h=load_100h_ta / 21.78,
-                load_live_h=load_live_h_ta / 21.78,
-                load_live_w=load_live_w_ta / 21.78,
-                sav_1h=sav_1h_cm * INV_CM_TO_INV_FT,
-                sav_live_h=sav_live_h_cm * INV_CM_TO_INV_FT,
-                sav_live_w=sav_live_w_cm * INV_CM_TO_INV_FT,
+                load_1h=load_1h_tha * T_HA_TO_LB_FT2,
+                load_10h=load_10h_tha * T_HA_TO_LB_FT2,
+                load_100h=load_100h_tha * T_HA_TO_LB_FT2,
+                load_live_h=load_live_h_tha * T_HA_TO_LB_FT2,
+                load_live_w=load_live_w_tha * T_HA_TO_LB_FT2,
+                sav_1h=sav_1h_m * INV_M_TO_INV_FT,
+                sav_live_h=sav_live_h_m * INV_M_TO_INV_FT,
+                sav_live_w=sav_live_w_m * INV_M_TO_INV_FT,
                 depth=depth_cm * CM_TO_FT,
                 moist_ext_dead=xt_moist_pct / 100.0,
                 heat_dead=dht_kj * KJ_KG_TO_BTU_LB,
