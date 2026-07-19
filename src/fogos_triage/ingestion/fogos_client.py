@@ -90,12 +90,22 @@ class NaturezaCode(IntEnum):
 
 
 class StatusCode(IntEnum):
-    """Códigos de estado das ocorrências."""
+    """
+    Códigos de estado das ocorrências.
+
+    Confirmados por consulta directa à BD de produção (occurrences +
+    occurrence_history, 4778 ocorrências) — 3 e 9 não estavam
+    documentados nem modelados antes, apesar de aparecerem com
+    frequência (Despacho: 19 activas/307 no histórico; Vigilância:
+    273 activas/1725 no histórico).
+    """
+    DESPACHO = 3
     DESPACHO_1_ALERTA = 4
     EM_CURSO = 5
     CHEGADA_TO = 6
     EM_RESOLUCAO = 7
     CONCLUSAO = 8
+    VIGILANCIA = 9
 
 
 # Naturezas que disparam triagem completa
@@ -212,8 +222,10 @@ class FogosFire:
 
     @property
     def is_terminated(self) -> bool:
-        """True se a ocorrência está concluída."""
-        return self.status_code == StatusCode.CONCLUSAO
+        """True se a ocorrência está concluída — inclui Vigilância (9),
+        monitorização pós-rescaldo, tratada como resolvida para efeitos
+        de triagem, tal como Conclusão (8)."""
+        return self.status_code in (StatusCode.CONCLUSAO, StatusCode.VIGILANCIA)
 
     @classmethod
     def from_api(cls, raw: dict) -> Optional["FogosFire"]:
