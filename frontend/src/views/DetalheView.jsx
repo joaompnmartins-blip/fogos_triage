@@ -17,7 +17,7 @@ function InfoRow({ label, value, unit, color }) {
 
 function ScenarioCard({ scenario }) {
   if (!scenario) return null
-  const labels = { central: 'Vento Geral', gusts: 'Rajadas' }
+  const labels = { central: 'Vento Geral', gusts: 'Vento Rajadas' }
   const labelColor = {
     gusts: 'var(--danger)',
     central: 'var(--muted)',
