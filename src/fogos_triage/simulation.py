@@ -681,19 +681,39 @@ def _merge_into_accumulated(new_verts: list, accumulated_poly):
     zero — garante que a área já queimada nunca retrocede nem "salta"
     para uma forma desligada (a área queimada mantém-se sempre queimada).
 
-    Devolve (novos_vertices_com_ros_fi, novo_accumulated_poly). Em caso de
-    forma inválida/vazia, devolve new_verts e accumulated_poly inalterados.
+    Devolve (novos_vertices_com_ros_fi, novo_accumulated_poly). Nunca
+    devolve new_verts em bruto quando este está auto-intersectante — a
+    propagação Richards por pontos-marcadores auto-intersecta-se
+    facilmente sobre terreno/combustível heterogéneo (pontos vizinhos com
+    ROS muito diferentes "ultrapassam-se", dobrando a frente sobre si
+    própria em forma de "flor"); se não for possível limpar a forma deste
+    timestep (make_valid/buffer(0) a devolverem algo que não seja um
+    Polygon/MultiPolygon utilizável), repete o último polígono acumulado
+    válido em vez de deixar passar o anel corrompido para o snapshot.
     """
     if not HAS_SHAPELY or len(new_verts) < 3:
         return new_verts, accumulated_poly
+
+    def _repeat_last_good():
+        if accumulated_poly is not None and not accumulated_poly.is_empty:
+            pts = list(accumulated_poly.exterior.coords[:-1])
+            return _reassign_ros_fi(pts, new_verts), accumulated_poly
+        return new_verts, accumulated_poly
+
     try:
         pts_2d = [(v[0], v[1]) for v in new_verts]
         candidate = Polygon(pts_2d)
         if not candidate.is_valid:
             candidate = make_valid(candidate)
-        if candidate.is_empty or not isinstance(candidate, (Polygon, MultiPolygon)):
-            log.warning("Simulação: candidato inválido/vazio neste timestep — mantém acumulado")
-            return new_verts, accumulated_poly
+        if not isinstance(candidate, (Polygon, MultiPolygon)) or candidate.is_empty:
+            # make_valid() nem sempre resolve bem muitas auto-intersecções
+            # pequenas (pode devolver GeometryCollection com fragmentos);
+            # buffer(0) é o truque clássico do shapely para estes casos —
+            # mais tolerante, tenta-se antes de desistir.
+            candidate = Polygon(pts_2d).buffer(0)
+        if not isinstance(candidate, (Polygon, MultiPolygon)) or candidate.is_empty:
+            log.warning("Simulação: candidato inválido/vazio neste timestep — repete último acumulado")
+            return _repeat_last_good()
 
         merged = accumulated_poly.union(candidate) if accumulated_poly is not None else candidate
 
@@ -711,14 +731,15 @@ def _merge_into_accumulated(new_verts: list, accumulated_poly):
             merged_shape = merged
 
         if merged_shape.is_empty or not isinstance(merged_shape, Polygon):
-            return new_verts, accumulated_poly
+            log.warning("Simulação: forma fundida inválida neste timestep — repete último acumulado")
+            return _repeat_last_good()
 
         new_pts = list(merged_shape.exterior.coords[:-1])
         result = _reassign_ros_fi(new_pts, new_verts)
         return result, merged_shape
     except Exception as e:
         log.warning("Simulação: erro a fundir polígono acumulado: %s", e)
-        return new_verts, accumulated_poly
+        return _repeat_last_good()
 
 
 # ---------------------------------------------------------------------------
