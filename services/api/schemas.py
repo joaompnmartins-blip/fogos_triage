@@ -285,6 +285,7 @@ class WeatherHourlyPoint(BaseModel):
     temperature_c: float
     relative_humidity_pct: float
     wind_speed_ms: float
+    wind_gust_ms: Optional[float] = None
     wind_direction_deg: float
 
 

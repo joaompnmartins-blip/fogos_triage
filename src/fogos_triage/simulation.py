@@ -867,6 +867,7 @@ def run_simulation_sync(
                 "temperature_c": wx.temperature_c,
                 "relative_humidity_pct": wx.relative_humidity_pct,
                 "wind_speed_ms": wx.wind_speed_10m_ms,
+                "wind_gust_ms": wx.wind_gust_10m_ms,
                 "wind_direction_deg": wx.wind_direction_deg,
             }
             for i, wx in enumerate(weather_hourly)

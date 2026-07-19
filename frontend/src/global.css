@@ -33,6 +33,7 @@
 
   /* meteograma — validada contra --danger/--p1 (color-formula.md do dataviz skill) */
   --meteo-humidity: #1E7FA6;
+  --meteo-gust: #7a3ea8;
 
   --nav-active-bg:  rgba(107,115,21,.10);
   --dot-shadow:     0 0 6px rgba(107,115,21,.40);
@@ -78,6 +79,7 @@
 
   /* meteograma — validada contra --danger/--p1 (color-formula.md do dataviz skill) */
   --meteo-humidity: #1E9FCC;
+  --meteo-gust: #a67adb;
 
   --nav-active-bg:  rgba(140,150,28,.08);
   --dot-shadow:     0 0 8px rgba(140,150,28,.60);
