@@ -9,7 +9,7 @@ import { REGION_CENTER, REGION_ZOOM } from '../region'
 import {
   COLOR_LABELS, COLOR_STOPS, msToKmh, perimStyle, renderSimulationLayers,
 } from '../components/SimulationMapLayers'
-import { Legend, ResultsTable, Meteogram, DurationSelect } from '../components/SimulationPanels'
+import { Legend, ResultsTable, DurationSelect } from '../components/SimulationPanels'
 
 const OSM_STYLE = 'https://tiles.openfreemap.org/styles/liberty'
 const SATELLITE_STYLE = {
@@ -408,11 +408,7 @@ export default function SimuladorLivreView({ apiKey }) {
           </div>
         )}
 
-        {result && <ResultsTable perimeters={result.perimeters} />}
-
-        {result && result.weather_hourly?.length > 0 && (
-          <Meteogram points={result.weather_hourly} />
-        )}
+        {result && <ResultsTable perimeters={result.perimeters} weatherHourly={result.weather_hourly} />}
 
         {result && (
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--dim)', marginTop: 4 }}>

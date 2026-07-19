@@ -12,7 +12,6 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.28.0",
-    "recharts": "^3.9.2",
     "terra-draw": "^1.32.0",
     "terra-draw-maplibre-gl-adapter": "^1.4.1"
   },
