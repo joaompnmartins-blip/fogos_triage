@@ -82,13 +82,14 @@ export async function getSimulationJob(apiKey, jobId) {
   return get(`/jobs/${encodeURIComponent(jobId)}`, apiKey)
 }
 
-export async function postFreeSimulate(apiKey, { ignitionPoints, duration_h = 3, bbox_km } = {}) {
+export async function postFreeSimulate(apiKey, { ignitionPoints, duration_h = 3, useGusts, bbox_km } = {}) {
   const res = await fetch(`${API_BASE}/free-simulate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...auth(apiKey) },
     body: JSON.stringify({
       ignition_points: ignitionPoints,
       duration_h,
+      use_gusts: !!useGusts,
       bbox_km: bbox_km || null,
     }),
   })

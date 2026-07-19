@@ -90,7 +90,7 @@ def triage_neighbourhood(
     central_pred, central_terrain, central_fm, central_wx = pixel_results[n // 2]
     central_pred = replace(central_pred, scenario="central")
 
-    gust_wx = _gust_weather(central_wx)
+    gust_wx = gust_weather(central_wx)
     gust_pred = predict_surface_fire(central_fm, central_terrain, gust_wx, "gusts")
 
     notes = [
@@ -171,7 +171,7 @@ def triage_occurrence(
 
     # 2 cenários: "Vento Geral" (central) e "Rajadas" (gusts)
     central = _predict_scenario(fm, terrain, weather, "central")
-    gusts = _predict_scenario(fm, terrain, _gust_weather(weather), "gusts")
+    gusts = _predict_scenario(fm, terrain, gust_weather(weather), "gusts")
 
     central = _check_crown(central, terrain, notes)
     gusts = _check_crown(gusts, terrain, notes)
@@ -207,12 +207,16 @@ def _predict_scenario(
     return predict_surface_fire(fm, terrain, weather, scenario_name)
 
 
-def _gust_weather(wx: WeatherConditions) -> WeatherConditions:
+def gust_weather(wx: WeatherConditions) -> WeatherConditions:
     """
-    Cenário "Rajadas": usa a velocidade de rajada (wind_gusts_10m, Open-Meteo)
-    em vez do vento sustentado, aplicando o mesmo WAF já calculado para o
-    vento sustentado (não uma percentagem sintética). Humidades dos
+    Substitui o vento sustentado pela velocidade de rajada
+    (wind_gusts_10m, Open-Meteo), aplicando o mesmo WAF já calculado para
+    o vento sustentado (não uma percentagem sintética). Humidades dos
     combustíveis mantêm-se — uma rajada dura segundos, não muda a humidade.
+
+    Usada pelo cenário "Rajadas" da triagem (ver triage_occurrence /
+    triage_neighbourhood) e pelo override "usar rajadas" da simulação
+    ForeFire (services/api/routes_meta.py).
     """
     if not wx.wind_speed_10m_ms or wx.wind_gust_10m_ms is None:
         return wx

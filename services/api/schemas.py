@@ -312,6 +312,9 @@ class FreeSimulationRequest(BaseModel):
     # Lista de (lat, lon); 1 ponto = ignição pontual, 2+ = linha de ignição
     ignition_points: list[tuple[float, float]] = Field(min_length=1, max_length=50)
     duration_h: float = Field(default=3.0, ge=0.5, le=24.0)
+    # Usa a velocidade de rajada (Open-Meteo) em vez do vento sustentado
+    # em todas as horas da simulação — ver fogos_triage.triage.gust_weather
+    use_gusts: bool = False
     bbox_km: Optional[float] = Field(default=None, ge=2.0, le=50.0)
 
 

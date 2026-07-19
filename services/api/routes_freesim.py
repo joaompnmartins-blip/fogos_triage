@@ -71,6 +71,7 @@ async def create_free_simulation(
         bbox_km=payload.bbox_km or 15.0,
         landscape_dir=config.landscape_dir,
         landscape_file=config.landscape_file,
+        use_gusts=payload.use_gusts,
     ))
 
     return FreeSimulationJob(
@@ -130,6 +131,7 @@ async def _run_free_simulation(
     bbox_km: float,
     landscape_dir: str,
     landscape_file: Optional[str] = None,
+    use_gusts: bool = False,
 ):
     """Task em background: corre simulação livre e grava resultado no DB.
 
@@ -148,6 +150,7 @@ async def _run_free_simulation(
         from fogos_triage.fuel_models import load_fuel_models_csv
         from fogos_triage.landscape import LandscapeRasters, ensure_landscape
         from fogos_triage.simulation import run_simulation_async
+        from fogos_triage.triage import gust_weather
         from fogos_triage.weather import (
             derive_fire_weather,
             fetch_live_fmc_viirs,
@@ -208,10 +211,16 @@ async def _run_free_simulation(
         ]
         log.info("Simulação livre %s: %d snapshots horários Open-Meteo", job_id, len(weather_hourly))
 
+        if use_gusts:
+            # Vento de rajada (Open-Meteo) em vez de sustentado, em todas
+            # as horas — ver fogos_triage.triage.gust_weather.
+            weather_hourly = [gust_weather(wx) for wx in weather_hourly]
+
         result = await run_simulation_async(
             lat, lon, weather_hourly, fuel_dict, duration_h,
             bbox_km=bbox_km, ignition_points=ignition_points, **rasters_kwargs,
         )
+        result["meta"]["use_gusts"] = use_gusts
 
         async with pool.acquire() as conn:
             await conn.execute(
