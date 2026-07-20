@@ -298,7 +298,7 @@ def _build_ros_grid(
 
 # Densidade fixa da grelha de setas de direcção — independente de
 # resolution_m/bbox_km (ver docstring de _build_direction_arrows).
-DIRECTION_ARROWS_PER_SIDE = 15
+DIRECTION_ARROWS_PER_SIDE = 25
 
 
 def _build_direction_arrows(

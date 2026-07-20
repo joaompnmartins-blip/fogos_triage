@@ -86,7 +86,7 @@ export function downloadGeoJSON(data, filename) {
 // barbelas de vento.
 export function spreadArrowsToFeatureCollection(
   arrowPoints,
-  { minLengthM = 15, maxLengthM = 200, maxRosMMin = 30 } = {},
+  { minLengthM = 8, maxLengthM = 90, maxRosMMin = 30 } = {},
 ) {
   const dLatPerM = 1 / 111320
   const features = []
@@ -108,7 +108,7 @@ export function spreadArrowsToFeatureCollection(
       properties: { ros_m_min },
     })
 
-    const headLenM = Math.min(lengthM * 0.35, 25)
+    const headLenM = Math.min(lengthM * 0.35, 12)
     for (const delta of [-25, 25]) {
       const barbRad = ((theta_deg + 180 + delta) * Math.PI) / 180
       const bLon = endLon + headLenM * Math.sin(barbRad) * dLonPerM
@@ -158,7 +158,7 @@ export function renderSimulationLayers(map, result, layer, opacity, visiblePerim
       source: 'sim-arrows',
       paint: {
         'line-color': 'rgba(20, 20, 20, 0.85)',
-        'line-width': 1.5,
+        'line-width': 1.1,
       },
     })
   }
