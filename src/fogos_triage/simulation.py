@@ -296,6 +296,122 @@ def _build_ros_grid(
     return {"type": "FeatureCollection", "features": features}
 
 
+# Densidade fixa da grelha de setas de direcção — independente de
+# resolution_m/bbox_km (ver docstring de _build_direction_arrows).
+DIRECTION_ARROWS_PER_SIDE = 15
+
+
+def _build_direction_arrows(
+    reader: LandscapeReader,
+    fuel_models: dict[int, FuelModelPT],
+    weather: WeatherConditions,
+    min_x: float, min_y: float, max_x: float, max_y: float,
+    n_per_side: int = DIRECTION_ARROWS_PER_SIDE,
+) -> dict:
+    """
+    Constrói uma GeoJSON FeatureCollection de pontos com a direcção de
+    máxima propagação (theta_deg) e o ROS nesse ponto — para desenhar
+    setas no frontend (comprimento ∝ ros_m_min).
+
+    Densidade fixa (n_per_side × n_per_side) sobre o bbox dado —
+    ao contrário da grelha de cor (_build_ros_grid, até MAX_GRID_CELLS),
+    decimar setas a partir dessa grelha não é fiável porque
+    _clip_grid_to_perimeter() já a recorta ao perímetro final, quebrando
+    a indexação linha/coluna regular. Uma segunda grelha grosseira,
+    calculada à parte, evita o problema — custo desprezável (n_per_side²
+    avaliações Rothermel).
+
+    O bbox (`min_x..max_y`) deve cobrir a extensão do perímetro final,
+    não o bbox de visualização pedido pelo utilizador (`bbox_km`) — este
+    é tipicamente muito maior do que a área realmente queimada numa
+    simulação de poucas horas, o que deixaria a grelha de setas quase
+    vazia (poucos dos n_per_side² pontos caem dentro do perímetro
+    recortado). Ver chamada em `run_simulation_sync`.
+    """
+    arrays, nodata, window_transform = reader.read_window(
+        ["slope", "aspect", "fuel_model"], min_x, min_y, max_x, max_y,
+    )
+    slope_arr = arrays.get("slope")
+    aspect_arr = arrays.get("aspect")
+    fuel_arr = arrays.get("fuel_model")
+    if slope_arr is None or aspect_arr is None or fuel_arr is None:
+        return {"type": "FeatureCollection", "features": []}
+    height, width = slope_arr.shape
+
+    step_x = (max_x - min_x) / n_per_side
+    step_y = (max_y - min_y) / n_per_side
+    xs = np.arange(min_x + step_x / 2, max_x, step_x)
+    ys = np.arange(min_y + step_y / 2, max_y, step_y)
+    xx, yy = np.meshgrid(xs, ys)
+    pts_x = xx.ravel()
+    pts_y = yy.ravel()
+
+    col_idx = np.clip(
+        ((pts_x - window_transform.c) / window_transform.a).astype(int), 0, width - 1
+    )
+    row_idx = np.clip(
+        ((pts_y - window_transform.f) / window_transform.e).astype(int), 0, height - 1
+    )
+
+    slope_raw = slope_arr[row_idx, col_idx].astype(float)
+    aspect_raw = aspect_arr[row_idx, col_idx].astype(float)
+    fuel_raw = fuel_arr[row_idx, col_idx]
+
+    slope_nodata = nodata.get("slope")
+    aspect_nodata = nodata.get("aspect")
+    fuel_nodata = nodata.get("fuel_model")
+    slope_deg = (slope_raw if slope_nodata is None
+                 else np.where(slope_raw == slope_nodata, 0.0, slope_raw))
+    aspect_deg = (aspect_raw if aspect_nodata is None
+                  else np.where(aspect_raw == aspect_nodata, 0.0, aspect_raw))
+    fuel_num = (fuel_raw.astype(int) if fuel_nodata is None
+                else np.where(fuel_raw == fuel_nodata, 98, fuel_raw).astype(int))
+
+    lons, lats = rio_transform(reader.crs, "EPSG:4326", pts_x, pts_y)
+
+    m_1h   = (weather.fuel_moisture_1h_pct   or 8.0)  / 100.0
+    m_10h  = (weather.fuel_moisture_10h_pct  or 9.0)  / 100.0
+    m_100h = (weather.fuel_moisture_100h_pct or 10.0) / 100.0
+    m_lh   = (weather.fuel_moisture_live_h_pct or 100.0) / 100.0
+    m_lw   = (weather.fuel_moisture_live_w_pct or 100.0) / 100.0
+    wind_mf = weather.wind_midflame_ms or 0.0
+    wind_dir = weather.wind_direction_deg or 0.0
+
+    features = []
+    for lon, lat, slope, aspect, fnum in zip(lons, lats, slope_deg, aspect_deg, fuel_num):
+        fm = fuel_models.get(int(fnum))
+        if fm is None or fm.is_empty:
+            continue
+        try:
+            ros, fi, phi_w, phi_s, *_ = _rothermel_direct(
+                fm, m_1h, m_10h, m_100h, m_lh, m_lw,
+                wind_midflame_ms=wind_mf,
+                slope_degrees=float(slope),
+            )
+        except Exception:
+            continue
+        if ros <= 0:
+            continue
+
+        theta_deg = _max_spread_direction_from_phi(
+            wind_direction_deg=wind_dir,
+            aspect_degrees=float(aspect),
+            phi_w=phi_w,
+            phi_s=phi_s,
+        )
+
+        features.append({
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": [lon, lat]},
+            "properties": {
+                "theta_deg": round(theta_deg, 1),
+                "ros_m_min": round(ros, 3),
+            },
+        })
+
+    return {"type": "FeatureCollection", "features": features}
+
+
 def _clip_grid_to_perimeter(grid_geojson: dict, perimeter_geojson: dict) -> dict:
     """Remove células fora do perímetro final.
 
@@ -861,14 +977,34 @@ def run_simulation_sync(
             effective_distance_resolution_m, ignition_points_proj,
         )
 
+        # Setas de direcção: grelha grosseira centrada na extensão do
+        # perímetro FINAL (não no bbox_km de visualização, tipicamente
+        # muito maior do que a área queimada numa simulação de poucas
+        # horas — deixaria a grelha de setas quase vazia após o recorte).
+        arrows = {"type": "FeatureCollection", "features": []}
+        if snapshots:
+            final_lons, final_lats = zip(*snapshots[-1].polygon_wgs84["coordinates"][0])
+            corners_proj = _wgs84_list_to_proj(
+                list(zip(final_lats, final_lons)), reader.crs,
+            )
+            xs_f = [p[0] for p in corners_proj]
+            ys_f = [p[1] for p in corners_proj]
+            margin_m = max(0.15 * max(max(xs_f) - min(xs_f), max(ys_f) - min(ys_f)), 100.0)
+            arrows = _build_direction_arrows(
+                reader, fuel_models, wx0,
+                min(xs_f) - margin_m, min(ys_f) - margin_m,
+                max(xs_f) + margin_m, max(ys_f) + margin_m,
+            )
+
     if not snapshots:
         raise RuntimeError("Simulação não produziu perímetros válidos")
 
     final_perim = snapshots[-1].polygon_wgs84
     clipped_grid = _clip_grid_to_perimeter(grid, final_perim)
+    clipped_arrows = _clip_grid_to_perimeter(arrows, final_perim)
 
-    log.info("Simulação concluída: %d perímetros, %d células",
-             len(snapshots), len(clipped_grid["features"]))
+    log.info("Simulação concluída: %d perímetros, %d células, %d setas",
+             len(snapshots), len(clipped_grid["features"]), len(clipped_arrows["features"]))
 
     return {
         "perimeters": [
@@ -881,6 +1017,7 @@ def run_simulation_sync(
             for s in snapshots
         ],
         "pixel_grid": clipped_grid,
+        "spread_arrows": clipped_arrows,
         "weather_hourly": [
             {
                 "t_h": i,

@@ -75,15 +75,63 @@ export function downloadGeoJSON(data, filename) {
   URL.revokeObjectURL(url)
 }
 
-export function renderSimulationLayers(map, result, layer, opacity, visiblePerimeters) {
+// Converte a grelha esparsa de pontos {theta_deg, ros_m_min}
+// (result.spread_arrows, ver _build_direction_arrows() em simulation.py)
+// em LineStrings desenháveis — uma haste por ponto (comprimento em
+// metros ∝ ros_m_min, clamped) mais um "V" de ponta de seta, tudo como
+// LineString (sem map.addImage/ícones — evita repetir problemas de
+// ciclo de vida de imagem/camada já vistos com o TerraDraw). theta_deg
+// é um azimute (0°=Norte, sentido horário) na direcção PARA ONDE o
+// fogo se propaga, ao contrário da convenção "de onde vem" das
+// barbelas de vento.
+export function spreadArrowsToFeatureCollection(
+  arrowPoints,
+  { minLengthM = 15, maxLengthM = 200, maxRosMMin = 30 } = {},
+) {
+  const dLatPerM = 1 / 111320
+  const features = []
+  for (const f of arrowPoints) {
+    const [lon, lat] = f.geometry.coordinates
+    const { theta_deg, ros_m_min } = f.properties
+    if (theta_deg == null || ros_m_min == null) continue
+
+    const frac = Math.max(0, Math.min(1, ros_m_min / maxRosMMin))
+    const lengthM = minLengthM + frac * (maxLengthM - minLengthM)
+    const dLonPerM = 1 / (111320 * Math.cos((lat * Math.PI) / 180))
+    const thetaRad = (theta_deg * Math.PI) / 180
+
+    const endLon = lon + lengthM * Math.sin(thetaRad) * dLonPerM
+    const endLat = lat + lengthM * Math.cos(thetaRad) * dLatPerM
+    features.push({
+      type: 'Feature',
+      geometry: { type: 'LineString', coordinates: [[lon, lat], [endLon, endLat]] },
+      properties: { ros_m_min },
+    })
+
+    const headLenM = Math.min(lengthM * 0.35, 25)
+    for (const delta of [-25, 25]) {
+      const barbRad = ((theta_deg + 180 + delta) * Math.PI) / 180
+      const bLon = endLon + headLenM * Math.sin(barbRad) * dLonPerM
+      const bLat = endLat + headLenM * Math.cos(barbRad) * dLatPerM
+      features.push({
+        type: 'Feature',
+        geometry: { type: 'LineString', coordinates: [[endLon, endLat], [bLon, bLat]] },
+        properties: { ros_m_min },
+      })
+    }
+  }
+  return { type: 'FeatureCollection', features }
+}
+
+export function renderSimulationLayers(map, result, layer, opacity, visiblePerimeters, showArrows) {
   // getLayer/getSource + removeLayer/removeSource, não try/catch: o
   // MapLibre não lança excepção para um id inexistente, dispara um evento
   // 'error' interno que é impresso na consola quando não há listener —
   // o try/catch não o apanha.
   const perimIds = result.perimeters.flatMap(({ t_h }) => [`perim-${t_h}h-fill`, `perim-${t_h}h-line`]);
-  ['sim-pixels-fill', 'sim-pixels-outline', ...perimIds]
+  ['sim-pixels-fill', 'sim-pixels-outline', 'sim-arrows-line', ...perimIds]
     .forEach(id => { if (map.getLayer(id)) map.removeLayer(id) });
-  ['sim-pixels', ...result.perimeters.map(({ t_h }) => `perim-${t_h}h`)]
+  ['sim-pixels', 'sim-arrows', ...result.perimeters.map(({ t_h }) => `perim-${t_h}h`)]
     .forEach(id => { if (map.getSource(id)) map.removeSource(id) })
 
   if (result.pixel_grid) {
@@ -95,6 +143,22 @@ export function renderSimulationLayers(map, result, layer, opacity, visiblePerim
       paint: {
         'fill-color': COLOR_EXPRS[layer],
         'fill-opacity': opacity,
+      },
+    })
+  }
+
+  if (showArrows && result.spread_arrows?.features?.length) {
+    map.addSource('sim-arrows', {
+      type: 'geojson',
+      data: spreadArrowsToFeatureCollection(result.spread_arrows.features),
+    })
+    map.addLayer({
+      id: 'sim-arrows-line',
+      type: 'line',
+      source: 'sim-arrows',
+      paint: {
+        'line-color': 'rgba(20, 20, 20, 0.85)',
+        'line-width': 1.5,
       },
     })
   }

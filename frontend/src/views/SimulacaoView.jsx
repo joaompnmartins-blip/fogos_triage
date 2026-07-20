@@ -44,6 +44,7 @@ export default function SimulacaoView({ apiKey }) {
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
   const [visiblePerimeters, setVisiblePerimeters] = useState(new Set())
+  const [showArrows, setShowArrows] = useState(true)
   const pollRef = useRef(null)
 
   useEffect(() => {
@@ -75,7 +76,7 @@ export default function SimulacaoView({ apiKey }) {
     if (!map) return
     map.setStyle(basemap === 'osm' ? OSM_STYLE : SATELLITE_STYLE)
     map.once('styledata', () => {
-      if (result) renderSimulationLayers(map, result, layer, opacity, visiblePerimeters)
+      if (result) renderSimulationLayers(map, result, layer, opacity, visiblePerimeters, showArrows)
     })
   }, [basemap])
 
@@ -87,10 +88,10 @@ export default function SimulacaoView({ apiKey }) {
   useEffect(() => {
     const map = mapRef.current
     if (!map || !result) return
-    const onReady = () => renderSimulationLayers(map, result, layer, opacity, visiblePerimeters)
+    const onReady = () => renderSimulationLayers(map, result, layer, opacity, visiblePerimeters, showArrows)
     if (map.isStyleLoaded()) onReady()
     else map.once('styledata', onReady)
-  }, [result, layer, opacity, visiblePerimeters])
+  }, [result, layer, opacity, visiblePerimeters, showArrows])
 
   function togglePerimeter(t_h) {
     setVisiblePerimeters(prev => {
@@ -192,6 +193,16 @@ export default function SimulacaoView({ apiKey }) {
                 <input type="range" min={0} max={1} step={0.05}
                   value={opacity} onChange={e => setOpacity(parseFloat(e.target.value))}
                   style={{ width: 80, cursor: 'pointer' }} />
+              </div>
+              <div className="map-overlay-panel" style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                borderRadius: 4, padding: '4px 8px',
+              }}>
+                <label className="filter-check" style={{ fontSize: 9, fontFamily: 'var(--font-mono)' }}>
+                  <input type="checkbox" checked={showArrows}
+                    onChange={e => setShowArrows(e.target.checked)} />
+                  SETAS DE PROPAGAÇÃO
+                </label>
               </div>
               <Legend stops={COLOR_STOPS[layer]} label={COLOR_LABELS[layer]} />
 

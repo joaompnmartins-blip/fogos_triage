@@ -314,6 +314,7 @@ class WeatherHourlyPoint(BaseModel):
 class SimulationResultDetail(BaseModel):
     perimeters: list[PerimeterSnapshot]
     pixel_grid: dict
+    spread_arrows: dict = {}
     weather_hourly: list[WeatherHourlyPoint] = []
     meta: dict
 
