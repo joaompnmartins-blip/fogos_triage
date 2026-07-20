@@ -159,7 +159,7 @@ export function DurationSelect({ value, onChange, options = [1, 2, 3, 6, 12, 24]
 export function FuelMoistureScenarioSelect({ value, onChange, disabled }) {
   return (
     <select className="form-input" value={value || ''} disabled={disabled}
-      style={{ fontSize: 12, padding: '5px 8px', maxWidth: 220 }}
+      style={{ fontSize: 12, padding: '5px 8px', width: 380 }}
       onChange={e => onChange(e.target.value || null)}>
       <option value="">Calculado (Open-Meteo)</option>
       {Object.entries(FUEL_MOISTURE_SCENARIO_LABEL).map(([key, label]) => (
