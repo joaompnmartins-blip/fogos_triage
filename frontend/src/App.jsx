@@ -189,12 +189,12 @@ function AppShell({ apiKey, onChangeKey, health, theme, onToggleTheme }) {
         <div className="content">
           <Routes>
             <Route path="/" element={<Navigate to="/mapa" replace />} />
-            <Route path="/mapa" element={<MapView apiKey={apiKey} />} />
+            <Route path="/mapa" element={<MapView apiKey={apiKey} theme={theme} />} />
             <Route path="/lista" element={<ListaView apiKey={apiKey} />} />
             <Route path="/fogo/:fireId" element={<DetalheView apiKey={apiKey} />} />
             <Route path="/fogo/:fireId/historico" element={<HistoricoView apiKey={apiKey} />} />
-            <Route path="/fogo/:fireId/simulacao" element={<SimulacaoView apiKey={apiKey} />} />
-            <Route path="/simulador" element={<SimuladorLivreView apiKey={apiKey} />} />
+            <Route path="/fogo/:fireId/simulacao" element={<SimulacaoView apiKey={apiKey} theme={theme} />} />
+            <Route path="/simulador" element={<SimuladorLivreView apiKey={apiKey} theme={theme} />} />
             <Route path="*" element={<Navigate to="/mapa" replace />} />
           </Routes>
         </div>

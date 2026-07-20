@@ -5,6 +5,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { fetchFiresGeo } from '../api'
 import { SEVERITY_COLOR, SEVERITY_LABEL, CONTROL_LABEL } from '../constants'
 import { REGION_CENTER, REGION_BBOX, REGION_ZOOM } from '../region'
+import { basemapStyle } from '../basemaps'
 
 const priorityColorExpr = [
   'match', ['get', 'priority_class'],
@@ -18,26 +19,7 @@ const priorityColorExpr = [
   '#888888',
 ]
 
-const OSM_STYLE = 'https://tiles.openfreemap.org/styles/liberty'
-
-const SATELLITE_STYLE = {
-  version: 8,
-  sources: {
-    satellite: {
-      type: 'raster',
-      tiles: [
-        'https://mt0.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-        'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-      ],
-      tileSize: 256,
-      attribution: '© Google',
-      maxzoom: 20,
-    },
-  },
-  layers: [{ id: 'satellite-bg', type: 'raster', source: 'satellite' }],
-}
-
-export default function MapView({ apiKey }) {
+export default function MapView({ apiKey, theme }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
   const fireDataRef = useRef({ type: 'FeatureCollection', features: [] })
@@ -60,7 +42,7 @@ export default function MapView({ apiKey }) {
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: OSM_STYLE,
+      style: basemapStyle(basemap, theme),
       center: REGION_CENTER,
       zoom: REGION_ZOOM,
       attributionControl: false,
@@ -192,14 +174,14 @@ export default function MapView({ apiKey }) {
     }
   }, [apiKey]) // eslint-disable-line
 
-  // Basemap switching — skip first render (map already initialised with OSM)
+  // Basemap/tema switching — skip first render (map já inicializado com o
+  // estilo correcto em basemapStyle(basemap, theme) acima)
   useEffect(() => {
     if (basemapInitRef.current) { basemapInitRef.current = false; return }
     const map = mapRef.current
     if (!map) return
-    const style = basemap === 'satellite' ? SATELLITE_STYLE : OSM_STYLE
-    map.setStyle(style, { diff: false })
-  }, [basemap])
+    map.setStyle(basemapStyle(basemap, theme), { diff: false })
+  }, [basemap, theme])
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>

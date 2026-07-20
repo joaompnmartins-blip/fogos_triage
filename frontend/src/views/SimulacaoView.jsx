@@ -9,26 +9,9 @@ import {
   downloadGeoJSON, perimetersToFeatureCollection,
 } from '../components/SimulationMapLayers'
 import { Legend, ResultsTable, DurationSelect, FuelMoistureScenarioSelect } from '../components/SimulationPanels'
+import { basemapStyle } from '../basemaps'
 
-const OSM_STYLE = 'https://tiles.openfreemap.org/styles/liberty'
-const SATELLITE_STYLE = {
-  version: 8,
-  sources: {
-    satellite: {
-      type: 'raster',
-      tiles: [
-        'https://mt0.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-        'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-      ],
-      tileSize: 256,
-      attribution: '© Google',
-      maxzoom: 20,
-    },
-  },
-  layers: [{ id: 'satellite-bg', type: 'raster', source: 'satellite' }],
-}
-
-export default function SimulacaoView({ apiKey }) {
+export default function SimulacaoView({ apiKey, theme }) {
   const { fireId } = useParams()
   const mapRef = useRef(null)
   const containerRef = useRef(null)
@@ -57,7 +40,7 @@ export default function SimulacaoView({ apiKey }) {
     if (!containerRef.current || mapRef.current || !fire) return
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: OSM_STYLE,
+      style: basemapStyle(basemap, theme),
       center: [fire.longitude, fire.latitude],
       zoom: 12,
       attributionControl: false,
@@ -74,11 +57,11 @@ export default function SimulacaoView({ apiKey }) {
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
-    map.setStyle(basemap === 'osm' ? OSM_STYLE : SATELLITE_STYLE)
+    map.setStyle(basemapStyle(basemap, theme))
     map.once('styledata', () => {
       if (result) renderSimulationLayers(map, result, layer, opacity, visiblePerimeters, showArrows)
     })
-  }, [basemap])
+  }, [basemap, theme])
 
   // Novo resultado — todos os perímetros começam visíveis
   useEffect(() => {

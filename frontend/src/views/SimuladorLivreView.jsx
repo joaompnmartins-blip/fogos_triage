@@ -11,24 +11,7 @@ import {
   downloadGeoJSON, perimetersToFeatureCollection,
 } from '../components/SimulationMapLayers'
 import { Legend, ResultsTable, DurationSelect, FuelMoistureScenarioSelect } from '../components/SimulationPanels'
-
-const OSM_STYLE = 'https://tiles.openfreemap.org/styles/liberty'
-const SATELLITE_STYLE = {
-  version: 8,
-  sources: {
-    satellite: {
-      type: 'raster',
-      tiles: [
-        'https://mt0.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-        'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-      ],
-      tileSize: 256,
-      attribution: '© Google',
-      maxzoom: 20,
-    },
-  },
-  layers: [{ id: 'satellite-bg', type: 'raster', source: 'satellite' }],
-}
+import { basemapStyle } from '../basemaps'
 
 // Extrai [[lat,lon], ...] das features desenhadas (Point ou LineString)
 function _ignitionFromSnapshot(snapshot) {
@@ -80,7 +63,7 @@ function _attachDraw(map, onFinish) {
   return draw
 }
 
-export default function SimuladorLivreView({ apiKey }) {
+export default function SimuladorLivreView({ apiKey, theme }) {
   const mapRef = useRef(null)
   const containerRef = useRef(null)
   const drawRef = useRef(null)
@@ -111,7 +94,7 @@ export default function SimuladorLivreView({ apiKey }) {
     if (!containerRef.current || mapRef.current) return
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: OSM_STYLE,
+      style: basemapStyle(basemap, theme),
       center: REGION_CENTER,
       zoom: REGION_ZOOM,
       attributionControl: false,
@@ -137,7 +120,7 @@ export default function SimuladorLivreView({ apiKey }) {
     if (basemapInitRef.current) { basemapInitRef.current = false; return }
     const map = mapRef.current
     if (!map) return
-    map.setStyle(basemap === 'osm' ? OSM_STYLE : SATELLITE_STYLE)
+    map.setStyle(basemapStyle(basemap, theme))
     map.once('style.load', () => {
       // setStyle() destrói todas as sources/layers, incluindo as do
       // TerraDraw — reinstancia-se em vez de reiniciar a mesma instância
@@ -148,7 +131,7 @@ export default function SimuladorLivreView({ apiKey }) {
       setDrawMode(null)
       if (result) renderSimulationLayers(map, result, layer, opacity, visiblePerimeters, showArrows)
     })
-  }, [basemap])
+  }, [basemap, theme])
 
   // Novo resultado — todos os perímetros começam visíveis
   useEffect(() => {
