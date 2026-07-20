@@ -6,6 +6,7 @@ import { fetchFireDetail, postSimulate, getSimulationJob } from '../api'
 import { fmt, fmtDateTime, FUEL_MOISTURE_SCENARIO_LABEL } from '../constants'
 import {
   COLOR_LABELS, COLOR_STOPS, msToKmh, perimStyle, renderSimulationLayers,
+  downloadGeoJSON, perimetersToFeatureCollection,
 } from '../components/SimulationMapLayers'
 import { Legend, ResultsTable, DurationSelect, FuelMoistureScenarioSelect } from '../components/SimulationPanels'
 
@@ -283,6 +284,19 @@ export default function SimulacaoView({ apiKey }) {
         )}
 
         {result && <ResultsTable perimeters={result.perimeters} weatherHourly={result.weather_hourly} />}
+
+        {result && (
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-ghost" style={{ fontSize: 11, padding: '5px 12px' }}
+              onClick={() => downloadGeoJSON(result.pixel_grid, `grelha_${fireId}_${Date.now()}.geojson`)}>
+              ⬇ Exportar grelha
+            </button>
+            <button className="btn btn-ghost" style={{ fontSize: 11, padding: '5px 12px' }}
+              onClick={() => downloadGeoJSON(perimetersToFeatureCollection(result.perimeters), `perimetros_${fireId}_${Date.now()}.geojson`)}>
+              ⬇ Exportar perímetros
+            </button>
+          </div>
+        )}
 
         {result && (
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--dim)', marginTop: 4 }}>

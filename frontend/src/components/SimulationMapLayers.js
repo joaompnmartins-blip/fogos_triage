@@ -41,6 +41,40 @@ export function perimStyle(index, total) {
   return { color, fillOpacity: 0.08 + 0.18 * frac }
 }
 
+// Combina os perímetros (cada um só com a geometria em `geojson`, ver
+// _make_snapshot() em simulation.py) numa única FeatureCollection, uma
+// Feature por timestep, com as estatísticas desse instante como
+// propriedades — para exportar todos os timesteps num só ficheiro.
+export function perimetersToFeatureCollection(perimeters) {
+  return {
+    type: 'FeatureCollection',
+    features: perimeters.map(p => ({
+      type: 'Feature',
+      geometry: p.geojson,
+      properties: {
+        t_h: p.t_h,
+        area_ha: p.area_ha,
+        ros_max_m_min: p.ros_max_m_min,
+        fli_max_kw_m: p.fli_max_kw_m,
+        flame_max_m: p.flame_max_m,
+      },
+    })),
+  }
+}
+
+// Dispara a descarga de um objecto GeoJSON como ficheiro .geojson —
+// sem endpoint no backend, os dados já estão completos no `result`
+// carregado no frontend.
+export function downloadGeoJSON(data, filename) {
+  const blob = new Blob([JSON.stringify(data)], { type: 'application/geo+json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export function renderSimulationLayers(map, result, layer, opacity, visiblePerimeters) {
   // getLayer/getSource + removeLayer/removeSource, não try/catch: o
   // MapLibre não lança excepção para um id inexistente, dispara um evento
