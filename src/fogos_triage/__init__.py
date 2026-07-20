@@ -11,6 +11,7 @@ from .schemas import (
     TriageResult,
     WeatherConditions,
 )
+from .fuel_moisture_scenarios import FUEL_MOISTURE_SCENARIOS, apply_fuel_moisture_scenario
 from .severity import SEVERITY_TABLE, classify_severity, is_ewe, severity_info
 from .triage import compute_priority, gust_weather, triage_occurrence
 
@@ -26,6 +27,8 @@ __all__ = [
     "TerrainConditions",
     "TriageResult",
     "WeatherConditions",
+    "FUEL_MOISTURE_SCENARIOS",
+    "apply_fuel_moisture_scenario",
     "SEVERITY_TABLE",
     "classify_severity",
     "is_ewe",

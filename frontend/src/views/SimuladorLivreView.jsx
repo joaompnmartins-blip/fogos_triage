@@ -4,12 +4,12 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { TerraDraw, TerraDrawPointMode, TerraDrawLineStringMode } from 'terra-draw'
 import { TerraDrawMapLibreGLAdapter } from 'terra-draw-maplibre-gl-adapter'
 import { postFreeSimulate, getFreeSimulationJob } from '../api'
-import { fmt } from '../constants'
+import { fmt, FUEL_MOISTURE_SCENARIO_LABEL } from '../constants'
 import { REGION_CENTER, REGION_ZOOM } from '../region'
 import {
   COLOR_LABELS, COLOR_STOPS, msToKmh, perimStyle, renderSimulationLayers,
 } from '../components/SimulationMapLayers'
-import { Legend, ResultsTable, DurationSelect } from '../components/SimulationPanels'
+import { Legend, ResultsTable, DurationSelect, FuelMoistureScenarioSelect } from '../components/SimulationPanels'
 
 const OSM_STYLE = 'https://tiles.openfreemap.org/styles/liberty'
 const SATELLITE_STYLE = {
@@ -93,6 +93,7 @@ export default function SimuladorLivreView({ apiKey }) {
   const [opacity, setOpacity] = useState(0.75)
   const [durationH, setDurationH] = useState(3)
   const [useGusts, setUseGusts] = useState(false)
+  const [fuelMoistureScenario, setFuelMoistureScenario] = useState(null)
   const [jobStatus, setJobStatus] = useState(null)
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
@@ -221,7 +222,7 @@ export default function SimuladorLivreView({ apiKey }) {
     setResult(null)
     setError(null)
     try {
-      const job = await postFreeSimulate(apiKey, { ignitionPoints, duration_h: durationH, useGusts })
+      const job = await postFreeSimulate(apiKey, { ignitionPoints, duration_h: durationH, useGusts, fuelMoistureScenario })
       setJobStatus(job.status)
       startPolling(job.job_id)
     } catch (e) {
@@ -364,6 +365,13 @@ export default function SimuladorLivreView({ apiKey }) {
             <DurationSelect value={durationH} onChange={setDurationH} />
           </div>
 
+          <div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--muted)', marginBottom: 4 }}>
+              HUMIDADE COMBUSTÍVEL
+            </div>
+            <FuelMoistureScenarioSelect value={fuelMoistureScenario} onChange={setFuelMoistureScenario} disabled={isRunning} />
+          </div>
+
           <label className="filter-check" style={{ alignSelf: 'flex-end', marginBottom: 6 }}>
             <input
               type="checkbox"
@@ -415,6 +423,9 @@ export default function SimuladorLivreView({ apiKey }) {
             {'Meteo: Open-Meteo · vento '}
             {result.meta.use_gusts ? 'rajada ' : ''}
             {fmt(msToKmh(result.meta.use_gusts ? result.meta.wind_gust_ms : result.meta.wind_speed_ms), 0)} km/h {fmt(result.meta.wind_dir_deg, 0)}°
+            {result.meta.fuel_moisture_scenario
+              ? ` · Humidade: cenário ${result.meta.fuel_moisture_scenario} (${FUEL_MOISTURE_SCENARIO_LABEL[result.meta.fuel_moisture_scenario]})`
+              : ' · Humidade: calculada'}
             {` · Resolução: ${result.meta.resolution_m}m`}
           </div>
         )}

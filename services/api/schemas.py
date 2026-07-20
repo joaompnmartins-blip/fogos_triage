@@ -16,7 +16,9 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from fogos_triage.fuel_moisture_scenarios import FUEL_MOISTURE_SCENARIOS
 
 
 # ---------------------------------------------------------------------------
@@ -248,6 +250,15 @@ class FuelModelInfo(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+def _check_fuel_moisture_scenario(v: Optional[str]) -> Optional[str]:
+    if v is not None and v not in FUEL_MOISTURE_SCENARIOS:
+        raise ValueError(
+            f"Cenário de humidade desconhecido: {v!r} "
+            f"(válidos: {sorted(FUEL_MOISTURE_SCENARIOS)})"
+        )
+    return v
+
+
 class SimulationRequest(BaseModel):
     """Pedido de simulação ForeFire."""
     fire_id: str
@@ -258,8 +269,16 @@ class SimulationRequest(BaseModel):
     # Usa a velocidade de rajada (Open-Meteo) em vez do vento sustentado
     # em todas as horas da simulação — ver fogos_triage.triage.gust_weather
     use_gusts: bool = False
+    # Substitui as humidades de combustível calculadas por um cenário
+    # BehavePlus/NWCG fixo (chave de fogos_triage.fuel_moisture_scenarios,
+    # ex. "D3L2") — ver apply_fuel_moisture_scenario
+    fuel_moisture_scenario: Optional[str] = None
     # Override de bbox (se ausente, usa-se janela default 20×20 km)
     bbox_km: Optional[float] = Field(default=None, ge=2.0, le=50.0)
+
+    _validate_fuel_moisture_scenario = field_validator("fuel_moisture_scenario")(
+        _check_fuel_moisture_scenario
+    )
 
 
 class SimulationJob(BaseModel):
@@ -319,7 +338,15 @@ class FreeSimulationRequest(BaseModel):
     # Usa a velocidade de rajada (Open-Meteo) em vez do vento sustentado
     # em todas as horas da simulação — ver fogos_triage.triage.gust_weather
     use_gusts: bool = False
+    # Substitui as humidades de combustível calculadas por um cenário
+    # BehavePlus/NWCG fixo (chave de fogos_triage.fuel_moisture_scenarios,
+    # ex. "D3L2") — ver apply_fuel_moisture_scenario
+    fuel_moisture_scenario: Optional[str] = None
     bbox_km: Optional[float] = Field(default=None, ge=2.0, le=50.0)
+
+    _validate_fuel_moisture_scenario = field_validator("fuel_moisture_scenario")(
+        _check_fuel_moisture_scenario
+    )
 
 
 class FreeSimulationJob(BaseModel):

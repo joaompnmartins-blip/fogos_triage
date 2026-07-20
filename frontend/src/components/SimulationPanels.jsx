@@ -1,4 +1,4 @@
-import { fmt, windDirText } from '../constants'
+import { fmt, windDirText, FUEL_MOISTURE_SCENARIO_LABEL } from '../constants'
 import { msToKmh } from './SimulationMapLayers'
 
 // Painéis de apresentação partilhados entre SimulacaoView (ligada a
@@ -151,6 +151,19 @@ export function DurationSelect({ value, onChange, options = [1, 2, 3, 6, 12, 24]
       onChange={e => onChange(parseInt(e.target.value, 10))}>
       {options.map(h => (
         <option key={h} value={h}>{h}h</option>
+      ))}
+    </select>
+  )
+}
+
+export function FuelMoistureScenarioSelect({ value, onChange, disabled }) {
+  return (
+    <select className="form-input" value={value || ''} disabled={disabled}
+      style={{ fontSize: 12, padding: '5px 8px', maxWidth: 220 }}
+      onChange={e => onChange(e.target.value || null)}>
+      <option value="">Calculado (Open-Meteo)</option>
+      {Object.entries(FUEL_MOISTURE_SCENARIO_LABEL).map(([key, label]) => (
+        <option key={key} value={key}>{key} — {label}</option>
       ))}
     </select>
   )

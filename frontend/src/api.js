@@ -62,7 +62,7 @@ export async function fetchFireHistory(apiKey, fireId) {
   return get(`/fires/${encodeURIComponent(fireId)}/history`, apiKey)
 }
 
-export async function postSimulate(apiKey, fireId, { duration_h = 3, wind_speed_ms, wind_direction_deg, useGusts, bbox_km } = {}) {
+export async function postSimulate(apiKey, fireId, { duration_h = 3, wind_speed_ms, wind_direction_deg, useGusts, fuelMoistureScenario, bbox_km } = {}) {
   const res = await fetch(`${API_BASE}/simulate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...auth(apiKey) },
@@ -72,6 +72,7 @@ export async function postSimulate(apiKey, fireId, { duration_h = 3, wind_speed_
       wind_speed_ms: wind_speed_ms || null,
       wind_direction_deg: wind_direction_deg || null,
       use_gusts: !!useGusts,
+      fuel_moisture_scenario: fuelMoistureScenario || null,
       bbox_km: bbox_km || null,
     }),
   })
@@ -83,7 +84,7 @@ export async function getSimulationJob(apiKey, jobId) {
   return get(`/jobs/${encodeURIComponent(jobId)}`, apiKey)
 }
 
-export async function postFreeSimulate(apiKey, { ignitionPoints, duration_h = 3, useGusts, bbox_km } = {}) {
+export async function postFreeSimulate(apiKey, { ignitionPoints, duration_h = 3, useGusts, fuelMoistureScenario, bbox_km } = {}) {
   const res = await fetch(`${API_BASE}/free-simulate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...auth(apiKey) },
@@ -91,6 +92,7 @@ export async function postFreeSimulate(apiKey, { ignitionPoints, duration_h = 3,
       ignition_points: ignitionPoints,
       duration_h,
       use_gusts: !!useGusts,
+      fuel_moisture_scenario: fuelMoistureScenario || null,
       bbox_km: bbox_km || null,
     }),
   })

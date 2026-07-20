@@ -174,6 +174,7 @@ async def create_simulation(
         landscape_dir=config.landscape_dir,
         landscape_file=config.landscape_file,
         use_gusts=payload.use_gusts,
+        fuel_moisture_scenario=payload.fuel_moisture_scenario,
     ))
 
     return SimulationJob(
@@ -243,6 +244,7 @@ async def _run_and_update(
     landscape_dir: str,
     landscape_file: Optional[str] = None,
     use_gusts: bool = False,
+    fuel_moisture_scenario: Optional[str] = None,
 ):
     """Task em background: corre simulação e grava resultado no DB."""
     async with pool.acquire() as conn:
@@ -252,6 +254,7 @@ async def _run_and_update(
         )
     try:
         from fogos_triage.fuel_models import load_fuel_models_csv
+        from fogos_triage.fuel_moisture_scenarios import apply_fuel_moisture_scenario
         from fogos_triage.landscape import LandscapeRasters, ensure_landscape
         from fogos_triage.schemas import WeatherConditions
         from fogos_triage.simulation import run_simulation_async
@@ -326,11 +329,21 @@ async def _run_and_update(
             # as horas — ver fogos_triage.triage.gust_weather.
             weather_hourly = [gust_weather(wx) for wx in weather_hourly]
 
+        if fuel_moisture_scenario:
+            # Cenário-padrão BehavePlus/NWCG em vez das humidades
+            # calculadas, em todas as horas — ver
+            # fogos_triage.fuel_moisture_scenarios.apply_fuel_moisture_scenario.
+            weather_hourly = [
+                apply_fuel_moisture_scenario(wx, fuel_moisture_scenario)
+                for wx in weather_hourly
+            ]
+
         result = await run_simulation_async(
             lat, lon, weather_hourly, fuel_dict, duration_h,
             bbox_km=bbox_km, **rasters_kwargs,
         )
         result["meta"]["use_gusts"] = use_gusts
+        result["meta"]["fuel_moisture_scenario"] = fuel_moisture_scenario
 
         async with pool.acquire() as conn:
             await conn.execute(

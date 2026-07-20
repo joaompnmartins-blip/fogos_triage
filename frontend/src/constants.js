@@ -42,6 +42,28 @@ export const CONTROL_LABEL = {
   7: 'Impossível',
 }
 
+// Cenários-padrão de humidade de combustível BehavePlus/NWCG (D1-D4 ×
+// L1-L4) — override opcional no Simulador, ver
+// src/fogos_triage/fuel_moisture_scenarios.py.
+export const FUEL_MOISTURE_SCENARIO_LABEL = {
+  D1L1: 'Combustível morto muito baixo, herbácea totalmente curada',
+  D1L2: 'Combustível morto muito baixo, herbácea 2/3 curada',
+  D1L3: 'Combustível morto muito baixo, herbácea 1/3 curada',
+  D1L4: 'Combustível morto muito baixo, herbácea totalmente verde',
+  D2L1: 'Combustível morto baixo, herbácea totalmente curada',
+  D2L2: 'Combustível morto baixo, herbácea 2/3 curada',
+  D2L3: 'Combustível morto baixo, herbácea 1/3 curada',
+  D2L4: 'Combustível morto baixo, herbácea totalmente verde',
+  D3L1: 'Combustível morto moderado, herbácea totalmente curada',
+  D3L2: 'Combustível morto moderado, herbácea 2/3 curada',
+  D3L3: 'Combustível morto moderado, herbácea 1/3 curada',
+  D3L4: 'Combustível morto moderado, herbácea totalmente verde',
+  D4L1: 'Combustível morto alto, herbácea totalmente curada',
+  D4L2: 'Combustível morto alto, herbácea 2/3 curada',
+  D4L3: 'Combustível morto alto, herbácea 1/3 curada',
+  D4L4: 'Combustível morto alto, herbácea totalmente verde',
+}
+
 export const FIRE_TYPE_LABEL = {
   surface: 'SUP',
   torching: 'TORCH',
