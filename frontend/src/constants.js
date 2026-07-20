@@ -46,22 +46,22 @@ export const CONTROL_LABEL = {
 // L1-L4) — override opcional no Simulador, ver
 // src/fogos_triage/fuel_moisture_scenarios.py.
 export const FUEL_MOISTURE_SCENARIO_LABEL = {
-  D1L1: 'Combustível morto muito baixo, herbácea totalmente curada',
-  D1L2: 'Combustível morto muito baixo, herbácea 2/3 curada',
-  D1L3: 'Combustível morto muito baixo, herbácea 1/3 curada',
-  D1L4: 'Combustível morto muito baixo, herbácea totalmente verde',
-  D2L1: 'Combustível morto baixo, herbácea totalmente curada',
-  D2L2: 'Combustível morto baixo, herbácea 2/3 curada',
-  D2L3: 'Combustível morto baixo, herbácea 1/3 curada',
-  D2L4: 'Combustível morto baixo, herbácea totalmente verde',
-  D3L1: 'Combustível morto moderado, herbácea totalmente curada',
-  D3L2: 'Combustível morto moderado, herbácea 2/3 curada',
-  D3L3: 'Combustível morto moderado, herbácea 1/3 curada',
-  D3L4: 'Combustível morto moderado, herbácea totalmente verde',
-  D4L1: 'Combustível morto alto, herbácea totalmente curada',
-  D4L2: 'Combustível morto alto, herbácea 2/3 curada',
-  D4L3: 'Combustível morto alto, herbácea 1/3 curada',
-  D4L4: 'Combustível morto alto, herbácea totalmente verde',
+  D1L1: 'Morto muito seco, herbáceo curado (3,4,5,30,60)',
+  D1L2: 'Morto muito seco, herbáceo 2/3 cura (3,4,5,60,90)',
+  D1L3: 'Morto muito seco, herbáceo 1/3 cura (3,4,5,90,120)',
+  D1L4: 'Morto muito seco, herbáceo verde (3,4,5,120,150)',
+  D2L1: 'Morto seco, herbáceo curado (6,7,8,30,60)',
+  D2L2: 'Morto seco, herbáceo 2/3 cura (6,7,8,60,90)',
+  D2L3: 'Morto seco, herbáceo 1/3 cura (6,7,8,90,120)',
+  D2L4: 'Morto seco, herbáceo verde (6,7,8,120,150)',
+  D3L1: 'Morto pouco seco, herbáceo curado (9,10,11,30,60)',
+  D3L2: 'Morto pouco seco, herbáceo 2/3 cura (9,10,11,60,90)',
+  D3L3: 'Morto pouco seco, herbáceo 1/3 cura (9,10,11,90,120)',
+  D3L4: 'Morto pouco seco, herbáceo verde (9,10,11,120,150)',
+  D4L1: 'Morto húmido, herbáceo curado (12,13,14,30,60)',
+  D4L2: 'Morto húmido, herbáceo 2/3 cura (12,13,14,60,90)',
+  D4L3: 'Morto húmido, herbáceo 1/3 cura (12,13,14,90,120)',
+  D4L4: 'Morto húmido, herbáceo verde (12,13,14,120,150)',
 }
 
 export const FIRE_TYPE_LABEL = {
