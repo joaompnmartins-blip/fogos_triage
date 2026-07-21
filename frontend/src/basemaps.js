@@ -22,7 +22,32 @@ export const SATELLITE_STYLE = {
   layers: [{ id: 'satellite-bg', type: 'raster', source: 'satellite' }],
 }
 
+// OpenTopoMap — curvas de nível + relevo sombreado (SRTM), útil para
+// avaliar declive/exposição visualmente sem sair do Simulador/Mapa.
+// Tiles servidos até zoom 17 nativo; acima disso o browser faz upscale
+// do último nível (comportamento normal de raster tiles).
+export const TOPO_STYLE = {
+  version: 8,
+  sources: {
+    topo: {
+      type: 'raster',
+      tiles: [
+        'https://a.tile.opentopomap.org/{z}/{x}/{y}.png',
+        'https://b.tile.opentopomap.org/{z}/{x}/{y}.png',
+        'https://c.tile.opentopomap.org/{z}/{x}/{y}.png',
+      ],
+      tileSize: 256,
+      attribution: '© OpenStreetMap contributors, SRTM | © OpenTopoMap (CC-BY-SA)',
+      maxzoom: 17,
+    },
+  },
+  layers: [{ id: 'topo-bg', type: 'raster', source: 'topo' }],
+}
+
 export function basemapStyle(basemap, theme) {
   if (basemap === 'satellite') return SATELLITE_STYLE
+  if (basemap === 'topo') return TOPO_STYLE
   return theme === 'dark' ? OSM_STYLE_DARK : OSM_STYLE_LIGHT
 }
+
+export const BASEMAP_LABEL = { osm: 'OSM', satellite: 'SAT', topo: 'TOPO' }

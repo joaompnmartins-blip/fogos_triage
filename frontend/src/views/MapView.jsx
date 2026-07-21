@@ -270,6 +270,12 @@ export default function MapView({ apiKey, theme }) {
           >
             Satélite
           </button>
+          <button
+            className={`map-basemap-btn${basemap === 'topo' ? ' active' : ''}`}
+            onClick={() => setBasemap('topo')}
+          >
+            Topo
+          </button>
         </div>
       </div>
     </div>

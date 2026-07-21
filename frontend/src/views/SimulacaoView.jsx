@@ -9,7 +9,7 @@ import {
   downloadGeoJSON, perimetersToFeatureCollection,
 } from '../components/SimulationMapLayers'
 import { Legend, ResultsTable, DurationSelect, FuelMoistureScenarioSelect, FileTextInput } from '../components/SimulationPanels'
-import { basemapStyle } from '../basemaps'
+import { basemapStyle, BASEMAP_LABEL } from '../basemaps'
 
 export default function SimulacaoView({ apiKey, theme }) {
   const { fireId } = useParams()
@@ -171,11 +171,11 @@ export default function SimulacaoView({ apiKey, theme }) {
           display: 'flex', flexDirection: 'column', gap: 6,
         }}>
           <div className="map-overlay-panel" style={{ display: 'flex', gap: 4, borderRadius: 4, padding: 4 }}>
-            {['osm', 'satellite'].map(b => (
+            {['osm', 'satellite', 'topo'].map(b => (
               <button key={b} className={`btn btn-ghost${basemap === b ? ' active' : ''}`}
                 style={{ fontSize: 10, padding: '3px 8px' }}
                 onClick={() => setBasemap(b)}>
-                {b === 'osm' ? 'OSM' : 'SAT'}
+                {BASEMAP_LABEL[b]}
               </button>
             ))}
           </div>
