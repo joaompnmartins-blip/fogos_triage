@@ -16,7 +16,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from fogos_triage.fuel_moisture_scenarios import FUEL_MOISTURE_SCENARIOS
 
@@ -259,6 +259,19 @@ def _check_fuel_moisture_scenario(v: Optional[str]) -> Optional[str]:
     return v
 
 
+def _check_no_fuel_moisture_override_conflict(self):
+    """fuel_moisture_scenario (cenário BehavePlus fixo) e
+    fuel_moisture_table_text (tabela FARSITE .FMS por modelo de
+    combustível) são dois overrides de humidade mutuamente exclusivos
+    — só um pode estar activo por simulação."""
+    if self.fuel_moisture_scenario is not None and self.fuel_moisture_table_text is not None:
+        raise ValueError(
+            "fuel_moisture_scenario e fuel_moisture_table_text são "
+            "mutuamente exclusivos — escolher um dos dois overrides de humidade"
+        )
+    return self
+
+
 class SimulationRequest(BaseModel):
     """Pedido de simulação ForeFire."""
     fire_id: str
@@ -275,9 +288,20 @@ class SimulationRequest(BaseModel):
     fuel_moisture_scenario: Optional[str] = None
     # Override de bbox (se ausente, usa-se janela default 20×20 km)
     bbox_km: Optional[float] = Field(default=None, ge=2.0, le=50.0)
+    # Texto bruto de um Weather Stream File (.WXS) FARSITE — substitui o
+    # Open-Meteo por inteiro (ver fogos_triage.weather_stream). Lido pelo
+    # frontend localmente (FileReader), sem endpoint de upload.
+    weather_stream_text: Optional[str] = None
+    # Texto bruto de um Initial Fuel Moistures File (.FMS) FARSITE —
+    # humidade por modelo de combustível, mutuamente exclusivo com
+    # fuel_moisture_scenario (ver fogos_triage.fuel_moisture_table).
+    fuel_moisture_table_text: Optional[str] = None
 
     _validate_fuel_moisture_scenario = field_validator("fuel_moisture_scenario")(
         _check_fuel_moisture_scenario
+    )
+    _validate_no_fuel_moisture_conflict = model_validator(mode="after")(
+        _check_no_fuel_moisture_override_conflict
     )
 
 
@@ -344,9 +368,20 @@ class FreeSimulationRequest(BaseModel):
     # ex. "D3L2") — ver apply_fuel_moisture_scenario
     fuel_moisture_scenario: Optional[str] = None
     bbox_km: Optional[float] = Field(default=None, ge=2.0, le=50.0)
+    # Texto bruto de um Weather Stream File (.WXS) FARSITE — substitui o
+    # Open-Meteo por inteiro (ver fogos_triage.weather_stream). Lido pelo
+    # frontend localmente (FileReader), sem endpoint de upload.
+    weather_stream_text: Optional[str] = None
+    # Texto bruto de um Initial Fuel Moistures File (.FMS) FARSITE —
+    # humidade por modelo de combustível, mutuamente exclusivo com
+    # fuel_moisture_scenario (ver fogos_triage.fuel_moisture_table).
+    fuel_moisture_table_text: Optional[str] = None
 
     _validate_fuel_moisture_scenario = field_validator("fuel_moisture_scenario")(
         _check_fuel_moisture_scenario
+    )
+    _validate_no_fuel_moisture_conflict = model_validator(mode="after")(
+        _check_no_fuel_moisture_override_conflict
     )
 
 

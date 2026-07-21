@@ -175,6 +175,8 @@ async def create_simulation(
         landscape_file=config.landscape_file,
         use_gusts=payload.use_gusts,
         fuel_moisture_scenario=payload.fuel_moisture_scenario,
+        weather_stream_text=payload.weather_stream_text,
+        fuel_moisture_table_text=payload.fuel_moisture_table_text,
     ))
 
     return SimulationJob(
@@ -245,6 +247,8 @@ async def _run_and_update(
     landscape_file: Optional[str] = None,
     use_gusts: bool = False,
     fuel_moisture_scenario: Optional[str] = None,
+    weather_stream_text: Optional[str] = None,
+    fuel_moisture_table_text: Optional[str] = None,
 ):
     """Task em background: corre simulação e grava resultado no DB."""
     async with pool.acquire() as conn:
@@ -255,11 +259,13 @@ async def _run_and_update(
     try:
         from fogos_triage.fuel_models import load_fuel_models_csv
         from fogos_triage.fuel_moisture_scenarios import apply_fuel_moisture_scenario
+        from fogos_triage.fuel_moisture_table import parse_fuel_moisture_table
         from fogos_triage.landscape import LandscapeRasters, ensure_landscape
         from fogos_triage.schemas import WeatherConditions
         from fogos_triage.simulation import run_simulation_async
         from fogos_triage.triage import gust_weather
         from fogos_triage.weather import derive_fire_weather, fetch_open_meteo
+        from fogos_triage.weather_stream import parse_weather_stream
 
         import asyncio as _asyncio
         await _asyncio.get_event_loop().run_in_executor(
@@ -284,14 +290,30 @@ async def _run_and_update(
             os.environ.get("FUEL_MODELS_CSV", "/data/fuel_models_pt.csv")
         )
 
-        # Previsão horária do Open-Meteo para toda a duração da simulação.
-        # Fallback para meteo única da triagem se a API falhar.
         n_hours = int(math.ceil(duration_h)) + 1
-        try:
-            raw_hourly = await fetch_open_meteo(lat, lon, hours_ahead=n_hours)
-        except Exception as exc:
-            log.warning("Open-Meteo falhou para simulação %s: %s — usando meteo da triagem", job_id, exc)
-            raw_hourly = []
+
+        if weather_stream_text:
+            # Weather Stream File (.WXS) FARSITE — substitui o Open-Meteo
+            # por inteiro; hora 0 = primeira linha do ficheiro (é um
+            # cenário/timeline próprio, não alinhado ao instante actual).
+            # Erro de parsing propaga-se e falha o job com mensagem clara
+            # (mesmo padrão de run_simulation_async abaixo).
+            raw_hourly = parse_weather_stream(weather_stream_text)
+            if len(raw_hourly) - 1 < duration_h:
+                raise ValueError(
+                    f"Weather Stream: só cobre {len(raw_hourly) - 1}h, "
+                    f"mas a simulação pediu {duration_h}h"
+                )
+            weather_source = "weather_stream"
+        else:
+            # Previsão horária do Open-Meteo para toda a duração da
+            # simulação. Fallback para meteo única da triagem se a API falhar.
+            try:
+                raw_hourly = await fetch_open_meteo(lat, lon, hours_ahead=n_hours)
+            except Exception as exc:
+                log.warning("Open-Meteo falhou para simulação %s: %s — usando meteo da triagem", job_id, exc)
+                raw_hourly = []
+            weather_source = "open_meteo" if raw_hourly else "triagem"
 
         if raw_hourly:
             # derive_fire_weather aplica Simard 1968 (humidades mortas) + WAF
@@ -324,7 +346,12 @@ async def _run_and_update(
                 fuel_moisture_live_w_pct=fm_live_w,
             )]
 
-        if use_gusts:
+        if use_gusts and weather_stream_text:
+            log.warning(
+                "Simulação %s: use_gusts ignorado — Weather Stream não tem "
+                "coluna de rajada", job_id,
+            )
+        elif use_gusts:
             # Vento de rajada (Open-Meteo) em vez de sustentado, em todas
             # as horas — ver fogos_triage.triage.gust_weather.
             weather_hourly = [gust_weather(wx) for wx in weather_hourly]
@@ -338,12 +365,25 @@ async def _run_and_update(
                 for wx in weather_hourly
             ]
 
+        fuel_moisture_table = None
+        fuel_moisture_source = "calculado"
+        if fuel_moisture_table_text:
+            # Initial Fuel Moistures File (.FMS) FARSITE — humidade por
+            # modelo de combustível, aplicada por ponto/vértice dentro de
+            # run_simulation_async (ver fogos_triage.fuel_moisture_table).
+            fuel_moisture_table = parse_fuel_moisture_table(fuel_moisture_table_text)
+            fuel_moisture_source = "table"
+        elif fuel_moisture_scenario:
+            fuel_moisture_source = "scenario"
+
         result = await run_simulation_async(
             lat, lon, weather_hourly, fuel_dict, duration_h,
-            bbox_km=bbox_km, **rasters_kwargs,
+            bbox_km=bbox_km, fuel_moisture_table=fuel_moisture_table, **rasters_kwargs,
         )
-        result["meta"]["use_gusts"] = use_gusts
+        result["meta"]["use_gusts"] = use_gusts and not weather_stream_text
         result["meta"]["fuel_moisture_scenario"] = fuel_moisture_scenario
+        result["meta"]["weather_source"] = weather_source
+        result["meta"]["fuel_moisture_source"] = fuel_moisture_source
 
         async with pool.acquire() as conn:
             await conn.execute(

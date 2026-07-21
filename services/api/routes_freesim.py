@@ -73,6 +73,8 @@ async def create_free_simulation(
         landscape_file=config.landscape_file,
         use_gusts=payload.use_gusts,
         fuel_moisture_scenario=payload.fuel_moisture_scenario,
+        weather_stream_text=payload.weather_stream_text,
+        fuel_moisture_table_text=payload.fuel_moisture_table_text,
     ))
 
     return FreeSimulationJob(
@@ -134,14 +136,18 @@ async def _run_free_simulation(
     landscape_file: Optional[str] = None,
     use_gusts: bool = False,
     fuel_moisture_scenario: Optional[str] = None,
+    weather_stream_text: Optional[str] = None,
+    fuel_moisture_table_text: Optional[str] = None,
 ):
     """Task em background: corre simulação livre e grava resultado no DB.
 
     Sem ocorrência/triagem prévia associada: a meteo vem sempre do
     Open-Meteo ao vivo para o primeiro ponto de ignição (ou o único, se
     pontual) — sem override manual, ao contrário do fluxo ligado a
-    ocorrências. Humidade viva do combustível tenta VIIRS/GEE, com
-    fallback sazonal (mesmo caminho já usado em routes_meta._run_and_update).
+    ocorrências — a não ser que `weather_stream_text` seja dado, caso em
+    que substitui o Open-Meteo por inteiro. Humidade viva do combustível
+    tenta VIIRS/GEE, com fallback sazonal (mesmo caminho já usado em
+    routes_meta._run_and_update).
     """
     async with pool.acquire() as conn:
         await conn.execute(
@@ -151,6 +157,7 @@ async def _run_free_simulation(
     try:
         from fogos_triage.fuel_models import load_fuel_models_csv
         from fogos_triage.fuel_moisture_scenarios import apply_fuel_moisture_scenario
+        from fogos_triage.fuel_moisture_table import parse_fuel_moisture_table
         from fogos_triage.landscape import LandscapeRasters, ensure_landscape
         from fogos_triage.simulation import run_simulation_async
         from fogos_triage.triage import gust_weather
@@ -159,6 +166,7 @@ async def _run_free_simulation(
             fetch_live_fmc_viirs,
             fetch_open_meteo,
         )
+        from fogos_triage.weather_stream import parse_weather_stream
 
         lat, lon = ignition_points[0]
 
@@ -186,17 +194,30 @@ async def _run_free_simulation(
         )
 
         n_hours = int(math.ceil(duration_h)) + 1
-        try:
-            raw_hourly = await fetch_open_meteo(lat, lon, hours_ahead=n_hours)
-        except Exception as exc:
-            log.warning("Open-Meteo falhou para simulação livre %s: %s", job_id, exc)
-            raw_hourly = []
 
-        if not raw_hourly:
-            raise RuntimeError(
-                "Open-Meteo indisponível — simulação livre requer meteo ao vivo "
-                "(sem ocorrência/triagem para usar como fallback)"
-            )
+        if weather_stream_text:
+            # Weather Stream File (.WXS) FARSITE — substitui o Open-Meteo
+            # por inteiro; hora 0 = primeira linha do ficheiro.
+            raw_hourly = parse_weather_stream(weather_stream_text)
+            if len(raw_hourly) - 1 < duration_h:
+                raise ValueError(
+                    f"Weather Stream: só cobre {len(raw_hourly) - 1}h, "
+                    f"mas a simulação pediu {duration_h}h"
+                )
+            weather_source = "weather_stream"
+        else:
+            try:
+                raw_hourly = await fetch_open_meteo(lat, lon, hours_ahead=n_hours)
+            except Exception as exc:
+                log.warning("Open-Meteo falhou para simulação livre %s: %s", job_id, exc)
+                raw_hourly = []
+
+            if not raw_hourly:
+                raise RuntimeError(
+                    "Open-Meteo indisponível — simulação livre requer meteo ao vivo "
+                    "(sem ocorrência/triagem para usar como fallback)"
+                )
+            weather_source = "open_meteo"
 
         # Humidade viva: VIIRS/GEE se configurado, senão fallback sazonal
         # (mesmos defaults 60%/80% usados em todo o resto da app)
@@ -214,7 +235,12 @@ async def _run_free_simulation(
         ]
         log.info("Simulação livre %s: %d snapshots horários Open-Meteo", job_id, len(weather_hourly))
 
-        if use_gusts:
+        if use_gusts and weather_stream_text:
+            log.warning(
+                "Simulação livre %s: use_gusts ignorado — Weather Stream não "
+                "tem coluna de rajada", job_id,
+            )
+        elif use_gusts:
             # Vento de rajada (Open-Meteo) em vez de sustentado, em todas
             # as horas — ver fogos_triage.triage.gust_weather.
             weather_hourly = [gust_weather(wx) for wx in weather_hourly]
@@ -228,12 +254,26 @@ async def _run_free_simulation(
                 for wx in weather_hourly
             ]
 
+        fuel_moisture_table = None
+        fuel_moisture_source = "calculado"
+        if fuel_moisture_table_text:
+            # Initial Fuel Moistures File (.FMS) FARSITE — humidade por
+            # modelo de combustível, aplicada por ponto/vértice dentro de
+            # run_simulation_async (ver fogos_triage.fuel_moisture_table).
+            fuel_moisture_table = parse_fuel_moisture_table(fuel_moisture_table_text)
+            fuel_moisture_source = "table"
+        elif fuel_moisture_scenario:
+            fuel_moisture_source = "scenario"
+
         result = await run_simulation_async(
             lat, lon, weather_hourly, fuel_dict, duration_h,
-            bbox_km=bbox_km, ignition_points=ignition_points, **rasters_kwargs,
+            bbox_km=bbox_km, ignition_points=ignition_points,
+            fuel_moisture_table=fuel_moisture_table, **rasters_kwargs,
         )
-        result["meta"]["use_gusts"] = use_gusts
+        result["meta"]["use_gusts"] = use_gusts and not weather_stream_text
         result["meta"]["fuel_moisture_scenario"] = fuel_moisture_scenario
+        result["meta"]["weather_source"] = weather_source
+        result["meta"]["fuel_moisture_source"] = fuel_moisture_source
 
         async with pool.acquire() as conn:
             await conn.execute(

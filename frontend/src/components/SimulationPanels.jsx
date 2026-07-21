@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { fmt, windDirText, FUEL_MOISTURE_SCENARIO_LABEL } from '../constants'
 import { msToKmh } from './SimulationMapLayers'
 
@@ -166,5 +167,46 @@ export function FuelMoistureScenarioSelect({ value, onChange, disabled }) {
         <option key={key} value={key}>{key} — {label}</option>
       ))}
     </select>
+  )
+}
+
+// Picker de ficheiro lido inteiramente no browser (FileReader) — o
+// texto viaja no corpo do pedido de simulação já existente
+// (weather_stream_text/fuel_moisture_table_text), sem endpoint de
+// upload novo. Leitura é por conteúdo, não por extensão — `accept` é
+// só filtro cosmético da caixa de diálogo do browser.
+export function FileTextInput({ label, accept, filename, onChange, disabled }) {
+  const inputRef = useRef(null)
+
+  function handleFile(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => onChange(reader.result, file.name)
+    reader.readAsText(file)
+  }
+
+  function handleClear() {
+    onChange(null, null)
+    if (inputRef.current) inputRef.current.value = ''
+  }
+
+  return (
+    <div>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--muted)', marginBottom: 4 }}>
+        {label}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <input ref={inputRef} type="file" accept={accept} disabled={disabled}
+          onChange={handleFile}
+          style={{ fontSize: 10, maxWidth: 170, color: 'var(--text)' }} />
+        {filename && (
+          <button type="button" className="btn btn-ghost" style={{ fontSize: 9, padding: '2px 6px' }}
+            onClick={handleClear} title={`Remover ${filename}`}>
+            ✕
+          </button>
+        )}
+      </div>
+    </div>
   )
 }

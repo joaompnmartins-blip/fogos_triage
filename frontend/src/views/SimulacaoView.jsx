@@ -8,7 +8,7 @@ import {
   COLOR_LABELS, COLOR_STOPS, msToKmh, perimStyle, renderSimulationLayers,
   downloadGeoJSON, perimetersToFeatureCollection,
 } from '../components/SimulationMapLayers'
-import { Legend, ResultsTable, DurationSelect, FuelMoistureScenarioSelect } from '../components/SimulationPanels'
+import { Legend, ResultsTable, DurationSelect, FuelMoistureScenarioSelect, FileTextInput } from '../components/SimulationPanels'
 import { basemapStyle } from '../basemaps'
 
 export default function SimulacaoView({ apiKey, theme }) {
@@ -23,6 +23,10 @@ export default function SimulacaoView({ apiKey, theme }) {
   const [durationH, setDurationH] = useState(3)
   const [useGusts, setUseGusts] = useState(false)
   const [fuelMoistureScenario, setFuelMoistureScenario] = useState(null)
+  const [weatherStreamText, setWeatherStreamText] = useState(null)
+  const [weatherStreamFilename, setWeatherStreamFilename] = useState(null)
+  const [fuelMoistureTableText, setFuelMoistureTableText] = useState(null)
+  const [fuelMoistureTableFilename, setFuelMoistureTableFilename] = useState(null)
   const [jobStatus, setJobStatus] = useState(null)
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
@@ -105,6 +109,23 @@ export default function SimulacaoView({ apiKey, theme }) {
 
   useEffect(() => () => clearInterval(pollRef.current), [])
 
+  function handleWeatherStreamChange(text, filename) {
+    setWeatherStreamText(text)
+    setWeatherStreamFilename(filename)
+    if (text) setUseGusts(false) // Weather Stream não tem coluna de rajada
+  }
+
+  function handleFuelMoistureTableChange(text, filename) {
+    setFuelMoistureTableText(text)
+    setFuelMoistureTableFilename(filename)
+    if (text) setFuelMoistureScenario(null) // mutuamente exclusivo
+  }
+
+  function handleFuelMoistureScenarioChange(value) {
+    setFuelMoistureScenario(value)
+    if (value) { setFuelMoistureTableText(null); setFuelMoistureTableFilename(null) }
+  }
+
   async function handleSimulate() {
     setJobStatus('pending')
     setResult(null)
@@ -114,6 +135,8 @@ export default function SimulacaoView({ apiKey, theme }) {
         duration_h: durationH,
         useGusts,
         fuelMoistureScenario,
+        weatherStreamText,
+        fuelMoistureTableText,
       })
       setJobStatus(job.status)
       startPolling(job.job_id)
@@ -240,14 +263,35 @@ export default function SimulacaoView({ apiKey, theme }) {
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--muted)', marginBottom: 4 }}>
               HUMIDADE COMBUSTÍVEL
             </div>
-            <FuelMoistureScenarioSelect value={fuelMoistureScenario} onChange={setFuelMoistureScenario} disabled={isRunning} />
+            <FuelMoistureScenarioSelect
+              value={fuelMoistureScenario}
+              onChange={handleFuelMoistureScenarioChange}
+              disabled={isRunning || !!fuelMoistureTableFilename}
+            />
           </div>
 
-          <label className="filter-check" style={{ alignSelf: 'flex-end', marginBottom: 6 }}>
+          <FileTextInput
+            label="HUMIDADES INICIAIS (.FMS)"
+            accept=".txt,.fms"
+            filename={fuelMoistureTableFilename}
+            onChange={handleFuelMoistureTableChange}
+            disabled={isRunning || !!fuelMoistureScenario}
+          />
+
+          <FileTextInput
+            label="WEATHER STREAM (.WXS)"
+            accept=".txt,.wxs"
+            filename={weatherStreamFilename}
+            onChange={handleWeatherStreamChange}
+            disabled={isRunning}
+          />
+
+          <label className="filter-check" style={{ alignSelf: 'flex-end', marginBottom: 6 }}
+            title={weatherStreamFilename ? 'Weather Stream não tem coluna de rajada' : undefined}>
             <input
               type="checkbox"
               checked={useGusts}
-              disabled={isRunning}
+              disabled={isRunning || !!weatherStreamFilename}
               onChange={e => setUseGusts(e.target.checked)}
             />
             Usar rajadas (Open-Meteo)
@@ -294,12 +338,14 @@ export default function SimulacaoView({ apiKey, theme }) {
 
         {result && (
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--dim)', marginTop: 4 }}>
-            {'Meteo: Open-Meteo · vento '}
+            {`Meteo: ${result.meta.weather_source === 'weather_stream' ? 'Weather Stream' : 'Open-Meteo'} · vento `}
             {result.meta.use_gusts ? 'rajada ' : ''}
             {fmt(msToKmh(result.meta.use_gusts ? result.meta.wind_gust_ms : result.meta.wind_speed_ms), 0)} km/h {fmt(result.meta.wind_dir_deg, 0)}°
-            {result.meta.fuel_moisture_scenario
-              ? ` · Humidade: cenário ${result.meta.fuel_moisture_scenario} (${FUEL_MOISTURE_SCENARIO_LABEL[result.meta.fuel_moisture_scenario]})`
-              : ' · Humidade: calculada'}
+            {result.meta.fuel_moisture_source === 'table'
+              ? ' · Humidade: tabela FARSITE (.FMS)'
+              : result.meta.fuel_moisture_scenario
+                ? ` · Humidade: cenário ${result.meta.fuel_moisture_scenario} (${FUEL_MOISTURE_SCENARIO_LABEL[result.meta.fuel_moisture_scenario]})`
+                : ' · Humidade: calculada'}
             {triage && ` · Triagem: ${fmtDateTime(triage.computed_at)}`}
             {` · Resolução: ${result.meta.resolution_m}m`}
           </div>

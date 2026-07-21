@@ -37,6 +37,8 @@ except ImportError:
 
 from .engine import _max_spread_direction_from_phi, _rothermel_direct
 from .fuel_models import FuelModelPT
+from .fuel_moisture_table import FuelMoistureRow
+from .fuel_moisture_table import lookup as _lookup_fuel_moisture
 from .landscape import LandscapeReader, LandscapeRasters
 from .schemas import WeatherConditions
 
@@ -192,6 +194,26 @@ def _richards_step(
 # Pré-computa grelha ROS/FLI/chama para visualização
 # ---------------------------------------------------------------------------
 
+def _point_moisture(
+    fuel_moisture_table: Optional[dict[int, FuelMoistureRow]],
+    fuel_model_num: int,
+    default_m_1h: float, default_m_10h: float, default_m_100h: float,
+    default_m_lh: float, default_m_lw: float,
+) -> tuple[float, float, float, float, float]:
+    """Humidades (fração 0-1) para um ponto — vindas da tabela por
+    modelo de combustível (Initial Fuel Moistures .FMS, ver
+    fuel_moisture_table.py) se dada, senão os valores por omissão já
+    calculados a partir da meteo (Simard 1968/VIIRS/cenário BehavePlus).
+    """
+    if fuel_moisture_table is None:
+        return default_m_1h, default_m_10h, default_m_100h, default_m_lh, default_m_lw
+    row = _lookup_fuel_moisture(fuel_moisture_table, fuel_model_num)
+    return (
+        row.m1h_pct / 100.0, row.m10h_pct / 100.0, row.m100h_pct / 100.0,
+        row.live_h_pct / 100.0, row.live_w_pct / 100.0,
+    )
+
+
 def _build_ros_grid(
     reader: LandscapeReader,
     fuel_models: dict[int, FuelModelPT],
@@ -199,6 +221,7 @@ def _build_ros_grid(
     cx_proj: float, cy_proj: float,
     bbox_km: float,
     resolution_m: float,
+    fuel_moisture_table: Optional[dict[int, FuelMoistureRow]] = None,
 ) -> dict:
     """
     Constrói uma GeoJSON FeatureCollection com uma célula por ponto de grelha
@@ -251,11 +274,11 @@ def _build_ros_grid(
 
     lons, lats = rio_transform(reader.crs, "EPSG:4326", pts_x, pts_y)
 
-    m_1h   = (weather.fuel_moisture_1h_pct   or 8.0)  / 100.0
-    m_10h  = (weather.fuel_moisture_10h_pct  or 9.0)  / 100.0
-    m_100h = (weather.fuel_moisture_100h_pct or 10.0) / 100.0
-    m_lh   = (weather.fuel_moisture_live_h_pct or 100.0) / 100.0
-    m_lw   = (weather.fuel_moisture_live_w_pct or 100.0) / 100.0
+    default_m_1h   = (weather.fuel_moisture_1h_pct   or 8.0)  / 100.0
+    default_m_10h  = (weather.fuel_moisture_10h_pct  or 9.0)  / 100.0
+    default_m_100h = (weather.fuel_moisture_100h_pct or 10.0) / 100.0
+    default_m_lh   = (weather.fuel_moisture_live_h_pct or 100.0) / 100.0
+    default_m_lw   = (weather.fuel_moisture_live_w_pct or 100.0) / 100.0
     wind_mf = weather.wind_midflame_ms or 0.0
 
     features = []
@@ -266,6 +289,10 @@ def _build_ros_grid(
             ros, fi, flame = 0.0, 0.0, 0.0
         else:
             try:
+                m_1h, m_10h, m_100h, m_lh, m_lw = _point_moisture(
+                    fuel_moisture_table, int(fnum),
+                    default_m_1h, default_m_10h, default_m_100h, default_m_lh, default_m_lw,
+                )
                 ros, fi, *_ = _rothermel_direct(
                     fm, m_1h, m_10h, m_100h, m_lh, m_lw,
                     wind_midflame_ms=wind_mf,
@@ -307,6 +334,7 @@ def _build_direction_arrows(
     weather: WeatherConditions,
     min_x: float, min_y: float, max_x: float, max_y: float,
     n_per_side: int = DIRECTION_ARROWS_PER_SIDE,
+    fuel_moisture_table: Optional[dict[int, FuelMoistureRow]] = None,
 ) -> dict:
     """
     Constrói uma GeoJSON FeatureCollection de pontos com a direcção de
@@ -369,11 +397,11 @@ def _build_direction_arrows(
 
     lons, lats = rio_transform(reader.crs, "EPSG:4326", pts_x, pts_y)
 
-    m_1h   = (weather.fuel_moisture_1h_pct   or 8.0)  / 100.0
-    m_10h  = (weather.fuel_moisture_10h_pct  or 9.0)  / 100.0
-    m_100h = (weather.fuel_moisture_100h_pct or 10.0) / 100.0
-    m_lh   = (weather.fuel_moisture_live_h_pct or 100.0) / 100.0
-    m_lw   = (weather.fuel_moisture_live_w_pct or 100.0) / 100.0
+    default_m_1h   = (weather.fuel_moisture_1h_pct   or 8.0)  / 100.0
+    default_m_10h  = (weather.fuel_moisture_10h_pct  or 9.0)  / 100.0
+    default_m_100h = (weather.fuel_moisture_100h_pct or 10.0) / 100.0
+    default_m_lh   = (weather.fuel_moisture_live_h_pct or 100.0) / 100.0
+    default_m_lw   = (weather.fuel_moisture_live_w_pct or 100.0) / 100.0
     wind_mf = weather.wind_midflame_ms or 0.0
     wind_dir = weather.wind_direction_deg or 0.0
 
@@ -383,6 +411,10 @@ def _build_direction_arrows(
         if fm is None or fm.is_empty:
             continue
         try:
+            m_1h, m_10h, m_100h, m_lh, m_lw = _point_moisture(
+                fuel_moisture_table, int(fnum),
+                default_m_1h, default_m_10h, default_m_100h, default_m_lh, default_m_lw,
+            )
             ros, fi, phi_w, phi_s, *_ = _rothermel_direct(
                 fm, m_1h, m_10h, m_100h, m_lh, m_lw,
                 wind_midflame_ms=wind_mf,
@@ -503,6 +535,7 @@ def _propagate(
     snapshot_hours: list[float],
     distance_resolution_m: float,
     ignition_points_proj: Optional[list[tuple[float, float]]] = None,
+    fuel_moisture_table: Optional[dict[int, FuelMoistureRow]] = None,
 ) -> tuple[list[PerimeterSnapshot], bool]:
     """Propaga o fogo usando Richards (1990); devolve snapshots do perímetro.
 
@@ -559,11 +592,11 @@ def _propagate(
         # Meteo da hora atual — actualiza a cada hora de simulação
         hour_idx = min(int(t / 60), len(weather_hourly) - 1)
         wx = weather_hourly[hour_idx]
-        m_1h   = (wx.fuel_moisture_1h_pct   or 8.0)  / 100.0
-        m_10h  = (wx.fuel_moisture_10h_pct  or 9.0)  / 100.0
-        m_100h = (wx.fuel_moisture_100h_pct or 10.0) / 100.0
-        m_lh   = (wx.fuel_moisture_live_h_pct or 100.0) / 100.0
-        m_lw   = (wx.fuel_moisture_live_w_pct or 100.0) / 100.0
+        default_m_1h   = (wx.fuel_moisture_1h_pct   or 8.0)  / 100.0
+        default_m_10h  = (wx.fuel_moisture_10h_pct  or 9.0)  / 100.0
+        default_m_100h = (wx.fuel_moisture_100h_pct or 10.0) / 100.0
+        default_m_lh   = (wx.fuel_moisture_live_h_pct or 100.0) / 100.0
+        default_m_lw   = (wx.fuel_moisture_live_w_pct or 100.0) / 100.0
         wind_mf = wx.wind_midflame_ms or 0.0
         wind_dir = wx.wind_direction_deg
 
@@ -614,6 +647,10 @@ def _propagate(
                 continue
 
             try:
+                m_1h, m_10h, m_100h, m_lh, m_lw = _point_moisture(
+                    fuel_moisture_table, fuel_num,
+                    default_m_1h, default_m_10h, default_m_100h, default_m_lh, default_m_lw,
+                )
                 ros_m_min, fi_kw, phi_w, phi_s, _, sigma, eff_ms = _rothermel_direct(
                     fm, m_1h, m_10h, m_100h, m_lh, m_lw,
                     wind_midflame_ms=wind_mf,
@@ -892,8 +929,16 @@ def run_simulation_sync(
     resolution_m: Optional[float] = None,
     distance_resolution_m: Optional[float] = None,
     ignition_points: Optional[list[tuple[float, float]]] = None,
+    fuel_moisture_table: Optional[dict[int, FuelMoistureRow]] = None,
 ) -> dict:
     """Corre a simulação completa. Devolve dict para gravar em result_json.
+
+    `fuel_moisture_table`: se dado (Initial Fuel Moistures .FMS FARSITE,
+    ver fuel_moisture_table.py), substitui as humidades calculadas a
+    partir da meteo por uma procura por modelo de combustível em cada
+    ponto/vértice — mais preciso do que os cenários BehavePlus de
+    fuel_moisture_scenarios.py, que aplicam um único conjunto de
+    humidades a toda a simulação independentemente do combustível local.
 
     weather_hourly: lista com um WeatherConditions derivado por hora de simulação
     (índice 0 = hora de ignição, 1 = t+1h, …).  A grelha ROS é calculada
@@ -968,13 +1013,17 @@ def run_simulation_sync(
 
         log.info("Simulação: a calcular grelha %.1fm (%.0f×%.0f km)...",
                  effective_resolution_m, bbox_km, bbox_km)
-        grid = _build_ros_grid(reader, fuel_models, wx0, cx, cy, bbox_km, effective_resolution_m)
+        grid = _build_ros_grid(
+            reader, fuel_models, wx0, cx, cy, bbox_km, effective_resolution_m,
+            fuel_moisture_table=fuel_moisture_table,
+        )
 
         log.info("Simulação: a propagar %.1fh (distance_resolution=%.1fm, %d snapshots meteo)...",
                  duration_h, effective_distance_resolution_m, len(weather_hourly))
         snapshots, perimeter_coarsened = _propagate(
             reader, fuel_models, weather_hourly, cx, cy, duration_h, snapshot_hours,
             effective_distance_resolution_m, ignition_points_proj,
+            fuel_moisture_table=fuel_moisture_table,
         )
 
         # Setas de direcção: grelha grosseira centrada na extensão do
@@ -994,6 +1043,7 @@ def run_simulation_sync(
                 reader, fuel_models, wx0,
                 min(xs_f) - margin_m, min(ys_f) - margin_m,
                 max(xs_f) + margin_m, max(ys_f) + margin_m,
+                fuel_moisture_table=fuel_moisture_table,
             )
 
     if not snapshots:
@@ -1062,6 +1112,7 @@ async def run_simulation_async(
     resolution_m: Optional[float] = None,
     distance_resolution_m: Optional[float] = None,
     ignition_points: Optional[list[tuple[float, float]]] = None,
+    fuel_moisture_table: Optional[dict[int, FuelMoistureRow]] = None,
 ) -> dict:
     """Wrapper assíncrono — corre run_simulation_sync num executor."""
     loop = asyncio.get_event_loop()
@@ -1073,5 +1124,6 @@ async def run_simulation_async(
             bbox_km=bbox_km, resolution_m=resolution_m,
             distance_resolution_m=distance_resolution_m,
             ignition_points=ignition_points,
+            fuel_moisture_table=fuel_moisture_table,
         ),
     )

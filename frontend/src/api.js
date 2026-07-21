@@ -62,7 +62,10 @@ export async function fetchFireHistory(apiKey, fireId) {
   return get(`/fires/${encodeURIComponent(fireId)}/history`, apiKey)
 }
 
-export async function postSimulate(apiKey, fireId, { duration_h = 3, wind_speed_ms, wind_direction_deg, useGusts, fuelMoistureScenario, bbox_km } = {}) {
+export async function postSimulate(apiKey, fireId, {
+  duration_h = 3, wind_speed_ms, wind_direction_deg, useGusts, fuelMoistureScenario, bbox_km,
+  weatherStreamText, fuelMoistureTableText,
+} = {}) {
   const res = await fetch(`${API_BASE}/simulate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...auth(apiKey) },
@@ -74,6 +77,8 @@ export async function postSimulate(apiKey, fireId, { duration_h = 3, wind_speed_
       use_gusts: !!useGusts,
       fuel_moisture_scenario: fuelMoistureScenario || null,
       bbox_km: bbox_km || null,
+      weather_stream_text: weatherStreamText || null,
+      fuel_moisture_table_text: fuelMoistureTableText || null,
     }),
   })
   if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`)
@@ -84,7 +89,10 @@ export async function getSimulationJob(apiKey, jobId) {
   return get(`/jobs/${encodeURIComponent(jobId)}`, apiKey)
 }
 
-export async function postFreeSimulate(apiKey, { ignitionPoints, duration_h = 3, useGusts, fuelMoistureScenario, bbox_km } = {}) {
+export async function postFreeSimulate(apiKey, {
+  ignitionPoints, duration_h = 3, useGusts, fuelMoistureScenario, bbox_km,
+  weatherStreamText, fuelMoistureTableText,
+} = {}) {
   const res = await fetch(`${API_BASE}/free-simulate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...auth(apiKey) },
@@ -94,6 +102,8 @@ export async function postFreeSimulate(apiKey, { ignitionPoints, duration_h = 3,
       use_gusts: !!useGusts,
       fuel_moisture_scenario: fuelMoistureScenario || null,
       bbox_km: bbox_km || null,
+      weather_stream_text: weatherStreamText || null,
+      fuel_moisture_table_text: fuelMoistureTableText || null,
     }),
   })
   if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`)
