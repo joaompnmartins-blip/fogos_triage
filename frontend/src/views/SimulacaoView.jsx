@@ -5,7 +5,8 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { fetchFireDetail, postSimulate, getSimulationJob } from '../api'
 import { fmt, fmtDateTime, FUEL_MOISTURE_SCENARIO_LABEL } from '../constants'
 import {
-  COLOR_LABELS, COLOR_STOPS, msToKmh, perimStyle, renderSimulationLayers,
+  COLOR_LABELS, COLOR_STOPS, msToKmh, perimStyle,
+  initSimulationLayers, updateSimulationLayerStyle,
   downloadGeoJSON, perimetersToFeatureCollection,
 } from '../components/SimulationMapLayers'
 import { Legend, ResultsTable, DurationSelect, FuelMoistureScenarioSelect, FileTextInput } from '../components/SimulationPanels'
@@ -63,7 +64,7 @@ export default function SimulacaoView({ apiKey, theme }) {
     if (!map) return
     map.setStyle(basemapStyle(basemap, theme))
     map.once('styledata', () => {
-      if (result) renderSimulationLayers(map, result, layer, opacity, visiblePerimeters, showArrows)
+      if (result) initSimulationLayers(map, result, { layer, opacity, visiblePerimeters, showArrows })
     })
   }, [basemap, theme])
 
@@ -72,13 +73,22 @@ export default function SimulacaoView({ apiKey, theme }) {
     if (result) setVisiblePerimeters(new Set(result.perimeters.map(p => p.t_h)))
   }, [result])
 
+  // Novo result (ou mapa ainda a carregar o estilo) — construção completa
   useEffect(() => {
     const map = mapRef.current
     if (!map || !result) return
-    const onReady = () => renderSimulationLayers(map, result, layer, opacity, visiblePerimeters, showArrows)
+    const onReady = () => initSimulationLayers(map, result, { layer, opacity, visiblePerimeters, showArrows })
     if (map.isStyleLoaded()) onReady()
     else map.once('styledata', onReady)
-  }, [result, layer, opacity, visiblePerimeters, showArrows])
+  }, [result]) // eslint-disable-line
+
+  // Mudanças de camada/transparência/visibilidade sobre o MESMO result —
+  // actualização leve, nunca reconstrói sources (ver updateSimulationLayerStyle)
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !result || !map.isStyleLoaded()) return
+    updateSimulationLayerStyle(map, result, { layer, opacity, visiblePerimeters, showArrows })
+  }, [layer, opacity, visiblePerimeters, showArrows]) // eslint-disable-line
 
   function togglePerimeter(t_h) {
     setVisiblePerimeters(prev => {

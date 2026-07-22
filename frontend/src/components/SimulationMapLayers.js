@@ -123,7 +123,17 @@ export function spreadArrowsToFeatureCollection(
   return { type: 'FeatureCollection', features }
 }
 
-export function renderSimulationLayers(map, result, layer, opacity, visiblePerimeters, showArrows) {
+function _perimVisibility(visiblePerimeters, t_h) {
+  return (visiblePerimeters && !visiblePerimeters.has(t_h)) ? 'none' : 'visible'
+}
+
+// Construção completa — remove e recria todas as layers/sources.
+// Chamar só quando `result` muda (nova simulação) ou depois de uma
+// mudança de estilo (map.setStyle() já destrói tudo, reconstrução é
+// inevitável nesse caso). Para simples mudanças de camada/transparência/
+// visibilidade sobre o MESMO result, usar updateSimulationLayerStyle —
+// muito mais barato (não mexe em sources).
+export function initSimulationLayers(map, result, { layer, opacity, visiblePerimeters, showArrows }) {
   // getLayer/getSource + removeLayer/removeSource, não try/catch: o
   // MapLibre não lança excepção para um id inexistente, dispara um evento
   // 'error' interno que é impresso na consola quando não há listener —
@@ -147,7 +157,7 @@ export function renderSimulationLayers(map, result, layer, opacity, visiblePerim
     })
   }
 
-  if (showArrows && result.spread_arrows?.features?.length) {
+  if (result.spread_arrows?.features?.length) {
     map.addSource('sim-arrows', {
       type: 'geojson',
       data: spreadArrowsToFeatureCollection(result.spread_arrows.features),
@@ -156,6 +166,7 @@ export function renderSimulationLayers(map, result, layer, opacity, visiblePerim
       id: 'sim-arrows-line',
       type: 'line',
       source: 'sim-arrows',
+      layout: { visibility: showArrows ? 'visible' : 'none' },
       paint: {
         'line-color': 'rgba(20, 20, 20, 0.85)',
         'line-width': 1.1,
@@ -163,26 +174,52 @@ export function renderSimulationLayers(map, result, layer, opacity, visiblePerim
     })
   }
 
+  // Todos os perímetros são adicionados desde logo (não só os visíveis)
+  // — a visibilidade é controlada depois via setLayoutProperty
+  // (updateSimulationLayerStyle), sem precisar de recriar a source.
   const maxTH = Math.max(...result.perimeters.map(p => p.t_h))
   result.perimeters.forEach(({ t_h, geojson }, i) => {
-    if (visiblePerimeters && !visiblePerimeters.has(t_h)) return
     const style = perimStyle(i, result.perimeters.length)
     const id = `perim-${t_h}h`
+    const visibility = _perimVisibility(visiblePerimeters, t_h)
     map.addSource(id, { type: 'geojson', data: geojson })
     map.addLayer({
       id: `${id}-fill`,
       type: 'fill',
       source: id,
+      layout: { visibility },
       paint: { 'fill-color': style.color, 'fill-opacity': style.fillOpacity },
     })
     map.addLayer({
       id: `${id}-line`,
       type: 'line',
       source: id,
+      layout: { visibility },
       paint: {
         'line-color': style.color,
         'line-width': t_h === maxTH ? 2 : 1,
       },
     })
   })
+}
+
+// Actualização leve — só setPaintProperty/setLayoutProperty, nunca
+// remove/adiciona sources ou layers. Usar para qualquer mudança que não
+// seja um novo `result` (trocar camada ROS/FLI/Chama, arrastar o slider
+// de transparência, mostrar/esconder perímetros, ligar/desligar setas).
+export function updateSimulationLayerStyle(map, result, { layer, opacity, visiblePerimeters, showArrows }) {
+  if (map.getLayer('sim-pixels-fill')) {
+    map.setPaintProperty('sim-pixels-fill', 'fill-color', COLOR_EXPRS[layer])
+    map.setPaintProperty('sim-pixels-fill', 'fill-opacity', opacity)
+  }
+  if (map.getLayer('sim-arrows-line')) {
+    map.setLayoutProperty('sim-arrows-line', 'visibility', showArrows ? 'visible' : 'none')
+  }
+  for (const { t_h } of result.perimeters) {
+    const visibility = _perimVisibility(visiblePerimeters, t_h)
+    const fillId = `perim-${t_h}h-fill`
+    const lineId = `perim-${t_h}h-line`
+    if (map.getLayer(fillId)) map.setLayoutProperty(fillId, 'visibility', visibility)
+    if (map.getLayer(lineId)) map.setLayoutProperty(lineId, 'visibility', visibility)
+  }
 }

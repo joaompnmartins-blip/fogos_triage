@@ -1,26 +1,58 @@
 import { useState, useEffect, useRef } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { TerraDraw, TerraDrawPointMode, TerraDrawLineStringMode } from 'terra-draw'
+import { TerraDraw, TerraDrawPointMode, TerraDrawLineStringMode, TerraDrawSelectMode } from 'terra-draw'
 import { TerraDrawMapLibreGLAdapter } from 'terra-draw-maplibre-gl-adapter'
 import { postFreeSimulate, getFreeSimulationJob } from '../api'
 import { fmt, FUEL_MOISTURE_SCENARIO_LABEL } from '../constants'
 import { REGION_CENTER, REGION_ZOOM } from '../region'
 import {
-  COLOR_LABELS, COLOR_STOPS, msToKmh, perimStyle, renderSimulationLayers,
+  COLOR_LABELS, COLOR_STOPS, msToKmh, perimStyle,
+  initSimulationLayers, updateSimulationLayerStyle,
   downloadGeoJSON, perimetersToFeatureCollection,
 } from '../components/SimulationMapLayers'
 import { Legend, ResultsTable, DurationSelect, FuelMoistureScenarioSelect, FileTextInput } from '../components/SimulationPanels'
 import { basemapStyle, BASEMAP_LABEL } from '../basemaps'
 
-// Extrai [[lat,lon], ...] das features desenhadas (Point ou LineString)
+// Extrai [[lat,lon], ...] das features desenhadas/importadas (Point ou
+// LineString) — filtra por properties.mode, não só geometry.type: com o
+// select mode activo, o TerraDraw pode injectar feições auxiliares no
+// snapshot (ex. midpoints para inserir vértices numa linha seleccionada),
+// que não têm a tag 'point'/'linestring' das feições reais.
 function _ignitionFromSnapshot(snapshot) {
-  const feature = snapshot.find(f => f.geometry.type === 'Point' || f.geometry.type === 'LineString')
+  const feature = snapshot.find(f => f.properties?.mode === 'point' || f.properties?.mode === 'linestring')
   if (!feature) return []
   const coords = feature.geometry.type === 'Point'
     ? [feature.geometry.coordinates]
     : feature.geometry.coordinates
   return coords.map(([lon, lat]) => [lat, lon])
+}
+
+// Parseia um ficheiro GeoJSON (Feature ou FeatureCollection) com uma
+// geometria Point ou LineString para usar como ignição — mesma conversão
+// de coordenadas de _ignitionFromSnapshot, e a feição devolvida já vem
+// na forma mínima que TerraDraw.addFeatures() aceita (confirmado
+// empiricamente: não precisa de id explícito, TerraDraw gera um).
+function parseIgnitionGeoJSON(text) {
+  let data
+  try {
+    data = JSON.parse(text)
+  } catch (e) {
+    throw new Error(`GeoJSON inválido: ${e.message}`)
+  }
+
+  const features = data?.type === 'FeatureCollection' ? data.features : [data]
+  const found = features?.find(f =>
+    f?.geometry?.type === 'Point' || f?.geometry?.type === 'LineString')
+  if (!found) {
+    throw new Error('ficheiro deve conter uma geometria Point ou LineString')
+  }
+
+  const mode = found.geometry.type === 'Point' ? 'point' : 'linestring'
+  const feature = { type: 'Feature', geometry: found.geometry, properties: { mode } }
+  const coords = mode === 'point' ? [found.geometry.coordinates] : found.geometry.coordinates
+  const points = coords.map(([lon, lat]) => [lat, lon])
+  return { points, feature }
 }
 
 // Prefixo de sources/layers do TerraDrawMapLibreGLAdapter quando não se
@@ -52,13 +84,27 @@ function _teardownDrawLayers(map) {
 // falha de sincronização isso deixa de ser verdade e rebenta com "Cannot
 // read properties of undefined (reading 'setData')"). Faz sempre tábua rasa
 // primeiro, por isso é seguro chamar isto a qualquer momento.
-function _attachDraw(map, onFinish) {
+function _attachDraw(map, onFinish, onChange) {
   _teardownDrawLayers(map)
   const draw = new TerraDraw({
     adapter: new TerraDrawMapLibreGLAdapter({ map }),
-    modes: [new TerraDrawPointMode(), new TerraDrawLineStringMode()],
+    modes: [
+      new TerraDrawPointMode(),
+      new TerraDrawLineStringMode(),
+      // Arrasto (ponto inteiro, ou vértices individuais de uma linha) —
+      // confirmado empiricamente que draw.clear() continua seguro depois
+      // de usar o select mode, sem reintroduzir o crash pós-setStyle()
+      // já corrigido nesta sessão.
+      new TerraDrawSelectMode({
+        flags: {
+          point: { feature: { draggable: true } },
+          linestring: { feature: { draggable: true }, coordinates: { draggable: true } },
+        },
+      }),
+    ],
   })
   draw.on('finish', onFinish)
+  draw.on('change', onChange)
   draw.start()
   return draw
 }
@@ -89,9 +135,22 @@ export default function SimuladorLivreView({ apiKey, theme }) {
   const [showArrows, setShowArrows] = useState(true)
   const pollRef = useRef(null)
 
-  const onDrawFinish = () => {
-    setIgnitionPoints(_ignitionFromSnapshot(drawRef.current.getSnapshot()))
-    setDrawMode(null)
+  // Feição acabada de desenhar (finish já dá o id) — fica logo
+  // seleccionada/arrastável, sem clique extra.
+  const onDrawFinish = (id) => {
+    const draw = drawRef.current
+    if (!draw) return
+    setIgnitionPoints(_ignitionFromSnapshot(draw.getSnapshot()))
+    draw.setMode('select')
+    draw.selectFeature(id)
+    setDrawMode('select')
+  }
+
+  // Feição arrastada (select mode) — volta a ler o snapshot para
+  // reflectir a posição/vértices actualizados.
+  const onDrawChange = () => {
+    const draw = drawRef.current
+    if (draw) setIgnitionPoints(_ignitionFromSnapshot(draw.getSnapshot()))
   }
 
   useEffect(() => {
@@ -107,7 +166,7 @@ export default function SimuladorLivreView({ apiKey, theme }) {
     map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right')
 
     map.on('load', () => {
-      drawRef.current = _attachDraw(map, onDrawFinish)
+      drawRef.current = _attachDraw(map, onDrawFinish, onDrawChange)
       setMapReady(true)
     })
 
@@ -130,10 +189,10 @@ export default function SimuladorLivreView({ apiKey, theme }) {
       // TerraDraw — reinstancia-se em vez de reiniciar a mesma instância
       // (ver _attachDraw). O desenho em curso perde-se visualmente de
       // qualquer forma quando o estilo muda, por isso reset de estado aqui.
-      drawRef.current = _attachDraw(map, onDrawFinish)
+      drawRef.current = _attachDraw(map, onDrawFinish, onDrawChange)
       setIgnitionPoints([])
       setDrawMode(null)
-      if (result) renderSimulationLayers(map, result, layer, opacity, visiblePerimeters, showArrows)
+      if (result) initSimulationLayers(map, result, { layer, opacity, visiblePerimeters, showArrows })
     })
   }, [basemap, theme])
 
@@ -142,13 +201,22 @@ export default function SimuladorLivreView({ apiKey, theme }) {
     if (result) setVisiblePerimeters(new Set(result.perimeters.map(p => p.t_h)))
   }, [result])
 
+  // Novo result (ou mapa ainda a carregar o estilo) — construção completa
   useEffect(() => {
     const map = mapRef.current
     if (!map || !result) return
-    const onReady = () => renderSimulationLayers(map, result, layer, opacity, visiblePerimeters, showArrows)
+    const onReady = () => initSimulationLayers(map, result, { layer, opacity, visiblePerimeters, showArrows })
     if (map.isStyleLoaded()) onReady()
     else map.once('styledata', onReady)
-  }, [result, layer, opacity, visiblePerimeters, showArrows])
+  }, [result]) // eslint-disable-line
+
+  // Mudanças de camada/transparência/visibilidade sobre o MESMO result —
+  // actualização leve, nunca reconstrói sources (ver updateSimulationLayerStyle)
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !result || !map.isStyleLoaded()) return
+    updateSimulationLayerStyle(map, result, { layer, opacity, visiblePerimeters, showArrows })
+  }, [layer, opacity, visiblePerimeters, showArrows]) // eslint-disable-line
 
   function togglePerimeter(t_h) {
     setVisiblePerimeters(prev => {
@@ -159,12 +227,15 @@ export default function SimuladorLivreView({ apiKey, theme }) {
   }
 
   function pickMode(mode) {
-    const map = mapRef.current
-    if (!map) return
+    const draw = drawRef.current
+    if (!draw) return
     clearInterval(pollRef.current)
-    // Reinstancia em vez de draw.clear() — ver _attachDraw.
-    const draw = _attachDraw(map, onDrawFinish)
-    drawRef.current = draw
+    // draw.clear()/setMode() na instância existente — reinstanciar via
+    // _attachDraw() só é necessário a seguir a um map.setStyle() (ver
+    // efeito de basemap/tema), que destrói as sources por baixo da
+    // instância; aqui não houve mudança de estilo nenhuma, a instância
+    // e as suas sources continuam intactas.
+    draw.clear()
     setIgnitionPoints([])
     setJobStatus(null)
     setResult(null)
@@ -174,15 +245,36 @@ export default function SimuladorLivreView({ apiKey, theme }) {
   }
 
   function handleReset() {
-    const map = mapRef.current
-    if (!map) return
+    const draw = drawRef.current
+    if (!draw) return
     clearInterval(pollRef.current)
-    drawRef.current = _attachDraw(map, onDrawFinish)
+    draw.clear()
     setIgnitionPoints([])
     setDrawMode(null)
     setJobStatus(null)
     setResult(null)
     setError(null)
+  }
+
+  function handleImportGeoJSON(text) {
+    const draw = drawRef.current
+    if (!draw) return
+    clearInterval(pollRef.current)
+    try {
+      const { points, feature } = parseIgnitionGeoJSON(text)
+      draw.clear()
+      const [{ id, valid }] = draw.addFeatures([feature])
+      if (!valid) throw new Error('geometria inválida')
+      setIgnitionPoints(points)
+      draw.setMode('select')
+      draw.selectFeature(id)
+      setDrawMode('select')
+      setJobStatus(null)
+      setResult(null)
+      setError(null)
+    } catch (e) {
+      setError(`Importação falhou: ${e.message}`)
+    }
   }
 
   function startPolling(jobId) {
@@ -278,6 +370,18 @@ export default function SimuladorLivreView({ apiKey, theme }) {
               onClick={handleReset}>
               Limpar
             </button>
+            <label className="btn btn-ghost" style={{ fontSize: 10, padding: '3px 8px', cursor: mapReady ? 'pointer' : 'default', opacity: mapReady ? 1 : 0.5 }}>
+              ⬆ Importar
+              <input type="file" accept=".geojson,.json" disabled={!mapReady} hidden
+                onChange={e => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  const reader = new FileReader()
+                  reader.onload = () => handleImportGeoJSON(reader.result)
+                  reader.readAsText(file)
+                  e.target.value = '' // permite reimportar o mesmo ficheiro
+                }} />
+            </label>
           </div>
           {drawMode === 'point' && (
             <div className="hint map-overlay-panel" style={{ fontSize: 10, fontFamily: 'var(--font-mono)', padding: '4px 8px', borderRadius: 4 }}>
@@ -287,6 +391,11 @@ export default function SimuladorLivreView({ apiKey, theme }) {
           {drawMode === 'linestring' && (
             <div className="hint map-overlay-panel" style={{ fontSize: 10, fontFamily: 'var(--font-mono)', padding: '4px 8px', borderRadius: 4 }}>
               Clique para adicionar vértices, duplo clique para terminar a linha
+            </div>
+          )}
+          {drawMode === 'select' && hasIgnition && (
+            <div className="hint map-overlay-panel" style={{ fontSize: 10, fontFamily: 'var(--font-mono)', padding: '4px 8px', borderRadius: 4 }}>
+              Arraste para ajustar a posição da ignição
             </div>
           )}
         </div>
