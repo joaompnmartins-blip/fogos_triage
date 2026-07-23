@@ -75,6 +75,7 @@ async def create_free_simulation(
         fuel_moisture_scenario=payload.fuel_moisture_scenario,
         weather_stream_text=payload.weather_stream_text,
         fuel_moisture_table_text=payload.fuel_moisture_table_text,
+        start_time=payload.start_time,
     ))
 
     return FreeSimulationJob(
@@ -138,6 +139,7 @@ async def _run_free_simulation(
     fuel_moisture_scenario: Optional[str] = None,
     weather_stream_text: Optional[str] = None,
     fuel_moisture_table_text: Optional[str] = None,
+    start_time: Optional[datetime] = None,
 ):
     """Task em background: corre simulação livre e grava resultado no DB.
 
@@ -164,7 +166,7 @@ async def _run_free_simulation(
         from fogos_triage.weather import (
             derive_fire_weather,
             fetch_live_fmc_viirs,
-            fetch_open_meteo,
+            fetch_weather_for_start_time,
         )
         from fogos_triage.weather_stream import parse_weather_stream
 
@@ -196,6 +198,11 @@ async def _run_free_simulation(
         n_hours = int(math.ceil(duration_h)) + 1
 
         if weather_stream_text:
+            if start_time:
+                log.warning(
+                    "Simulação livre %s: start_time ignorado — Weather Stream "
+                    "já tem a sua própria linha do tempo", job_id,
+                )
             # Weather Stream File (.WXS) FARSITE — substitui o Open-Meteo
             # por inteiro; hora 0 = primeira linha do ficheiro.
             raw_hourly = parse_weather_stream(weather_stream_text)
@@ -207,7 +214,7 @@ async def _run_free_simulation(
             weather_source = "weather_stream"
         else:
             try:
-                raw_hourly = await fetch_open_meteo(lat, lon, hours_ahead=n_hours)
+                raw_hourly = await fetch_weather_for_start_time(lat, lon, start_time, hours_ahead=n_hours)
             except Exception as exc:
                 log.warning("Open-Meteo falhou para simulação livre %s: %s", job_id, exc)
                 raw_hourly = []
@@ -274,6 +281,9 @@ async def _run_free_simulation(
         result["meta"]["fuel_moisture_scenario"] = fuel_moisture_scenario
         result["meta"]["weather_source"] = weather_source
         result["meta"]["fuel_moisture_source"] = fuel_moisture_source
+        result["meta"]["start_time"] = (
+            start_time.isoformat() if start_time and not weather_stream_text else None
+        )
 
         async with pool.acquire() as conn:
             await conn.execute(

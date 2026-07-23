@@ -10,7 +10,7 @@ from dataclasses import replace
 from typing import Optional
 
 from .engine import check_crown_fire_transition, predict_surface_fire
-from .fuel_models import FuelModelPT
+from .fuel_models import FuelModelPT, normalize_fuel_model_num
 from .schemas import (
     FireBehaviorPrediction,
     FireType,
@@ -56,7 +56,7 @@ def triage_neighbourhood(
     pixel_results: list[tuple] = []  # (pred, terrain, fm, wx)
 
     for terrain in terrains:
-        fm = fuel_models.get(terrain.fuel_model_num) or fuel_models.get(98)
+        fm = fuel_models.get(normalize_fuel_model_num(terrain.fuel_model_num))
         if fm is None:
             continue
 
@@ -144,14 +144,13 @@ def triage_occurrence(
     Devolve TriageResult com 2 cenários: "Vento Geral" (central, vento
     sustentado) e "Rajadas" (gusts, vento de rajada do Open-Meteo).
     """
-    fm = fuel_models.get(terrain.fuel_model_num)
-    if fm is None:
+    normalized_num = normalize_fuel_model_num(terrain.fuel_model_num)
+    fm = fuel_models.get(normalized_num)
+    if normalized_num != terrain.fuel_model_num:
+        notes = [f"FM{terrain.fuel_model_num} (NB Scott&Burgan) → não combustível"]
+    elif fm is None:
         fm = fuel_models.get(98)
-        # Scott & Burgan 40 NB codes (91-98) = Non-Burnable; mapeamos para FM98
-        if 91 <= terrain.fuel_model_num <= 98:
-            notes = [f"FM{terrain.fuel_model_num} (NB Scott&Burgan) → não combustível"]
-        else:
-            notes = [f"Modelo {terrain.fuel_model_num} desconhecido, usando FM98"]
+        notes = [f"Modelo {terrain.fuel_model_num} desconhecido, usando FM98"]
     else:
         notes = []
 

@@ -1,5 +1,7 @@
 // Em dev, o Vite faz proxy /api → Railway. Em produção, usa VITE_API_URL direto.
-const API_BASE = import.meta.env.DEV
+// Exportado (não só local) — basemaps.js precisa-o para a source de tiles
+// do modelo de combustível, que não passa pelas funções fetch() abaixo.
+export const API_BASE = import.meta.env.DEV
   ? '/api'
   : (import.meta.env.VITE_API_URL || '')
 
@@ -64,7 +66,7 @@ export async function fetchFireHistory(apiKey, fireId) {
 
 export async function postSimulate(apiKey, fireId, {
   duration_h = 3, wind_speed_ms, wind_direction_deg, useGusts, fuelMoistureScenario, bbox_km,
-  weatherStreamText, fuelMoistureTableText,
+  weatherStreamText, fuelMoistureTableText, startTime,
 } = {}) {
   const res = await fetch(`${API_BASE}/simulate`, {
     method: 'POST',
@@ -79,6 +81,7 @@ export async function postSimulate(apiKey, fireId, {
       bbox_km: bbox_km || null,
       weather_stream_text: weatherStreamText || null,
       fuel_moisture_table_text: fuelMoistureTableText || null,
+      start_time: startTime || null,
     }),
   })
   if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`)
@@ -91,7 +94,7 @@ export async function getSimulationJob(apiKey, jobId) {
 
 export async function postFreeSimulate(apiKey, {
   ignitionPoints, duration_h = 3, useGusts, fuelMoistureScenario, bbox_km,
-  weatherStreamText, fuelMoistureTableText,
+  weatherStreamText, fuelMoistureTableText, startTime,
 } = {}) {
   const res = await fetch(`${API_BASE}/free-simulate`, {
     method: 'POST',
@@ -104,6 +107,7 @@ export async function postFreeSimulate(apiKey, {
       bbox_km: bbox_km || null,
       weather_stream_text: weatherStreamText || null,
       fuel_moisture_table_text: fuelMoistureTableText || null,
+      start_time: startTime || null,
     }),
   })
   if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`)

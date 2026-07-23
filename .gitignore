@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+
+# Landscape/terrain raster data — multi-GB TIFFs, fetched from R2 at
+# runtime (see ensure_landscape() in src/fogos_triage/landscape.py), not
+# meant to live in git.
+data/landscape/
+data/landscape_pt/
+data/AltoMinho/
+
+node_modules/
+frontend/dist/

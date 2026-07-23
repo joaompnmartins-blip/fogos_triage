@@ -5,7 +5,10 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { fetchFiresGeo } from '../api'
 import { SEVERITY_COLOR, SEVERITY_LABEL, CONTROL_LABEL } from '../constants'
 import { REGION_CENTER, REGION_BBOX, REGION_ZOOM } from '../region'
-import { basemapStyle } from '../basemaps'
+import {
+  basemapStyle, addFuelModelLayer, setFuelModelLayerVisible, setFuelModelLayerOpacity,
+} from '../basemaps'
+import { FuelModelLegend } from '../components/SimulationPanels'
 
 const priorityColorExpr = [
   'match', ['get', 'priority_class'],
@@ -29,6 +32,10 @@ export default function MapView({ apiKey, theme }) {
   const [basemap, setBasemap] = useState('osm')
   const [fireCount, setFireCount] = useState(null)
   const [loadError, setLoadError] = useState(null)
+  const [showFuelModel, setShowFuelModel] = useState(false)
+  const [fuelModelOpacity, setFuelModelOpacity] = useState(0.7)
+  const showFuelModelRef = useRef(false)
+  const fuelModelOpacityRef = useRef(0.7)
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -57,6 +64,13 @@ export default function MapView({ apiKey, theme }) {
 
     // Adds fire source + layers using current fireDataRef
     function setupLayers() {
+      // Overlay do modelo de combustível — independente de "fires", mas
+      // precisa de ser reposto em cada style.load tal como o resto (ver
+      // addFuelModelLayer, idempotente). Visibilidade lida de uma ref
+      // (não do state directamente) para não ficar presa ao valor de
+      // quando este closure foi criado (montagem inicial).
+      addFuelModelLayer(map, { visible: showFuelModelRef.current, opacity: fuelModelOpacityRef.current })
+
       if (map.getSource('fires')) return
       map.addSource('fires', { type: 'geojson', data: fireDataRef.current })
 
@@ -183,6 +197,22 @@ export default function MapView({ apiKey, theme }) {
     map.setStyle(basemapStyle(basemap, theme), { diff: false })
   }, [basemap, theme])
 
+  // Overlay do modelo de combustível — visibilidade/opacidade actualizadas
+  // sem reconstruir nada (setLayoutProperty/setPaintProperty), e a ref
+  // mantida em sincronia para addFuelModelLayer saber o valor certo
+  // mesmo depois de uma troca de basemap que recria a source/layer.
+  useEffect(() => {
+    showFuelModelRef.current = showFuelModel
+    const map = mapRef.current
+    if (map) setFuelModelLayerVisible(map, showFuelModel)
+  }, [showFuelModel])
+
+  useEffect(() => {
+    fuelModelOpacityRef.current = fuelModelOpacity
+    const map = mapRef.current
+    if (map) setFuelModelLayerOpacity(map, fuelModelOpacity)
+  }, [fuelModelOpacity])
+
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <style>{`
@@ -277,7 +307,29 @@ export default function MapView({ apiKey, theme }) {
             Topo
           </button>
         </div>
+
+        <label className="map-basemap-btn" style={{
+          display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, cursor: 'pointer',
+        }}>
+          <input type="checkbox" checked={showFuelModel}
+            onChange={e => setShowFuelModel(e.target.checked)} />
+          Modelos de Combustível
+        </label>
+        {showFuelModel && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--muted)' }}>TRANSP</span>
+            <input type="range" min={0} max={1} step={0.05}
+              value={fuelModelOpacity} onChange={e => setFuelModelOpacity(parseFloat(e.target.value))}
+              style={{ width: 80, cursor: 'pointer' }} />
+          </div>
+        )}
       </div>
+
+      {showFuelModel && (
+        <div style={{ position: 'absolute', bottom: 10, left: 10, zIndex: 10 }}>
+          <FuelModelLegend />
+        </div>
+      )}
     </div>
   )
 }

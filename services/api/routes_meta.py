@@ -177,6 +177,7 @@ async def create_simulation(
         fuel_moisture_scenario=payload.fuel_moisture_scenario,
         weather_stream_text=payload.weather_stream_text,
         fuel_moisture_table_text=payload.fuel_moisture_table_text,
+        start_time=payload.start_time,
     ))
 
     return SimulationJob(
@@ -249,6 +250,7 @@ async def _run_and_update(
     fuel_moisture_scenario: Optional[str] = None,
     weather_stream_text: Optional[str] = None,
     fuel_moisture_table_text: Optional[str] = None,
+    start_time: Optional[datetime] = None,
 ):
     """Task em background: corre simulação e grava resultado no DB."""
     async with pool.acquire() as conn:
@@ -264,7 +266,7 @@ async def _run_and_update(
         from fogos_triage.schemas import WeatherConditions
         from fogos_triage.simulation import run_simulation_async
         from fogos_triage.triage import gust_weather
-        from fogos_triage.weather import derive_fire_weather, fetch_open_meteo
+        from fogos_triage.weather import derive_fire_weather, fetch_weather_for_start_time
         from fogos_triage.weather_stream import parse_weather_stream
 
         import asyncio as _asyncio
@@ -293,6 +295,11 @@ async def _run_and_update(
         n_hours = int(math.ceil(duration_h)) + 1
 
         if weather_stream_text:
+            if start_time:
+                log.warning(
+                    "Simulação %s: start_time ignorado — Weather Stream já "
+                    "tem a sua própria linha do tempo", job_id,
+                )
             # Weather Stream File (.WXS) FARSITE — substitui o Open-Meteo
             # por inteiro; hora 0 = primeira linha do ficheiro (é um
             # cenário/timeline próprio, não alinhado ao instante actual).
@@ -306,10 +313,12 @@ async def _run_and_update(
                 )
             weather_source = "weather_stream"
         else:
-            # Previsão horária do Open-Meteo para toda a duração da
-            # simulação. Fallback para meteo única da triagem se a API falhar.
+            # Previsão horária do Open-Meteo (ou arquivo histórico, se
+            # start_time for antigo — ver fetch_weather_for_start_time)
+            # para toda a duração da simulação. Fallback para meteo única
+            # da triagem se a API falhar.
             try:
-                raw_hourly = await fetch_open_meteo(lat, lon, hours_ahead=n_hours)
+                raw_hourly = await fetch_weather_for_start_time(lat, lon, start_time, hours_ahead=n_hours)
             except Exception as exc:
                 log.warning("Open-Meteo falhou para simulação %s: %s — usando meteo da triagem", job_id, exc)
                 raw_hourly = []
@@ -384,6 +393,9 @@ async def _run_and_update(
         result["meta"]["fuel_moisture_scenario"] = fuel_moisture_scenario
         result["meta"]["weather_source"] = weather_source
         result["meta"]["fuel_moisture_source"] = fuel_moisture_source
+        result["meta"]["start_time"] = (
+            start_time.isoformat() if start_time and not weather_stream_text else None
+        )
 
         async with pool.acquire() as conn:
             await conn.execute(

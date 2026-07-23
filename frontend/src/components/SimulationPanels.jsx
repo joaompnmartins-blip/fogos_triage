@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { fmt, windDirText, FUEL_MOISTURE_SCENARIO_LABEL } from '../constants'
 import { msToKmh } from './SimulationMapLayers'
+import { FUEL_MODEL_COLOR } from '../basemaps'
 
 // Painéis de apresentação partilhados entre SimulacaoView (ligada a
 // ocorrências) e SimuladorLivreView (ignição livre) — mesmo formato de
@@ -20,6 +21,52 @@ export function Legend({ stops, label }) {
             <span style={{ color: 'var(--dim)' }}>{v}</span>
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+// Legenda do overlay de tiles do modelo de combustível — ~19 entradas
+// (mais do que os 4 stops do <Legend> compacto acima), por isso painel
+// próprio, scrollable. Cores espelham FUEL_MODEL_COLOR (basemaps.js),
+// que por sua vez espelha fuel_model_colors.py — matiz por família,
+// luminosidade a variar dentro dela.
+//
+// Códigos NB Scott & Burgan (91-99, "non-burnable") não entram em
+// FUEL_MODEL_COLOR — a skill dataviz confirma (validate_palette.js,
+// --pairs all) que este mapa já usa o máximo de matizes distinguíveis
+// (4, um por família 21x/22x/23x/255); uma 5ª cor a competir por matiz
+// falha sistematicamente o piso de croma/CVD. Em vez disso ficam
+// transparentes no tile (mesmo tratamento do FM98, ver
+// fuel_model_colors.py) e aqui têm UMA linha própria, com amostra
+// tracejada/sem preenchimento (não uma cor nova) — consistente com o
+// que se vê realmente no mapa, e nomeado por código confirmado no
+// raster nacional (ver investigação 2026-07-23/24).
+export function FuelModelLegend() {
+  return (
+    <div className="map-overlay-panel" style={{
+      borderRadius: 4, padding: '6px 8px',
+      fontFamily: 'var(--font-mono)', fontSize: 9,
+      maxHeight: 240, overflowY: 'auto', width: 130,
+    }}>
+      <div style={{ color: 'var(--muted)', marginBottom: 4 }}>MODELOS DE COMBUSTÍVEL</div>
+      {Object.entries(FUEL_MODEL_COLOR).map(([num, color]) => (
+        <div key={num} style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
+          <div style={{ width: 10, height: 10, borderRadius: 2, background: color, flexShrink: 0 }} />
+          <span style={{ color: 'var(--dim)' }}>FM{num}</span>
+        </div>
+      ))}
+      <div style={{
+        display: 'flex', alignItems: 'flex-start', gap: 5,
+        marginTop: 4, paddingTop: 4, borderTop: '1px solid var(--border)',
+      }}>
+        <div style={{
+          width: 10, height: 10, borderRadius: 2, flexShrink: 0, marginTop: 1,
+          border: '1px dashed var(--dim)', background: 'transparent',
+        }} />
+        <span style={{ color: 'var(--dim)', lineHeight: 1.35 }}>
+          Não combustível (transparente): 91 urbano · 93 agrícola · 99 solo nu
+        </span>
       </div>
     </div>
   )

@@ -296,6 +296,10 @@ class SimulationRequest(BaseModel):
     # humidade por modelo de combustível, mutuamente exclusivo com
     # fuel_moisture_scenario (ver fogos_triage.fuel_moisture_table).
     fuel_moisture_table_text: Optional[str] = None
+    # Início da simulação (default None = agora). Ignorado (com aviso)
+    # se weather_stream_text também for dado — o ficheiro já tem a sua
+    # própria linha do tempo. Ver fogos_triage.weather.fetch_weather_for_start_time.
+    start_time: Optional[datetime] = None
 
     _validate_fuel_moisture_scenario = field_validator("fuel_moisture_scenario")(
         _check_fuel_moisture_scenario
@@ -376,6 +380,10 @@ class FreeSimulationRequest(BaseModel):
     # humidade por modelo de combustível, mutuamente exclusivo com
     # fuel_moisture_scenario (ver fogos_triage.fuel_moisture_table).
     fuel_moisture_table_text: Optional[str] = None
+    # Início da simulação (default None = agora). Ignorado (com aviso)
+    # se weather_stream_text também for dado — o ficheiro já tem a sua
+    # própria linha do tempo. Ver fogos_triage.weather.fetch_weather_for_start_time.
+    start_time: Optional[datetime] = None
 
     _validate_fuel_moisture_scenario = field_validator("fuel_moisture_scenario")(
         _check_fuel_moisture_scenario

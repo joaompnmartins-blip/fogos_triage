@@ -47,6 +47,25 @@ T_HA_TO_LB_FT2 = 0.0204816
 KJ_KG_TO_BTU_LB = 0.4299
 
 
+# Scott & Burgan (2005) 40-model system: códigos NB1-NB9 ("non-burnable"),
+# numerados 91-99 (urbano, neve/gelo, agrícola, ..., água, solo nu) — o
+# landscape file nacional usa-os para pixels sem combustível florestal
+# (confirmado directamente no raster: 91, 93, 98, 99 presentes). O catálogo
+# PT (`data/fuel_models_pt.csv`) só define fisicamente FM98 ("não
+# combustível") — todos os outros códigos NB mapeiam para FM98 antes de
+# qualquer lookup no motor de fogo (mesmo tratamento em toda a app).
+NON_BURNABLE_FUEL_MODEL_NUM = 98
+SCOTT_BURGAN_NB_RANGE = range(91, 100)  # NB1 (91) .. NB9 (99)
+
+
+def normalize_fuel_model_num(num: int) -> int:
+    """Mapeia códigos NB Scott & Burgan (91-99) para FM98. Qualquer outro
+    número (incl. os modelos PT reais e códigos desconhecidos) passa
+    inalterado — o "desconhecido" é tratado por quem faz o lookup no
+    catálogo (fallback próprio, ver triage.py)."""
+    return NON_BURNABLE_FUEL_MODEL_NUM if num in SCOTT_BURGAN_NB_RANGE else num
+
+
 @dataclass
 class FuelModelPT:
     """

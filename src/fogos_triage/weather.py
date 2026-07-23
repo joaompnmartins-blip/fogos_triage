@@ -36,66 +36,37 @@ _ee_init_attempted: bool = False
 
 
 OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
+OPEN_METEO_ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
+
+# Variáveis horárias pedidas — mesma lista para previsão e arquivo
+# histórico (a API de arquivo usa exactamente os mesmos nomes).
+_HOURLY_VARS = [
+    "temperature_2m",
+    "relative_humidity_2m",
+    "wind_speed_10m",
+    "wind_gusts_10m",
+    "wind_direction_10m",
+    "precipitation",
+    "cloud_cover",
+]
+
+# Acima disto (dias), a API de previsão (só até 92 dias de past_days)
+# deixa de conseguir cobrir start_time — passa-se para a API de arquivo
+# histórico (ERA5, desde 1940).
+_FORECAST_PAST_DAYS_MAX = 92
 
 
-async def fetch_open_meteo(
-    latitude: float,
-    longitude: float,
-    hours_ahead: int = 5,
-    client: Optional["httpx.AsyncClient"] = None,
-) -> list[WeatherConditions]:
-    """
-    Vai buscar condições à Open-Meteo para as próximas N horas.
-    Devolve uma lista de WeatherConditions horárias.
-
-    Notas:
-    - Usa o modelo 'best_match' que para Portugal é tipicamente ECMWF IFS
-    - Inclui rajadas (gusts) para cenário de pior caso
-    """
-    if not HAS_HTTPX:
-        raise ImportError("httpx é necessário para fetch_open_meteo")
-
-    params = {
-        "latitude": latitude,
-        "longitude": longitude,
-        "hourly": ",".join([
-            "temperature_2m",
-            "relative_humidity_2m",
-            "wind_speed_10m",
-            "wind_gusts_10m",
-            "wind_direction_10m",
-            "precipitation",
-            "cloud_cover",
-        ]),
-        "models": "best_match",
-        "forecast_days": 2,
-        "timezone": "Europe/Lisbon",
-        "wind_speed_unit": "ms",
-    }
-
-    own_client = client is None
-    if own_client:
-        client = httpx.AsyncClient(timeout=10.0)
-
-    try:
-        response = await client.get(OPEN_METEO_URL, params=params)
-        response.raise_for_status()
-        data = response.json()
-    finally:
-        if own_client:
-            await client.aclose()
-
+def _parse_open_meteo_hourly(data: dict, start_time: datetime, hours_ahead: int) -> list[WeatherConditions]:
+    """Converte a resposta 'hourly' (comum às APIs de previsão e de
+    arquivo — mesma forma, mesmos nomes de variável) em WeatherConditions,
+    a partir de start_time (inclusive) até hours_ahead horas."""
     hourly = data["hourly"]
-
-    now = datetime.now()
     out: list[WeatherConditions] = []
-
-    # Acumular precipitação 24h por janela móvel
     precip_arr = hourly["precipitation"]
 
     for i, time_str in enumerate(hourly["time"]):
         t = datetime.fromisoformat(time_str)
-        if t < now:
+        if t < start_time:
             continue
         if len(out) >= hours_ahead:
             break
@@ -114,6 +85,132 @@ async def fetch_open_meteo(
         ))
 
     return out
+
+
+async def fetch_open_meteo(
+    latitude: float,
+    longitude: float,
+    hours_ahead: int = 5,
+    client: Optional["httpx.AsyncClient"] = None,
+    start_time: Optional[datetime] = None,
+) -> list[WeatherConditions]:
+    """
+    Vai buscar condições à Open-Meteo (API de previsão) a partir de
+    start_time (default None = agora) para as próximas hours_ahead horas.
+    Devolve uma lista de WeatherConditions horárias.
+
+    start_time no passado (até 92 dias atrás — limite da API de
+    previsão) usa o parâmetro `past_days`; mais antigo do que isso não
+    é coberto por esta função — ver fetch_weather_for_start_time, que
+    escolhe automaticamente a API de arquivo histórico nesse caso.
+    start_time no futuro estende `forecast_days` conforme necessário
+    (máximo 16 dias, limite da própria API).
+
+    Notas:
+    - Usa o modelo 'best_match' que para Portugal é tipicamente ECMWF IFS
+    - Inclui rajadas (gusts) para cenário de pior caso
+    """
+    if not HAS_HTTPX:
+        raise ImportError("httpx é necessário para fetch_open_meteo")
+
+    effective_start = start_time or datetime.now()
+
+    params = {
+        "latitude": latitude,
+        "longitude": longitude,
+        "hourly": ",".join(_HOURLY_VARS),
+        "models": "best_match",
+        "timezone": "Europe/Lisbon",
+        "wind_speed_unit": "ms",
+    }
+
+    days_ahead = max(0, (effective_start.date() - datetime.now().date()).days)
+    params["forecast_days"] = min(16, days_ahead + math.ceil(hours_ahead / 24) + 1)
+
+    days_past = max(0, (datetime.now().date() - effective_start.date()).days)
+    if days_past > 0:
+        params["past_days"] = min(_FORECAST_PAST_DAYS_MAX, days_past)
+
+    own_client = client is None
+    if own_client:
+        client = httpx.AsyncClient(timeout=10.0)
+
+    try:
+        response = await client.get(OPEN_METEO_URL, params=params)
+        response.raise_for_status()
+        data = response.json()
+    finally:
+        if own_client:
+            await client.aclose()
+
+    return _parse_open_meteo_hourly(data, effective_start, hours_ahead)
+
+
+async def fetch_open_meteo_archive(
+    latitude: float,
+    longitude: float,
+    start_time: datetime,
+    hours_ahead: int = 5,
+    client: Optional["httpx.AsyncClient"] = None,
+) -> list[WeatherConditions]:
+    """
+    Vai buscar condições históricas à API de arquivo Open-Meteo
+    (ERA5, dados desde 1940) — usada quando start_time é mais antigo do
+    que o limite de past_days da API de previsão (92 dias). Mesmas
+    variáveis/nomes, mas parâmetros start_date/end_date em vez de
+    forecast_days/past_days, e sem o parâmetro `models` (é reanálise,
+    não previsão por modelo).
+
+    Aviso: ERA5 é reanálise, não previsão operacional — resolução
+    espacial mais grosseira (grelha ~9-31km) do que o modelo de
+    previsão usado para datas recentes/futuras; vento histórico é por
+    isso menos preciso localmente.
+    """
+    if not HAS_HTTPX:
+        raise ImportError("httpx é necessário para fetch_open_meteo_archive")
+
+    end_date = start_time + timedelta(days=math.ceil(hours_ahead / 24) + 1)
+    params = {
+        "latitude": latitude,
+        "longitude": longitude,
+        "hourly": ",".join(_HOURLY_VARS),
+        "start_date": start_time.date().isoformat(),
+        "end_date": end_date.date().isoformat(),
+        "timezone": "Europe/Lisbon",
+        "wind_speed_unit": "ms",
+    }
+
+    own_client = client is None
+    if own_client:
+        client = httpx.AsyncClient(timeout=10.0)
+
+    try:
+        response = await client.get(OPEN_METEO_ARCHIVE_URL, params=params)
+        response.raise_for_status()
+        data = response.json()
+    finally:
+        if own_client:
+            await client.aclose()
+
+    return _parse_open_meteo_hourly(data, start_time, hours_ahead)
+
+
+async def fetch_weather_for_start_time(
+    latitude: float,
+    longitude: float,
+    start_time: Optional[datetime],
+    hours_ahead: int = 5,
+    client: Optional["httpx.AsyncClient"] = None,
+) -> list[WeatherConditions]:
+    """
+    Dispatcher: escolhe a API de previsão (com past_days) ou a de
+    arquivo histórico consoante o quão antigo start_time é.
+    start_time=None mantém o comportamento actual ("agora").
+    """
+    days_ago = (datetime.now() - start_time).days if start_time else -1
+    if days_ago <= _FORECAST_PAST_DAYS_MAX:
+        return await fetch_open_meteo(latitude, longitude, hours_ahead, client, start_time=start_time)
+    return await fetch_open_meteo_archive(latitude, longitude, start_time, hours_ahead, client)
 
 
 def estimate_fine_dead_moisture_pct(

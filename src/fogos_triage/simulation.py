@@ -36,7 +36,7 @@ except ImportError:
     HAS_RASTERIO = False
 
 from .engine import _max_spread_direction_from_phi, _rothermel_direct
-from .fuel_models import FuelModelPT
+from .fuel_models import FuelModelPT, SCOTT_BURGAN_NB_RANGE, normalize_fuel_model_num
 from .fuel_moisture_table import FuelMoistureRow
 from .fuel_moisture_table import lookup as _lookup_fuel_moisture
 from .landscape import LandscapeReader, LandscapeRasters
@@ -271,6 +271,12 @@ def _build_ros_grid(
                  else np.where(slope_raw == slope_nodata, 0.0, slope_raw))
     fuel_num = (fuel_raw.astype(int) if fuel_nodata is None
                 else np.where(fuel_raw == fuel_nodata, 98, fuel_raw).astype(int))
+    # Códigos NB Scott & Burgan (91-99, urbano/água/agrícola/...) → FM98,
+    # mesmo tratamento de "não combustível" em toda a app (ver fuel_models.py).
+    fuel_num = np.where(
+        (fuel_num >= SCOTT_BURGAN_NB_RANGE.start) & (fuel_num < SCOTT_BURGAN_NB_RANGE.stop),
+        98, fuel_num,
+    )
 
     lons, lats = rio_transform(reader.crs, "EPSG:4326", pts_x, pts_y)
 
@@ -394,6 +400,12 @@ def _build_direction_arrows(
                   else np.where(aspect_raw == aspect_nodata, 0.0, aspect_raw))
     fuel_num = (fuel_raw.astype(int) if fuel_nodata is None
                 else np.where(fuel_raw == fuel_nodata, 98, fuel_raw).astype(int))
+    # Códigos NB Scott & Burgan (91-99, urbano/água/agrícola/...) → FM98,
+    # mesmo tratamento de "não combustível" em toda a app (ver fuel_models.py).
+    fuel_num = np.where(
+        (fuel_num >= SCOTT_BURGAN_NB_RANGE.start) & (fuel_num < SCOTT_BURGAN_NB_RANGE.stop),
+        98, fuel_num,
+    )
 
     lons, lats = rio_transform(reader.crs, "EPSG:4326", pts_x, pts_y)
 
@@ -640,7 +652,9 @@ def _propagate(
                 slope_deg, aspect_deg, fuel_num = (
                     terrain.slope_degrees, terrain.aspect_degrees, terrain.fuel_model_num,
                 )
-            fm = fuel_models.get(fuel_num)
+            # Códigos NB Scott & Burgan (91-99) → FM98, mesmo tratamento de
+            # "não combustível" em toda a app (ver fuel_models.py).
+            fm = fuel_models.get(normalize_fuel_model_num(fuel_num))
 
             if fm is None or fm.is_empty:
                 new_verts.append((x_cur, y_cur, 0.0, 0.0))

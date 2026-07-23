@@ -9,8 +9,10 @@ import {
   initSimulationLayers, updateSimulationLayerStyle,
   downloadGeoJSON, perimetersToFeatureCollection,
 } from '../components/SimulationMapLayers'
-import { Legend, ResultsTable, DurationSelect, FuelMoistureScenarioSelect, FileTextInput } from '../components/SimulationPanels'
-import { basemapStyle, BASEMAP_LABEL } from '../basemaps'
+import { Legend, ResultsTable, DurationSelect, FuelMoistureScenarioSelect, FileTextInput, FuelModelLegend } from '../components/SimulationPanels'
+import {
+  basemapStyle, BASEMAP_LABEL, addFuelModelLayer, setFuelModelLayerVisible, setFuelModelLayerOpacity,
+} from '../basemaps'
 
 export default function SimulacaoView({ apiKey, theme }) {
   const { fireId } = useParams()
@@ -22,6 +24,7 @@ export default function SimulacaoView({ apiKey, theme }) {
   const [layer, setLayer] = useState('ros')
   const [opacity, setOpacity] = useState(0.75)
   const [durationH, setDurationH] = useState(3)
+  const [startTime, setStartTime] = useState('')
   const [useGusts, setUseGusts] = useState(false)
   const [fuelMoistureScenario, setFuelMoistureScenario] = useState(null)
   const [weatherStreamText, setWeatherStreamText] = useState(null)
@@ -33,6 +36,10 @@ export default function SimulacaoView({ apiKey, theme }) {
   const [error, setError] = useState(null)
   const [visiblePerimeters, setVisiblePerimeters] = useState(new Set())
   const [showArrows, setShowArrows] = useState(true)
+  const [showFuelModel, setShowFuelModel] = useState(false)
+  const [fuelModelOpacity, setFuelModelOpacity] = useState(0.7)
+  const showFuelModelRef = useRef(false)
+  const fuelModelOpacityRef = useRef(0.7)
   const pollRef = useRef(null)
 
   useEffect(() => {
@@ -55,6 +62,9 @@ export default function SimulacaoView({ apiKey, theme }) {
     new maplibregl.Marker({ color: '#ef4444' })
       .setLngLat([fire.longitude, fire.latitude])
       .addTo(map)
+    map.on('load', () => {
+      addFuelModelLayer(map, { visible: showFuelModelRef.current, opacity: fuelModelOpacityRef.current })
+    })
     mapRef.current = map
     return () => { map.remove(); mapRef.current = null }
   }, [fire])
@@ -64,9 +74,25 @@ export default function SimulacaoView({ apiKey, theme }) {
     if (!map) return
     map.setStyle(basemapStyle(basemap, theme))
     map.once('styledata', () => {
+      addFuelModelLayer(map, { visible: showFuelModelRef.current, opacity: fuelModelOpacityRef.current })
       if (result) initSimulationLayers(map, result, { layer, opacity, visiblePerimeters, showArrows })
     })
   }, [basemap, theme])
+
+  // Overlay do modelo de combustível — independente de result, actualizado
+  // sem reconstruir nada; ref mantida em sincronia para addFuelModelLayer
+  // acima saber o valor certo mesmo depois de uma troca de basemap.
+  useEffect(() => {
+    showFuelModelRef.current = showFuelModel
+    const map = mapRef.current
+    if (map) setFuelModelLayerVisible(map, showFuelModel)
+  }, [showFuelModel])
+
+  useEffect(() => {
+    fuelModelOpacityRef.current = fuelModelOpacity
+    const map = mapRef.current
+    if (map) setFuelModelLayerOpacity(map, fuelModelOpacity)
+  }, [fuelModelOpacity])
 
   // Novo resultado — todos os perímetros começam visíveis
   useEffect(() => {
@@ -147,6 +173,7 @@ export default function SimulacaoView({ apiKey, theme }) {
         fuelMoistureScenario,
         weatherStreamText,
         fuelMoistureTableText,
+        startTime,
       })
       setJobStatus(job.status)
       startPolling(job.job_id)
@@ -189,6 +216,29 @@ export default function SimulacaoView({ apiKey, theme }) {
               </button>
             ))}
           </div>
+
+          <div className="map-overlay-panel" style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            borderRadius: 4, padding: '4px 8px',
+          }}>
+            <label className="filter-check" style={{ fontSize: 9, fontFamily: 'var(--font-mono)' }}>
+              <input type="checkbox" checked={showFuelModel}
+                onChange={e => setShowFuelModel(e.target.checked)} />
+              MODELOS DE COMBUSTÍVEL
+            </label>
+          </div>
+          {showFuelModel && (
+            <div className="map-overlay-panel" style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              borderRadius: 4, padding: '4px 8px',
+            }}>
+              <span style={{ fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--font-mono)' }}>TRANSP</span>
+              <input type="range" min={0} max={1} step={0.05}
+                value={fuelModelOpacity} onChange={e => setFuelModelOpacity(parseFloat(e.target.value))}
+                style={{ width: 80, cursor: 'pointer' }} />
+            </div>
+          )}
+          {showFuelModel && <FuelModelLegend />}
 
           {result && (
             <>
@@ -267,6 +317,21 @@ export default function SimulacaoView({ apiKey, theme }) {
               DURAÇÃO
             </div>
             <DurationSelect value={durationH} onChange={setDurationH} />
+          </div>
+
+          <div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--muted)', marginBottom: 4 }}>
+              INÍCIO DA SIMULAÇÃO
+            </div>
+            <input
+              type="datetime-local"
+              className="form-input"
+              style={{ fontSize: 12, padding: '5px 8px' }}
+              value={startTime}
+              disabled={isRunning || !!weatherStreamFilename}
+              title={weatherStreamFilename ? 'Weather Stream já tem a sua própria linha do tempo' : 'Vazio = agora'}
+              onChange={e => setStartTime(e.target.value)}
+            />
           </div>
 
           <div>
@@ -357,6 +422,7 @@ export default function SimulacaoView({ apiKey, theme }) {
                 ? ` · Humidade: cenário ${result.meta.fuel_moisture_scenario} (${FUEL_MOISTURE_SCENARIO_LABEL[result.meta.fuel_moisture_scenario]})`
                 : ' · Humidade: calculada'}
             {triage && ` · Triagem: ${fmtDateTime(triage.computed_at)}`}
+            {result.meta.start_time && ` · Início: ${fmtDateTime(result.meta.start_time)}`}
             {` · Resolução: ${result.meta.resolution_m}m`}
           </div>
         )}

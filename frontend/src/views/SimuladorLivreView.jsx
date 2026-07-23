@@ -4,15 +4,17 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { TerraDraw, TerraDrawPointMode, TerraDrawLineStringMode, TerraDrawSelectMode } from 'terra-draw'
 import { TerraDrawMapLibreGLAdapter } from 'terra-draw-maplibre-gl-adapter'
 import { postFreeSimulate, getFreeSimulationJob } from '../api'
-import { fmt, FUEL_MOISTURE_SCENARIO_LABEL } from '../constants'
+import { fmt, fmtDateTime, FUEL_MOISTURE_SCENARIO_LABEL } from '../constants'
 import { REGION_CENTER, REGION_ZOOM } from '../region'
 import {
   COLOR_LABELS, COLOR_STOPS, msToKmh, perimStyle,
   initSimulationLayers, updateSimulationLayerStyle,
   downloadGeoJSON, perimetersToFeatureCollection,
 } from '../components/SimulationMapLayers'
-import { Legend, ResultsTable, DurationSelect, FuelMoistureScenarioSelect, FileTextInput } from '../components/SimulationPanels'
-import { basemapStyle, BASEMAP_LABEL } from '../basemaps'
+import { Legend, ResultsTable, DurationSelect, FuelMoistureScenarioSelect, FileTextInput, FuelModelLegend } from '../components/SimulationPanels'
+import {
+  basemapStyle, BASEMAP_LABEL, addFuelModelLayer, setFuelModelLayerVisible, setFuelModelLayerOpacity,
+} from '../basemaps'
 
 // Extrai [[lat,lon], ...] das features desenhadas/importadas (Point ou
 // LineString) — filtra por properties.mode, não só geometry.type: com o
@@ -78,13 +80,20 @@ function _teardownDrawLayers(map) {
   }
 }
 
-// Cria e regista uma instância TerraDraw nova. Nunca reutiliza/reinicia uma
-// instância existente (stop()/clear() assumem que as suas próprias sources
-// ainda existem no mapa — depois de um map.setStyle() ou de qualquer outra
-// falha de sincronização isso deixa de ser verdade e rebenta com "Cannot
-// read properties of undefined (reading 'setData')"). Faz sempre tábua rasa
-// primeiro, por isso é seguro chamar isto a qualquer momento.
-function _attachDraw(map, onFinish, onChange) {
+// Cria e regista uma instância TerraDraw nova, guardando-a em drawRef.
+// Nunca reutiliza/reinicia uma instância existente (stop()/clear() assumem
+// que as suas próprias sources ainda existem no mapa — depois de um
+// map.setStyle() ou de qualquer outra falha de sincronização isso deixa de
+// ser verdade e rebenta com "Cannot read properties of undefined (reading
+// 'setData')"). Por isso esta função pára SEMPRE o que estiver em
+// drawRef.current antes de fazer tábua rasa e criar a nova instância — não
+// só quando chamada de propósito, mas também quando duas chamadas
+// aterram seguidas (ex.: troca rápida de basemap empilha vários listeners
+// 'styledata' que disparam para o mesmo evento — confirmado empiricamente
+// que sem esta paragem interna a segunda chamada rebentava com o mesmo
+// erro, mesmo já parando a instância anterior à chamada de setStyle()).
+function _attachDraw(map, drawRef, onFinish, onChange) {
+  try { drawRef.current?.stop() } catch { /* já pode estar parada */ }
   _teardownDrawLayers(map)
   const draw = new TerraDraw({
     adapter: new TerraDrawMapLibreGLAdapter({ map }),
@@ -106,7 +115,7 @@ function _attachDraw(map, onFinish, onChange) {
   draw.on('finish', onFinish)
   draw.on('change', onChange)
   draw.start()
-  return draw
+  drawRef.current = draw
 }
 
 export default function SimuladorLivreView({ apiKey, theme }) {
@@ -122,6 +131,7 @@ export default function SimuladorLivreView({ apiKey, theme }) {
   const [layer, setLayer] = useState('ros')
   const [opacity, setOpacity] = useState(0.75)
   const [durationH, setDurationH] = useState(3)
+  const [startTime, setStartTime] = useState('')
   const [useGusts, setUseGusts] = useState(false)
   const [fuelMoistureScenario, setFuelMoistureScenario] = useState(null)
   const [weatherStreamText, setWeatherStreamText] = useState(null)
@@ -133,6 +143,10 @@ export default function SimuladorLivreView({ apiKey, theme }) {
   const [error, setError] = useState(null)
   const [visiblePerimeters, setVisiblePerimeters] = useState(new Set())
   const [showArrows, setShowArrows] = useState(true)
+  const [showFuelModel, setShowFuelModel] = useState(false)
+  const [fuelModelOpacity, setFuelModelOpacity] = useState(0.7)
+  const showFuelModelRef = useRef(false)
+  const fuelModelOpacityRef = useRef(0.7)
   const pollRef = useRef(null)
 
   // Feição acabada de desenhar (finish já dá o id) — fica logo
@@ -166,7 +180,8 @@ export default function SimuladorLivreView({ apiKey, theme }) {
     map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right')
 
     map.on('load', () => {
-      drawRef.current = _attachDraw(map, onDrawFinish, onDrawChange)
+      _attachDraw(map, drawRef, onDrawFinish, onDrawChange)
+      addFuelModelLayer(map, { visible: showFuelModelRef.current, opacity: fuelModelOpacityRef.current })
       setMapReady(true)
     })
 
@@ -183,18 +198,58 @@ export default function SimuladorLivreView({ apiKey, theme }) {
     if (basemapInitRef.current) { basemapInitRef.current = false; return }
     const map = mapRef.current
     if (!map) return
+    // Pára a instância TerraDraw ANTES de destruir o estilo — sem isto, os
+    // seus listeners no canvas e o próximo requestAnimationFrame do adapter
+    // continuam vivos, e esse render tardio rebenta com "Cannot read
+    // properties of undefined (reading 'setData')" ao tentar escrever nas
+    // sources que o setStyle() já destruiu (confirmado empiricamente: dois
+    // cliques em Ponto depois de trocar de basemap deixavam de registar).
+    try { drawRef.current?.stop() } catch { /* sources já podem ter ido */ }
     map.setStyle(basemapStyle(basemap, theme))
-    map.once('style.load', () => {
+    // 'style.load' NUNCA dispara depois de um setStyle() num mapa já
+    // carregado (confirmado empiricamente) — só dispara para o carregamento
+    // inicial do mapa. 'styledata' é o evento correcto aqui, mesmo padrão já
+    // usado no efeito de result mais abaixo e em SimulacaoView.jsx — mas
+    // 'styledata' dispara VÁRIAS vezes durante o carregamento de um estilo
+    // (uma por fonte/sprite/glyphs), sobretudo no estilo vector OSM (várias
+    // fontes) — um `once` ingénuo apanha muitas vezes um disparo a meio do
+    // carregamento, antes das sources estarem todas prontas, e as camadas do
+    // TerraDraw acabam por ser destruídas outra vez por um 'styledata'
+    // posterior que já não temos ninguém a ouvir (confirmado empiricamente:
+    // trocar para OSM deixava "Ponto" a rebentar com "Cannot read properties
+    // of undefined (reading 'setData')" ao fim de poucos segundos). Por
+    // isso fica-se a ouvir 'styledata' repetidamente e só se agarra ao
+    // último, quando `isStyleLoaded()` confirma que já não há mais a vir.
+    const onStyleReady = () => {
+      if (!map.isStyleLoaded()) return
+      map.off('styledata', onStyleReady)
       // setStyle() destrói todas as sources/layers, incluindo as do
       // TerraDraw — reinstancia-se em vez de reiniciar a mesma instância
       // (ver _attachDraw). O desenho em curso perde-se visualmente de
       // qualquer forma quando o estilo muda, por isso reset de estado aqui.
-      drawRef.current = _attachDraw(map, onDrawFinish, onDrawChange)
+      _attachDraw(map, drawRef, onDrawFinish, onDrawChange)
+      addFuelModelLayer(map, { visible: showFuelModelRef.current, opacity: fuelModelOpacityRef.current })
       setIgnitionPoints([])
       setDrawMode(null)
       if (result) initSimulationLayers(map, result, { layer, opacity, visiblePerimeters, showArrows })
-    })
+    }
+    map.on('styledata', onStyleReady)
   }, [basemap, theme])
+
+  // Overlay do modelo de combustível — independente de result, actualizado
+  // sem reconstruir nada; ref mantida em sincronia para addFuelModelLayer
+  // acima saber o valor certo mesmo depois de uma troca de basemap.
+  useEffect(() => {
+    showFuelModelRef.current = showFuelModel
+    const map = mapRef.current
+    if (map) setFuelModelLayerVisible(map, showFuelModel)
+  }, [showFuelModel])
+
+  useEffect(() => {
+    fuelModelOpacityRef.current = fuelModelOpacity
+    const map = mapRef.current
+    if (map) setFuelModelLayerOpacity(map, fuelModelOpacity)
+  }, [fuelModelOpacity])
 
   // Novo resultado — todos os perímetros começam visíveis
   useEffect(() => {
@@ -322,7 +377,7 @@ export default function SimuladorLivreView({ apiKey, theme }) {
     try {
       const job = await postFreeSimulate(apiKey, {
         ignitionPoints, duration_h: durationH, useGusts, fuelMoistureScenario,
-        weatherStreamText, fuelMoistureTableText,
+        weatherStreamText, fuelMoistureTableText, startTime,
       })
       setJobStatus(job.status)
       startPolling(job.job_id)
@@ -414,6 +469,29 @@ export default function SimuladorLivreView({ apiKey, theme }) {
             ))}
           </div>
 
+          <div className="map-overlay-panel" style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            borderRadius: 4, padding: '4px 8px',
+          }}>
+            <label className="filter-check" style={{ fontSize: 9, fontFamily: 'var(--font-mono)' }}>
+              <input type="checkbox" checked={showFuelModel}
+                onChange={e => setShowFuelModel(e.target.checked)} />
+              MODELOS DE COMBUSTÍVEL
+            </label>
+          </div>
+          {showFuelModel && (
+            <div className="map-overlay-panel" style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              borderRadius: 4, padding: '4px 8px',
+            }}>
+              <span style={{ fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--font-mono)' }}>TRANSP</span>
+              <input type="range" min={0} max={1} step={0.05}
+                value={fuelModelOpacity} onChange={e => setFuelModelOpacity(parseFloat(e.target.value))}
+                style={{ width: 80, cursor: 'pointer' }} />
+            </div>
+          )}
+          {showFuelModel && <FuelModelLegend />}
+
           {result && (
             <>
               <div className="map-overlay-panel" style={{ display: 'flex', gap: 4, borderRadius: 4, padding: 4 }}>
@@ -491,6 +569,21 @@ export default function SimuladorLivreView({ apiKey, theme }) {
               DURAÇÃO
             </div>
             <DurationSelect value={durationH} onChange={setDurationH} />
+          </div>
+
+          <div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--muted)', marginBottom: 4 }}>
+              INÍCIO DA SIMULAÇÃO
+            </div>
+            <input
+              type="datetime-local"
+              className="form-input"
+              style={{ fontSize: 12, padding: '5px 8px' }}
+              value={startTime}
+              disabled={isRunning || !!weatherStreamFilename}
+              title={weatherStreamFilename ? 'Weather Stream já tem a sua própria linha do tempo' : 'Vazio = agora'}
+              onChange={e => setStartTime(e.target.value)}
+            />
           </div>
 
           <div>
@@ -590,6 +683,7 @@ export default function SimuladorLivreView({ apiKey, theme }) {
               : result.meta.fuel_moisture_scenario
                 ? ` · Humidade: cenário ${result.meta.fuel_moisture_scenario} (${FUEL_MOISTURE_SCENARIO_LABEL[result.meta.fuel_moisture_scenario]})`
                 : ' · Humidade: calculada'}
+            {result.meta.start_time && ` · Início: ${fmtDateTime(result.meta.start_time)}`}
             {` · Resolução: ${result.meta.resolution_m}m`}
           </div>
         )}

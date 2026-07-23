@@ -27,6 +27,7 @@ from .routes_meta import (
     router_jobs,
     router_sim,
 )
+from .routes_tiles import router_tiles
 
 
 @asynccontextmanager
@@ -117,6 +118,7 @@ def create_app() -> FastAPI:
     app.include_router(router_free_sim)
     app.include_router(router_free_jobs)
     app.include_router(router_health)
+    app.include_router(router_tiles)
 
     return app
 
