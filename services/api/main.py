@@ -48,6 +48,7 @@ async def lifespan(app: FastAPI):
                     r2_secret_access_key=config.r2_secret_access_key,
                     r2_bucket=config.r2_bucket,
                     r2_prefix=config.r2_prefix,
+                    filename=config.landscape_file,
                 ),
             )
             log.info("Landscape pré-carregada com sucesso no arranque da API")

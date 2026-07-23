@@ -62,6 +62,13 @@ function parseIgnitionGeoJSON(text) {
 // para poder remover manualmente quaisquer resíduos antes de reinstanciar.
 const _DRAW_PREFIX = 'td'
 
+// Debounce para considerar um 'styledata' "assente" depois de uma troca de
+// basemap — ver efeito de basemap mais abaixo para o porquê deste valor
+// (medido empiricamente: o carregamento em várias fases do estilo vector
+// OSM/liberty completa-se em ~650ms; 400ms de silêncio depois do último
+// 'styledata' dá margem sem atrasar perceptivelmente a reactivação).
+const _STYLE_SETTLE_MS = 400
+
 // Remove sources/layers do TerraDraw que possam ter ficado do mapa, sem
 // assumir nada sobre se a instância anterior os registou/desregistou com
 // sucesso — cada remoção é guardada por uma verificação de existência, para
@@ -122,6 +129,8 @@ export default function SimuladorLivreView({ apiKey, theme }) {
   const mapRef = useRef(null)
   const containerRef = useRef(null)
   const drawRef = useRef(null)
+  const styleDataHandlerRef = useRef(null)   // listener 'styledata' pendente, ver efeito de basemap
+  const styleSettleTimerRef = useRef(null)   // debounce do listener acima
   const basemapInitRef = useRef(true)  // skip first run do efeito de basemap
 
   const [mapReady, setMapReady] = useState(false)
@@ -187,6 +196,7 @@ export default function SimuladorLivreView({ apiKey, theme }) {
 
     mapRef.current = map
     return () => {
+      if (styleSettleTimerRef.current) clearTimeout(styleSettleTimerRef.current)
       try { drawRef.current?.stop() } catch { /* mapa vai ser destruído já a seguir */ }
       map.remove()
       mapRef.current = null
@@ -198,42 +208,68 @@ export default function SimuladorLivreView({ apiKey, theme }) {
     if (basemapInitRef.current) { basemapInitRef.current = false; return }
     const map = mapRef.current
     if (!map) return
+    // Cancela um listener/debounce pendente de uma troca de basemap
+    // anterior que ainda não tinha assentado.
+    if (styleDataHandlerRef.current) {
+      map.off('styledata', styleDataHandlerRef.current)
+      styleDataHandlerRef.current = null
+    }
+    if (styleSettleTimerRef.current) {
+      clearTimeout(styleSettleTimerRef.current)
+      styleSettleTimerRef.current = null
+    }
     // Pára a instância TerraDraw ANTES de destruir o estilo — sem isto, os
     // seus listeners no canvas e o próximo requestAnimationFrame do adapter
     // continuam vivos, e esse render tardio rebenta com "Cannot read
     // properties of undefined (reading 'setData')" ao tentar escrever nas
-    // sources que o setStyle() já destruiu (confirmado empiricamente: dois
-    // cliques em Ponto depois de trocar de basemap deixavam de registar).
+    // sources que o setStyle() já destruiu.
     try { drawRef.current?.stop() } catch { /* sources já podem ter ido */ }
     map.setStyle(basemapStyle(basemap, theme))
     // 'style.load' NUNCA dispara depois de um setStyle() num mapa já
     // carregado (confirmado empiricamente) — só dispara para o carregamento
-    // inicial do mapa. 'styledata' é o evento correcto aqui, mesmo padrão já
-    // usado no efeito de result mais abaixo e em SimulacaoView.jsx — mas
-    // 'styledata' dispara VÁRIAS vezes durante o carregamento de um estilo
-    // (uma por fonte/sprite/glyphs), sobretudo no estilo vector OSM (várias
-    // fontes) — um `once` ingénuo apanha muitas vezes um disparo a meio do
-    // carregamento, antes das sources estarem todas prontas, e as camadas do
-    // TerraDraw acabam por ser destruídas outra vez por um 'styledata'
-    // posterior que já não temos ninguém a ouvir (confirmado empiricamente:
-    // trocar para OSM deixava "Ponto" a rebentar com "Cannot read properties
-    // of undefined (reading 'setData')" ao fim de poucos segundos). Por
-    // isso fica-se a ouvir 'styledata' repetidamente e só se agarra ao
-    // último, quando `isStyleLoaded()` confirma que já não há mais a vir.
-    const onStyleReady = () => {
-      if (!map.isStyleLoaded()) return
-      map.off('styledata', onStyleReady)
-      // setStyle() destrói todas as sources/layers, incluindo as do
-      // TerraDraw — reinstancia-se em vez de reiniciar a mesma instância
-      // (ver _attachDraw). O desenho em curso perde-se visualmente de
-      // qualquer forma quando o estilo muda, por isso reset de estado aqui.
-      _attachDraw(map, drawRef, onDrawFinish, onDrawChange)
-      addFuelModelLayer(map, { visible: showFuelModelRef.current, opacity: fuelModelOpacityRef.current })
-      setIgnitionPoints([])
-      setDrawMode(null)
-      if (result) initSimulationLayers(map, result, { layer, opacity, visiblePerimeters, showArrows })
+    // inicial do mapa.
+    //
+    // 'styledata' é o evento certo para "o estilo mudou", mas reagir ao
+    // PRIMEIRO 'styledata' não chega: um estilo vector como o OSM/liberty
+    // carrega em várias fases (fontes vector, sprite, glyphs — confirmado
+    // empiricamente: ~19 pedidos de rede em ~650ms, com 'styledata' a
+    // disparar várias vezes nesse período). O MapLibre continua a
+    // reprocessar/substituir sources internamente depois do primeiro
+    // 'styledata', o que destrói silenciosamente as sources do TerraDraw já
+    // reanexadas, sem disparar nada que avise — só se nota no clique
+    // seguinte, com "Cannot read properties of undefined (reading
+    // 'setData')".
+    //
+    // A correcção: escutar 'styledata' de forma persistente e só reanexar
+    // quando ficar QUIETO por `_STYLE_SETTLE_MS` — não quando
+    // `map.isStyleLoaded()` fica true (tentado e revertido: exige que
+    // TODOS os tiles do basemap actual tenham carregado, e os tiles de
+    // satélite Google, endpoint não-oficial mt0/mt1.google.com, por vezes
+    // nunca terminam de carregar em produção — isStyleLoaded() ficava false
+    // para sempre e o desenho nunca mais era reactivado). 'styledata' é
+    // sobre a ESTRUTURA do estilo (sources/layers definidos), não sobre
+    // pixels de tiles individuais (isso é 'sourcedata') — por isso o
+    // debounce assenta depressa mesmo que os tiles do basemap nunca
+    // cheguem a carregar de facto.
+    const onStyleData = () => {
+      if (styleSettleTimerRef.current) clearTimeout(styleSettleTimerRef.current)
+      styleSettleTimerRef.current = setTimeout(() => {
+        map.off('styledata', onStyleData)
+        styleDataHandlerRef.current = null
+        styleSettleTimerRef.current = null
+        // setStyle() destrói todas as sources/layers, incluindo as do
+        // TerraDraw — reinstancia-se em vez de reiniciar a mesma instância
+        // (ver _attachDraw). O desenho em curso perde-se visualmente de
+        // qualquer forma quando o estilo muda, por isso reset de estado aqui.
+        _attachDraw(map, drawRef, onDrawFinish, onDrawChange)
+        addFuelModelLayer(map, { visible: showFuelModelRef.current, opacity: fuelModelOpacityRef.current })
+        setIgnitionPoints([])
+        setDrawMode(null)
+        if (result) initSimulationLayers(map, result, { layer, opacity, visiblePerimeters, showArrows })
+      }, _STYLE_SETTLE_MS)
     }
-    map.on('styledata', onStyleReady)
+    styleDataHandlerRef.current = onStyleData
+    map.on('styledata', onStyleData)
   }, [basemap, theme])
 
   // Overlay do modelo de combustível — independente de result, actualizado

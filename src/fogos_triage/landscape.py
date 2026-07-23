@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 import math
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -18,6 +19,17 @@ from typing import Optional
 import numpy as np
 
 log = logging.getLogger(__name__)
+
+# Serializa downloads concorrentes do mesmo processo — sem isto, N pedidos
+# em paralelo (ex.: uma dezena de tiles XYZ do overlay de modelos de
+# combustível, todos a chegar com o ficheiro ainda ausente) disparam N
+# downloads simultâneos do mesmo ficheiro multi-GB, e o R2 responde a
+# alguns com 409 Conflict (confirmado em produção, alto_minho,
+# 2026-07-24) — a app fica indisponível (502) até algum deles acabar.
+# Um único Lock por processo chega: Railway corre esta API com
+# numReplicas=1; se algum dia escalar para mais réplicas, cada uma tem o
+# seu próprio volume/download, este lock não cobre esse caso.
+_download_lock = threading.Lock()
 
 LANDSCAPE_TIFS = [
     "Altitude.tif",
@@ -67,49 +79,68 @@ def ensure_landscape(
 
     Se `filename` for dado, assume modo multibanda — garante apenas esse
     ficheiro único (em vez dos 8 TIFFs de LANDSCAPE_TIFS).
+
+    Chamadas concorrentes (mesmo processo) serializam num lock — sem
+    isto, N chamadores em paralelo com o ficheiro ainda ausente (ex.:
+    uma rajada de pedidos de tiles XYZ) disparavam N downloads
+    simultâneos do mesmo ficheiro multi-GB, e o R2 respondia a alguns
+    com 409 Conflict (confirmado em produção, ambiente alto_minho,
+    2026-07-24 — API a devolver 502 enquanto isto acontecia).
     """
     landscape_path = Path(landscape_dir)
     landscape_path.mkdir(parents=True, exist_ok=True)
 
     expected = [filename] if filename else LANDSCAPE_TIFS
-    missing = [f for f in expected if not (landscape_path / f).exists()]
-    if not missing:
-        log.info("Landscape: %d TIFFs presentes em %s", len(expected), landscape_path)
+
+    def _missing() -> list[str]:
+        return [f for f in expected if not (landscape_path / f).exists()]
+
+    # Fast path sem lock — caso comum (já descarregado), evita
+    # contenção desnecessária em cada pedido depois do pré-aquecimento.
+    if not _missing():
         return
 
-    log.info("Landscape: %d TIFFs em falta — %s", len(missing), missing)
+    with _download_lock:
+        # Re-verifica depois de obter o lock: outro chamador pode já ter
+        # descarregado tudo enquanto esperávamos (double-checked locking).
+        missing = _missing()
+        if not missing:
+            log.info("Landscape: %d TIFFs presentes em %s", len(expected), landscape_path)
+            return
 
-    if not all([r2_account_id, r2_access_key_id, r2_secret_access_key]):
-        raise RuntimeError(
-            f"TIFFs em falta em {landscape_path} e credenciais R2 não configuradas. "
-            "Definir R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY."
+        log.info("Landscape: %d TIFFs em falta — %s", len(missing), missing)
+
+        if not all([r2_account_id, r2_access_key_id, r2_secret_access_key]):
+            raise RuntimeError(
+                f"TIFFs em falta em {landscape_path} e credenciais R2 não configuradas. "
+                "Definir R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY."
+            )
+
+        try:
+            import boto3
+            from botocore.config import Config as BotoConfig
+        except ImportError:
+            raise RuntimeError("boto3 não instalado — necessário para download dos TIFFs do R2")
+
+        endpoint = f"https://{r2_account_id}.r2.cloudflarestorage.com"
+        s3 = boto3.client(
+            "s3",
+            endpoint_url=endpoint,
+            aws_access_key_id=r2_access_key_id,
+            aws_secret_access_key=r2_secret_access_key,
+            config=BotoConfig(signature_version="s3v4"),
         )
 
-    try:
-        import boto3
-        from botocore.config import Config as BotoConfig
-    except ImportError:
-        raise RuntimeError("boto3 não instalado — necessário para download dos TIFFs do R2")
+        prefix = r2_prefix.rstrip("/") + "/"
+        for missing_name in missing:
+            key = f"{prefix}{missing_name}"
+            dest = landscape_path / missing_name
+            log.info("  A descarregar %s → %s ...", key, dest)
+            s3.download_file(r2_bucket, key, str(dest))
+            size_mb = dest.stat().st_size / 1_048_576
+            log.info("  %s — %.0f MB", missing_name, size_mb)
 
-    endpoint = f"https://{r2_account_id}.r2.cloudflarestorage.com"
-    s3 = boto3.client(
-        "s3",
-        endpoint_url=endpoint,
-        aws_access_key_id=r2_access_key_id,
-        aws_secret_access_key=r2_secret_access_key,
-        config=BotoConfig(signature_version="s3v4"),
-    )
-
-    prefix = r2_prefix.rstrip("/") + "/"
-    for missing_name in missing:
-        key = f"{prefix}{missing_name}"
-        dest = landscape_path / missing_name
-        log.info("  A descarregar %s → %s ...", key, dest)
-        s3.download_file(r2_bucket, key, str(dest))
-        size_mb = dest.stat().st_size / 1_048_576
-        log.info("  %s — %.0f MB", missing_name, size_mb)
-
-    log.info("Landscape: download completo")
+        log.info("Landscape: download completo")
 
 try:
     import rasterio
