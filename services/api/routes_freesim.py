@@ -248,13 +248,29 @@ async def _run_free_simulation(
                 )
             weather_source = "open_meteo"
 
-        # Humidade viva: VIIRS/GEE se configurado, senão fallback sazonal
-        # (mesmos defaults 60%/80% usados em todo o resto da app)
+        # Humidade viva: VIIRS/GEE se configurado, senão os valores fixos
+        # 60%/80% de derive_fire_weather (NÃO são sazonais, ao contrário do
+        # que este comentário dizia antes).
+        #
+        # Este caminho requer `earthengine-api` na imagem da API e as
+        # GEE_SERVICE_ACCOUNT/GEE_KEY_JSON no serviço — sem uma das duas
+        # coisas, o except abaixo engole a falha e a simulação corre com os
+        # 60%/80%. Importa agora que FM231/FM232 são dinâmicos: 60% fixa a
+        # fracção curada em ~0,66 o ano inteiro, sobrestimando a propagação
+        # em herbáceas verdes na Primavera.
         live_h_pct, live_w_pct = None, None
         try:
             live_fmc = await fetch_live_fmc_viirs(lat, lon, datetime.now(timezone.utc))
             if live_fmc:
                 live_h_pct, live_w_pct = live_fmc
+                log.info(
+                    "Simulação livre %s: LFMC VIIRS herbáceo=%.0f%% lenhoso=%.0f%%",
+                    job_id, live_h_pct, live_w_pct,
+                )
+            else:
+                log.warning(
+                    "Simulação livre %s: VIIRS sem valor — a usar 60%%/80%% fixos", job_id,
+                )
         except Exception as exc:
             log.warning("GEE LFMC falhou para simulação livre %s: %s", job_id, exc)
 
