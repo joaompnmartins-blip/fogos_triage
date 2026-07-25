@@ -127,7 +127,7 @@ export function spreadArrowsToFeatureCollection(
   const features = []
   for (const f of arrowPoints) {
     const [lon, lat] = f.geometry.coordinates
-    const { theta_deg, ros_m_min } = f.properties
+    const { theta_deg, ros_m_min, t_h } = f.properties
     if (theta_deg == null || ros_m_min == null) continue
 
     const frac = Math.max(0, Math.min(1, ros_m_min / maxRosMMin))
@@ -140,7 +140,7 @@ export function spreadArrowsToFeatureCollection(
     features.push({
       type: 'Feature',
       geometry: { type: 'LineString', coordinates: [[lon, lat], [endLon, endLat]] },
-      properties: { ros_m_min },
+      properties: { ros_m_min, t_h },
     })
 
     const headLenM = Math.min(lengthM * 0.35, 12)
@@ -151,7 +151,7 @@ export function spreadArrowsToFeatureCollection(
       features.push({
         type: 'Feature',
         geometry: { type: 'LineString', coordinates: [[endLon, endLat], [bLon, bLat]] },
-        properties: { ros_m_min },
+        properties: { ros_m_min, t_h },
       })
     }
   }
@@ -160,6 +160,26 @@ export function spreadArrowsToFeatureCollection(
 
 function _perimVisibility(visiblePerimeters, t_h) {
   return (visiblePerimeters && !visiblePerimeters.has(t_h)) ? 'none' : 'visible'
+}
+
+// Hora cujas setas se mostram: a mais recente entre os perímetros
+// visíveis. Um campo de setas por hora sobreposto a outro seria ilegível,
+// por isso mostra-se um só — e amarrá-lo ao selector de perímetros já
+// existente evita mais um controlo num painel que já está cheio.
+export function arrowsHour(result, visiblePerimeters) {
+  const hours = result.perimeters.map(p => p.t_h)
+    .filter(t => !visiblePerimeters || visiblePerimeters.has(t))
+  return hours.length ? Math.max(...hours) : null
+}
+
+// Resultados antigos (gravados antes das setas passarem a ser por hora)
+// não têm `t_h` nas feições — nesse caso não se filtra nada, senão as
+// setas desapareciam por completo ao reabrir uma simulação já guardada.
+function _arrowFilter(result, visiblePerimeters) {
+  const tagged = result.spread_arrows?.features?.some(f => f.properties?.t_h != null)
+  if (!tagged) return null
+  const hour = arrowsHour(result, visiblePerimeters)
+  return hour == null ? ['==', ['literal', 1], 0] : ['==', ['get', 't_h'], hour]
 }
 
 // Construção completa — remove e recria todas as layers/sources.
@@ -197,10 +217,12 @@ export function initSimulationLayers(map, result, { layer, opacity, visiblePerim
       type: 'geojson',
       data: spreadArrowsToFeatureCollection(result.spread_arrows.features),
     })
+    const arrowFilter = _arrowFilter(result, visiblePerimeters)
     map.addLayer({
       id: 'sim-arrows-line',
       type: 'line',
       source: 'sim-arrows',
+      ...(arrowFilter ? { filter: arrowFilter } : {}),
       layout: { visibility: showArrows ? 'visible' : 'none' },
       paint: {
         'line-color': 'rgba(20, 20, 20, 0.85)',
@@ -249,6 +271,9 @@ export function updateSimulationLayerStyle(map, result, { layer, opacity, visibl
   }
   if (map.getLayer('sim-arrows-line')) {
     map.setLayoutProperty('sim-arrows-line', 'visibility', showArrows ? 'visible' : 'none')
+    // Trocar de hora é só um setFilter — a source fica intacta.
+    const arrowFilter = _arrowFilter(result, visiblePerimeters)
+    if (arrowFilter) map.setFilter('sim-arrows-line', arrowFilter)
   }
   for (const { t_h } of result.perimeters) {
     const visibility = _perimVisibility(visiblePerimeters, t_h)

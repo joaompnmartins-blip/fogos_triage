@@ -337,7 +337,7 @@ DIRECTION_ARROWS_PER_SIDE = 25
 def _build_direction_arrows(
     reader: LandscapeReader,
     fuel_models: dict[int, FuelModelPT],
-    weather: WeatherConditions,
+    steps: list[tuple[float, WeatherConditions, dict]],
     min_x: float, min_y: float, max_x: float, max_y: float,
     n_per_side: int = DIRECTION_ARROWS_PER_SIDE,
     fuel_moisture_table: Optional[dict[int, FuelMoistureRow]] = None,
@@ -347,13 +347,31 @@ def _build_direction_arrows(
     máxima propagação (theta_deg) e o ROS nesse ponto — para desenhar
     setas no frontend (comprimento ∝ ros_m_min).
 
+    **Um campo de setas por instantâneo**, não um só para a simulação
+    toda: `steps` é [(t_h, meteo dessa hora, perímetro dessa hora)] e cada
+    feição sai marcada com `t_h`, para o frontend mostrar as setas da hora
+    escolhida sem reconstruir nada. Antes usava-se sempre a meteo da hora
+    0, o que era enganador assim que o vento rodava durante a simulação —
+    os perímetros são propagados com a meteo horária, as setas não eram.
+
+    A grelha de pontos é a MESMA em todas as horas (mesmo bbox, mesmo
+    n_per_side): as setas ficam nas mesmas posições ao mudar de hora, só
+    rodam e mudam de comprimento, o que torna a comparação entre horas
+    directa. O recorte é que é por hora — cada campo é cortado ao
+    perímetro dessa hora, por isso as setas vão aparecendo à medida que o
+    fogo cresce.
+
+    O terreno (declive/exposição/combustível) é lido **uma única vez**,
+    fora do ciclo das horas: não depende do tempo, e é a leitura do raster
+    que domina o custo. Só as avaliações Rothermel se repetem por hora
+    (n_per_side² por instantâneo, aritmética pura).
+
     Densidade fixa (n_per_side × n_per_side) sobre o bbox dado —
     ao contrário da grelha de cor (_build_ros_grid, até MAX_GRID_CELLS),
     decimar setas a partir dessa grelha não é fiável porque
     _clip_grid_to_perimeter() já a recorta ao perímetro final, quebrando
     a indexação linha/coluna regular. Uma segunda grelha grosseira,
-    calculada à parte, evita o problema — custo desprezável (n_per_side²
-    avaliações Rothermel).
+    calculada à parte, evita o problema.
 
     O bbox (`min_x..max_y`) deve cobrir a extensão do perímetro final,
     não o bbox de visualização pedido pelo utilizador (`bbox_km`) — este
@@ -409,51 +427,61 @@ def _build_direction_arrows(
 
     lons, lats = rio_transform(reader.crs, "EPSG:4326", pts_x, pts_y)
 
-    default_m_1h   = (weather.fuel_moisture_1h_pct   or 8.0)  / 100.0
-    default_m_10h  = (weather.fuel_moisture_10h_pct  or 9.0)  / 100.0
-    default_m_100h = (weather.fuel_moisture_100h_pct or 10.0) / 100.0
-    default_m_lh   = (weather.fuel_moisture_live_h_pct or 100.0) / 100.0
-    default_m_lw   = (weather.fuel_moisture_live_w_pct or 100.0) / 100.0
-    wind_mf = weather.wind_midflame_ms or 0.0
-    wind_dir = weather.wind_direction_deg or 0.0
+    all_features: list[dict] = []
+    for t_h, weather, perimeter in steps:
+        default_m_1h   = (weather.fuel_moisture_1h_pct   or 8.0)  / 100.0
+        default_m_10h  = (weather.fuel_moisture_10h_pct  or 9.0)  / 100.0
+        default_m_100h = (weather.fuel_moisture_100h_pct or 10.0) / 100.0
+        default_m_lh   = (weather.fuel_moisture_live_h_pct or 100.0) / 100.0
+        default_m_lw   = (weather.fuel_moisture_live_w_pct or 100.0) / 100.0
+        wind_mf = weather.wind_midflame_ms or 0.0
+        wind_dir = weather.wind_direction_deg or 0.0
 
-    features = []
-    for lon, lat, slope, aspect, fnum in zip(lons, lats, slope_deg, aspect_deg, fuel_num):
-        fm = fuel_models.get(int(fnum))
-        if fm is None or fm.is_empty:
-            continue
-        try:
-            m_1h, m_10h, m_100h, m_lh, m_lw = _point_moisture(
-                fuel_moisture_table, int(fnum),
-                default_m_1h, default_m_10h, default_m_100h, default_m_lh, default_m_lw,
-            )
-            ros, fi, phi_w, phi_s, *_ = _rothermel_direct(
-                fm, m_1h, m_10h, m_100h, m_lh, m_lw,
-                wind_midflame_ms=wind_mf,
-                slope_degrees=float(slope),
-            )
-        except Exception:
-            continue
-        if ros <= 0:
-            continue
+        features = []
+        for lon, lat, slope, aspect, fnum in zip(lons, lats, slope_deg, aspect_deg, fuel_num):
+            fm = fuel_models.get(int(fnum))
+            if fm is None or fm.is_empty:
+                continue
+            try:
+                m_1h, m_10h, m_100h, m_lh, m_lw = _point_moisture(
+                    fuel_moisture_table, int(fnum),
+                    default_m_1h, default_m_10h, default_m_100h, default_m_lh, default_m_lw,
+                )
+                ros, fi, phi_w, phi_s, *_ = _rothermel_direct(
+                    fm, m_1h, m_10h, m_100h, m_lh, m_lw,
+                    wind_midflame_ms=wind_mf,
+                    slope_degrees=float(slope),
+                )
+            except Exception:
+                continue
+            if ros <= 0:
+                continue
 
-        theta_deg = _max_spread_direction_from_phi(
-            wind_direction_deg=wind_dir,
-            aspect_degrees=float(aspect),
-            phi_w=phi_w,
-            phi_s=phi_s,
+            theta_deg = _max_spread_direction_from_phi(
+                wind_direction_deg=wind_dir,
+                aspect_degrees=float(aspect),
+                phi_w=phi_w,
+                phi_s=phi_s,
+            )
+
+            features.append({
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": [lon, lat]},
+                "properties": {
+                    "t_h": t_h,
+                    "theta_deg": round(theta_deg, 1),
+                    "ros_m_min": round(ros, 3),
+                },
+            })
+
+        # Recorte ao perímetro DESSA hora — as setas seguem o fogo em vez
+        # de aparecerem já todas sobre a área final.
+        clipped = _clip_grid_to_perimeter(
+            {"type": "FeatureCollection", "features": features}, perimeter,
         )
+        all_features.extend(clipped["features"])
 
-        features.append({
-            "type": "Feature",
-            "geometry": {"type": "Point", "coordinates": [lon, lat]},
-            "properties": {
-                "theta_deg": round(theta_deg, 1),
-                "ros_m_min": round(ros, 3),
-            },
-        })
-
-    return {"type": "FeatureCollection", "features": features}
+    return {"type": "FeatureCollection", "features": all_features}
 
 
 def _clip_grid_to_perimeter(grid_geojson: dict, perimeter_geojson: dict) -> dict:
@@ -1053,8 +1081,19 @@ def run_simulation_sync(
             xs_f = [p[0] for p in corners_proj]
             ys_f = [p[1] for p in corners_proj]
             margin_m = max(0.15 * max(max(xs_f) - min(xs_f), max(ys_f) - min(ys_f)), 100.0)
+            # Um campo de setas por instantâneo, cada um com a meteo da sua
+            # hora — mesmo índice horário que a propagação usa
+            # (weather_hourly[min(int(t), len-1)], ver _propagate).
+            arrow_steps = [
+                (
+                    snap.t_h,
+                    weather_hourly[min(int(snap.t_h), len(weather_hourly) - 1)],
+                    snap.polygon_wgs84,
+                )
+                for snap in snapshots
+            ]
             arrows = _build_direction_arrows(
-                reader, fuel_models, wx0,
+                reader, fuel_models, arrow_steps,
                 min(xs_f) - margin_m, min(ys_f) - margin_m,
                 max(xs_f) + margin_m, max(ys_f) + margin_m,
                 fuel_moisture_table=fuel_moisture_table,
@@ -1065,7 +1104,10 @@ def run_simulation_sync(
 
     final_perim = snapshots[-1].polygon_wgs84
     clipped_grid = _clip_grid_to_perimeter(grid, final_perim)
-    clipped_arrows = _clip_grid_to_perimeter(arrows, final_perim)
+    # As setas já vêm recortadas ao perímetro de cada hora (ver
+    # _build_direction_arrows), todos contidos no final — não se recorta
+    # outra vez.
+    clipped_arrows = arrows
 
     log.info("Simulação concluída: %d perímetros, %d células, %d setas",
              len(snapshots), len(clipped_grid["features"]), len(clipped_arrows["features"]))

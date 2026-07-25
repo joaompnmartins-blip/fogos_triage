@@ -7,7 +7,7 @@ import { postFreeSimulate, getFreeSimulationJob } from '../api'
 import { fmt, fmtDateTime, FUEL_MOISTURE_SCENARIO_LABEL } from '../constants'
 import { REGION_CENTER, REGION_ZOOM } from '../region'
 import {
-  COLOR_LABELS, COLOR_STOPS, msToKmh, perimStyle,
+  COLOR_LABELS, COLOR_STOPS, msToKmh, perimStyle, arrowsHour,
   initSimulationLayers, updateSimulationLayerStyle,
   downloadGeoJSON, perimetersToFeatureCollection,
 } from '../components/SimulationMapLayers'
@@ -644,10 +644,15 @@ export default function SimuladorLivreView({ apiKey, theme }) {
                 display: 'flex', alignItems: 'center', gap: 6,
                 borderRadius: 4, padding: '4px 8px',
               }}>
+                {/* A hora vai no rótulo: as setas são o campo de propagação
+                    de UM instante (a meteo dessa hora), não da simulação
+                    toda — sem isto ficava por dizer qual. */}
                 <label className="filter-check" style={{ fontSize: 9, fontFamily: 'var(--font-mono)' }}>
                   <input type="checkbox" checked={showArrows}
                     onChange={e => setShowArrows(e.target.checked)} />
                   SETAS DE PROPAGAÇÃO
+                  {arrowsHour(result, visiblePerimeters) != null
+                    && ` (t=${arrowsHour(result, visiblePerimeters)}h)`}
                 </label>
               </div>
               <Legend stops={COLOR_STOPS[layer]} label={COLOR_LABELS[layer]} />
