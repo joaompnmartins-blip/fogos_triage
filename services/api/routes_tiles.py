@@ -21,7 +21,18 @@ log = logging.getLogger(__name__)
 
 router_tiles = APIRouter(prefix="/tiles", tags=["tiles"])
 
-MIN_ZOOM = 8
+# Zoom mínimo servido. NÃO baixar sem antes construir overviews no COG
+# (`gdaladdo -r nearest ... 2 4 8 16 32 64`): o landscape file nacional não
+# as tem, por isso cada tile obriga a ler a janela inteira à resolução
+# nativa (10 m). Medido no ficheiro real, por tile:
+#     z=8  → 139 Mpx = 278 MB e ~11 s     (um ecrã ≈ 12 tiles ≈ 3,3 GB → OOM)
+#     z=9  →  34 Mpx =  68 MB
+#     z=10 →   8 Mpx =  17 MB e ~0,9 s
+#     z=12 →                      ~0,1 s
+# Ler decimado (out_shape) não resolve — sem overviews o GDAL continua a
+# descomprimir todos os blocos (medido: 6,9 s → 5,5 s, apenas ~20%).
+# Com overviews construídas, isto pode voltar a 8 (ou menos).
+MIN_ZOOM = 10
 MAX_ZOOM = 16
 TILE_SIZE = 256
 
@@ -69,12 +80,32 @@ def _encode_rgba_png(rgba: np.ndarray) -> bytes:
         return memfile.read()
 
 
+def _palette_version() -> str:
+    """
+    Token curto derivado da própria paleta, usado no caminho da cache —
+    mudar uma cor em fuel_model_colors.py muda este token e invalida
+    automaticamente todos os tiles já gravados, sem passo manual e sem
+    ter de limpar o volume persistente à mão em cada deploy. (Os tiles
+    antigos ficam órfãos no disco; são pequenos e podem ser apagados a
+    qualquer momento.)
+    """
+    import hashlib
+
+    from fogos_triage.fuel_model_colors import FUEL_MODEL_RGBA
+
+    payload = repr(sorted(FUEL_MODEL_RGBA.items())).encode()
+    return hashlib.sha1(payload).hexdigest()[:8]
+
+
 def _cache_path(landscape_dir: str, z: int, x: int, y: int) -> Path:
-    return Path(landscape_dir) / "tile_cache" / "fuel-model" / str(z) / str(x) / f"{y}.png"
+    return (
+        Path(landscape_dir) / "tile_cache" / "fuel-model"
+        / _palette_version() / str(z) / str(x) / f"{y}.png"
+    )
 
 
 def _render_fuel_model_tile(config: APIConfig, z: int, x: int, y: int) -> bytes:
-    from fogos_triage.fuel_model_colors import build_fuel_model_palette
+    from fogos_triage.fuel_model_colors import FUEL_MODEL_RGBA
     from fogos_triage.landscape import LandscapeRasters, ensure_landscape
     from fogos_triage.landscape import LandscapeReader
     from rasterio.transform import from_bounds as transform_from_bounds
@@ -131,16 +162,20 @@ def _render_fuel_model_tile(config: APIConfig, z: int, x: int, y: int) -> bytes:
             resampling=Resampling.nearest,  # dado categórico — nunca bilinear/cubic
         )
 
-    # Nodata -> 98 (não combustível), mesma convenção já usada em
-    # _build_ros_grid()/simulation.py para pixels fora de cobertura.
+    # Sem substituição de nodata: cada código é desenhado com a sua cor
+    # oficial e tudo o que não esteja no catálogo fica transparente (ver
+    # fuel_model_colors.rgba_for). Em particular **não** se mapeia nodata
+    # para 98 — no catálogo oficial 98 = "Planos de água" (azul), classe
+    # real do território; o fundo do raster nacional é 0 (~44% dos pixels,
+    # oceano/Espanha) e o nodata declarado (-32768) nem chega a ocorrer.
+    # Mapear qualquer um deles para 98 pintaria meio mapa de azul.
     fuel_nums = dst_arr.astype(np.int32)
-    if src_nodata is not None:
-        fuel_nums = np.where(fuel_nums == int(src_nodata), 98, fuel_nums)
 
-    palette = build_fuel_model_palette(sorted(set(fuel_nums.ravel().tolist())))
     rgba = np.zeros((TILE_SIZE, TILE_SIZE, 4), dtype=np.uint8)
-    for num, color in palette.items():
-        rgba[fuel_nums == num] = color
+    for num in np.unique(fuel_nums):
+        color = FUEL_MODEL_RGBA.get(int(num))
+        if color is not None:
+            rgba[fuel_nums == num] = color
 
     return _encode_rgba_png(rgba)
 

@@ -7,6 +7,7 @@ import { SEVERITY_COLOR, SEVERITY_LABEL, CONTROL_LABEL } from '../constants'
 import { REGION_CENTER, REGION_BBOX, REGION_ZOOM } from '../region'
 import {
   basemapStyle, addFuelModelLayer, setFuelModelLayerVisible, setFuelModelLayerOpacity,
+  FUEL_MODEL_MIN_ZOOM,
 } from '../basemaps'
 import { FuelModelLegend } from '../components/SimulationPanels'
 
@@ -34,6 +35,9 @@ export default function MapView({ apiKey, theme }) {
   const [loadError, setLoadError] = useState(null)
   const [showFuelModel, setShowFuelModel] = useState(false)
   const [fuelModelOpacity, setFuelModelOpacity] = useState(0.7)
+  // Zoom actual do mapa — só para saber se o overlay de combustível
+  // tem tiles a este nível (ver FUEL_MODEL_MIN_ZOOM em basemaps.js).
+  const [mapZoom, setMapZoom] = useState(0)
   const showFuelModelRef = useRef(false)
   const fuelModelOpacityRef = useRef(0.7)
 
@@ -58,6 +62,14 @@ export default function MapView({ apiKey, theme }) {
     })
 
     map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right')
+
+    // Zoom vive fora do React; espelha-se em estado só para a UI poder
+
+    // avisar quando o overlay de combustível não tem tiles a este nível.
+
+    setMapZoom(map.getZoom())
+
+    map.on('zoomend', () => setMapZoom(map.getZoom()))
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right')
 
     mapRef.current = map
@@ -315,7 +327,16 @@ export default function MapView({ apiKey, theme }) {
             onChange={e => setShowFuelModel(e.target.checked)} />
           Modelos de Combustível
         </label>
-        {showFuelModel && (
+        {showFuelModel && mapZoom < FUEL_MODEL_MIN_ZOOM && (
+          <div style={{
+            marginTop: 6, maxWidth: 150,
+            fontFamily: 'var(--font-mono)', fontSize: 9,
+            color: 'var(--warn)', lineHeight: 1.35,
+          }}>
+            Aproxime o mapa para ver os modelos de combustível
+          </div>
+        )}
+        {showFuelModel && mapZoom >= FUEL_MODEL_MIN_ZOOM && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--muted)' }}>TRANSP</span>
             <input type="range" min={0} max={1} step={0.05}
@@ -325,7 +346,7 @@ export default function MapView({ apiKey, theme }) {
         )}
       </div>
 
-      {showFuelModel && (
+      {showFuelModel && mapZoom >= FUEL_MODEL_MIN_ZOOM && (
         <div style={{ position: 'absolute', bottom: 10, left: 10, zIndex: 10 }}>
           <FuelModelLegend />
         </div>

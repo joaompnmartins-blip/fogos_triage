@@ -14,6 +14,7 @@ import {
 import { Legend, ResultsTable, DurationSelect, FuelMoistureScenarioSelect, FileTextInput, FuelModelLegend } from '../components/SimulationPanels'
 import {
   basemapStyle, BASEMAP_LABEL, addFuelModelLayer, setFuelModelLayerVisible, setFuelModelLayerOpacity,
+  FUEL_MODEL_MIN_ZOOM,
 } from '../basemaps'
 
 // Extrai [[lat,lon], ...] das features desenhadas/importadas (Point ou
@@ -62,13 +63,6 @@ function parseIgnitionGeoJSON(text) {
 // para poder remover manualmente quaisquer resíduos antes de reinstanciar.
 const _DRAW_PREFIX = 'td'
 
-// Debounce para considerar um 'styledata' "assente" depois de uma troca de
-// basemap — ver efeito de basemap mais abaixo para o porquê deste valor
-// (medido empiricamente: o carregamento em várias fases do estilo vector
-// OSM/liberty completa-se em ~650ms; 400ms de silêncio depois do último
-// 'styledata' dá margem sem atrasar perceptivelmente a reactivação).
-const _STYLE_SETTLE_MS = 400
-
 // Remove sources/layers do TerraDraw que possam ter ficado do mapa, sem
 // assumir nada sobre se a instância anterior os registou/desregistou com
 // sucesso — cada remoção é guardada por uma verificação de existência, para
@@ -111,10 +105,23 @@ function _attachDraw(map, drawRef, onFinish, onChange) {
       // confirmado empiricamente que draw.clear() continua seguro depois
       // de usar o select mode, sem reintroduzir o crash pós-setStyle()
       // já corrigido nesta sessão.
+      // `coordinates` tem de estar DENTRO de `feature` — é assim que o
+      // ModeFlags do terra-draw está tipado (ver
+      // node_modules/terra-draw/dist/modes/select/select.mode.d.ts). Estava
+      // como irmão de `feature`, pelo que era silenciosamente ignorado:
+      // arrastar um vértice do meio transladava a linha inteira em vez de a
+      // dobrar. `midpoints` desenha as pegas nos vértices/meios — sem isso a
+      // feição seleccionada não dava qualquer pista visual do que se pode
+      // agarrar.
       new TerraDrawSelectMode({
         flags: {
           point: { feature: { draggable: true } },
-          linestring: { feature: { draggable: true }, coordinates: { draggable: true } },
+          linestring: {
+            feature: {
+              draggable: true,
+              coordinates: { draggable: true, midpoints: true, deletable: true },
+            },
+          },
         },
       }),
     ],
@@ -129,8 +136,7 @@ export default function SimuladorLivreView({ apiKey, theme }) {
   const mapRef = useRef(null)
   const containerRef = useRef(null)
   const drawRef = useRef(null)
-  const styleDataHandlerRef = useRef(null)   // listener 'styledata' pendente, ver efeito de basemap
-  const styleSettleTimerRef = useRef(null)   // debounce do listener acima
+  const setupLayersFnRef = useRef(null)  // reposição pós-style.load, ver abaixo
   const basemapInitRef = useRef(true)  // skip first run do efeito de basemap
 
   const [mapReady, setMapReady] = useState(false)
@@ -154,6 +160,9 @@ export default function SimuladorLivreView({ apiKey, theme }) {
   const [showArrows, setShowArrows] = useState(true)
   const [showFuelModel, setShowFuelModel] = useState(false)
   const [fuelModelOpacity, setFuelModelOpacity] = useState(0.7)
+  // Zoom actual do mapa — só para saber se o overlay de combustível
+  // tem tiles a este nível (ver FUEL_MODEL_MIN_ZOOM em basemaps.js).
+  const [mapZoom, setMapZoom] = useState(0)
   const showFuelModelRef = useRef(false)
   const fuelModelOpacityRef = useRef(0.7)
   const pollRef = useRef(null)
@@ -176,6 +185,19 @@ export default function SimuladorLivreView({ apiKey, theme }) {
     if (draw) setIgnitionPoints(_ignitionFromSnapshot(draw.getSnapshot()))
   }
 
+  // Repõe tudo o que um estilo novo destrói (TerraDraw + overlay de
+  // combustível + camadas da simulação). Guardado numa ref e reatribuído em
+  // cada render, para o handler de 'style.load' — registado uma única vez —
+  // ver sempre o `result`/`layer`/`opacity` actuais em vez dos da montagem.
+  // Mesmo padrão do setupLayersFnRef do MapView.
+  setupLayersFnRef.current = () => {
+    const map = mapRef.current
+    if (!map) return
+    _attachDraw(map, drawRef, onDrawFinish, onDrawChange)
+    addFuelModelLayer(map, { visible: showFuelModelRef.current, opacity: fuelModelOpacityRef.current })
+    if (result) initSimulationLayers(map, result, { layer, opacity, visiblePerimeters, showArrows })
+  }
+
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
     const map = new maplibregl.Map({
@@ -187,16 +209,18 @@ export default function SimuladorLivreView({ apiKey, theme }) {
     })
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right')
     map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right')
+    // Zoom vive fora do React; espelha-se em estado só para a UI poder
+    // avisar quando o overlay de combustível não tem tiles a este nível.
+    setMapZoom(map.getZoom())
+    map.on('zoomend', () => setMapZoom(map.getZoom()))
 
-    map.on('load', () => {
-      _attachDraw(map, drawRef, onDrawFinish, onDrawChange)
-      addFuelModelLayer(map, { visible: showFuelModelRef.current, opacity: fuelModelOpacityRef.current })
-      setMapReady(true)
-    })
+    // Registado UMA vez: dispara no carregamento inicial e em cada
+    // setStyle({ diff: false }) do efeito de basemap (ver lá porquê).
+    map.on('style.load', () => setupLayersFnRef.current?.())
+    map.on('load', () => setMapReady(true))
 
     mapRef.current = map
     return () => {
-      if (styleSettleTimerRef.current) clearTimeout(styleSettleTimerRef.current)
       try { drawRef.current?.stop() } catch { /* mapa vai ser destruído já a seguir */ }
       map.remove()
       mapRef.current = null
@@ -208,68 +232,26 @@ export default function SimuladorLivreView({ apiKey, theme }) {
     if (basemapInitRef.current) { basemapInitRef.current = false; return }
     const map = mapRef.current
     if (!map) return
-    // Cancela um listener/debounce pendente de uma troca de basemap
-    // anterior que ainda não tinha assentado.
-    if (styleDataHandlerRef.current) {
-      map.off('styledata', styleDataHandlerRef.current)
-      styleDataHandlerRef.current = null
-    }
-    if (styleSettleTimerRef.current) {
-      clearTimeout(styleSettleTimerRef.current)
-      styleSettleTimerRef.current = null
-    }
     // Pára a instância TerraDraw ANTES de destruir o estilo — sem isto, os
     // seus listeners no canvas e o próximo requestAnimationFrame do adapter
     // continuam vivos, e esse render tardio rebenta com "Cannot read
     // properties of undefined (reading 'setData')" ao tentar escrever nas
     // sources que o setStyle() já destruiu.
     try { drawRef.current?.stop() } catch { /* sources já podem ter ido */ }
-    map.setStyle(basemapStyle(basemap, theme))
-    // 'style.load' NUNCA dispara depois de um setStyle() num mapa já
-    // carregado (confirmado empiricamente) — só dispara para o carregamento
-    // inicial do mapa.
-    //
-    // 'styledata' é o evento certo para "o estilo mudou", mas reagir ao
-    // PRIMEIRO 'styledata' não chega: um estilo vector como o OSM/liberty
-    // carrega em várias fases (fontes vector, sprite, glyphs — confirmado
-    // empiricamente: ~19 pedidos de rede em ~650ms, com 'styledata' a
-    // disparar várias vezes nesse período). O MapLibre continua a
-    // reprocessar/substituir sources internamente depois do primeiro
-    // 'styledata', o que destrói silenciosamente as sources do TerraDraw já
-    // reanexadas, sem disparar nada que avise — só se nota no clique
-    // seguinte, com "Cannot read properties of undefined (reading
-    // 'setData')".
-    //
-    // A correcção: escutar 'styledata' de forma persistente e só reanexar
-    // quando ficar QUIETO por `_STYLE_SETTLE_MS` — não quando
-    // `map.isStyleLoaded()` fica true (tentado e revertido: exige que
-    // TODOS os tiles do basemap actual tenham carregado, e os tiles de
-    // satélite Google, endpoint não-oficial mt0/mt1.google.com, por vezes
-    // nunca terminam de carregar em produção — isStyleLoaded() ficava false
-    // para sempre e o desenho nunca mais era reactivado). 'styledata' é
-    // sobre a ESTRUTURA do estilo (sources/layers definidos), não sobre
-    // pixels de tiles individuais (isso é 'sourcedata') — por isso o
-    // debounce assenta depressa mesmo que os tiles do basemap nunca
-    // cheguem a carregar de facto.
-    const onStyleData = () => {
-      if (styleSettleTimerRef.current) clearTimeout(styleSettleTimerRef.current)
-      styleSettleTimerRef.current = setTimeout(() => {
-        map.off('styledata', onStyleData)
-        styleDataHandlerRef.current = null
-        styleSettleTimerRef.current = null
-        // setStyle() destrói todas as sources/layers, incluindo as do
-        // TerraDraw — reinstancia-se em vez de reiniciar a mesma instância
-        // (ver _attachDraw). O desenho em curso perde-se visualmente de
-        // qualquer forma quando o estilo muda, por isso reset de estado aqui.
-        _attachDraw(map, drawRef, onDrawFinish, onDrawChange)
-        addFuelModelLayer(map, { visible: showFuelModelRef.current, opacity: fuelModelOpacityRef.current })
-        setIgnitionPoints([])
-        setDrawMode(null)
-        if (result) initSimulationLayers(map, result, { layer, opacity, visiblePerimeters, showArrows })
-      }, _STYLE_SETTLE_MS)
-    }
-    styleDataHandlerRef.current = onStyleData
-    map.on('styledata', onStyleData)
+    // O desenho em curso perde-se de qualquer forma quando o estilo muda.
+    setIgnitionPoints([])
+    setDrawMode(null)
+    // `{ diff: false }` é ESSENCIAL, não uma optimização: com o valor por
+    // omissão (diff: true) o MapLibre tenta transformar o estilo actual no
+    // novo e **nunca volta a disparar 'style.load'** — as nossas sources
+    // (TerraDraw, overlay de combustível, camadas da simulação) são
+    // destruídas e nada as repõe. Medido directamente:
+    //     setStyle(estilo)                -> style.load NÃO dispara, camadas perdidas
+    //     setStyle(estilo, {diff:false})  -> style.load dispara, camadas repostas
+    // Com diff:false o estilo é construído de raiz e o 'style.load'
+    // registado uma vez no efeito de montagem repõe tudo (setupLayersFnRef).
+    // É o mesmo par usado no MapView.
+    map.setStyle(basemapStyle(basemap, theme), { diff: false })
   }, [basemap, theme])
 
   // Overlay do modelo de combustível — independente de result, actualizado
@@ -515,18 +497,29 @@ export default function SimuladorLivreView({ apiKey, theme }) {
               MODELOS DE COMBUSTÍVEL
             </label>
           </div>
-          {showFuelModel && (
+          {showFuelModel && mapZoom < FUEL_MODEL_MIN_ZOOM && (
             <div className="map-overlay-panel" style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              borderRadius: 4, padding: '4px 8px',
+              borderRadius: 4, padding: '4px 8px', width: 210,
+              fontSize: 9, fontFamily: 'var(--font-mono)',
+              color: 'var(--warn)', lineHeight: 1.35,
             }}>
-              <span style={{ fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--font-mono)' }}>TRANSP</span>
-              <input type="range" min={0} max={1} step={0.05}
-                value={fuelModelOpacity} onChange={e => setFuelModelOpacity(parseFloat(e.target.value))}
-                style={{ width: 80, cursor: 'pointer' }} />
+              Aproxime o mapa para ver os modelos de combustível
             </div>
           )}
-          {showFuelModel && <FuelModelLegend />}
+          {showFuelModel && mapZoom >= FUEL_MODEL_MIN_ZOOM && (
+            <>
+              <div className="map-overlay-panel" style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                borderRadius: 4, padding: '4px 8px',
+              }}>
+                <span style={{ fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--font-mono)' }}>TRANSP</span>
+                <input type="range" min={0} max={1} step={0.05}
+                  value={fuelModelOpacity} onChange={e => setFuelModelOpacity(parseFloat(e.target.value))}
+                  style={{ width: 80, cursor: 'pointer' }} />
+              </div>
+              <FuelModelLegend />
+            </>
+          )}
 
           {result && (
             <>

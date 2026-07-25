@@ -1,98 +1,105 @@
 """
-Paleta de cores por modelo de combustível — usada pelo overlay de tiles
-(services/api/routes_tiles.py) e pela legenda do frontend.
+Paleta e designações oficiais dos modelos de combustível PT — usada pelo
+overlay de tiles (services/api/routes_tiles.py) e pela legenda do frontend.
 
-Os modelos PT (`data/fuel_models_pt.csv`) agrupam-se por centena — 21x,
-22x, 23x — mais dois casos especiais (255, 98). Skill `dataviz`
-confirma que uma paleta categórica plana com as ~19 cores
-independentes não é possível — o próprio validador não deixa passar
-mais de 3-4 matizes totalmente distintos num teste all-pairs (caso de
-choropleth/mapa, onde qualquer par de cores pode ficar lado a lado).
-Por isso a paleta usa **matiz por família** (211-214, 221-227, 231-237,
-255, 98) — validado com `validate_palette.js --pairs all` — e
-**luminosidade a variar dentro de cada família** para distinguir os
-modelos individuais (mesmo padrão de um mapa de uso do solo
-convencional: cor = categoria principal, tom = sub-categoria).
+Fonte: `data/modelos_combustivel_PT_cores.csv` (cores e designações
+oficiais da classificação usada no landscape file nacional). Os valores
+abaixo são espelho fiel desse ficheiro — gerados a partir dele, não
+escolhidos aqui. **Não substituir por uma paleta "melhorada"**: estas
+cores são as que os utilizadores (ANEPC/bombeiros) já reconhecem da
+cartografia oficial; qualquer divergência torna o mapa mais bonito e
+menos utilizável.
 
-Validação (scripts/validate_palette.js, skill dataviz, 2026-07-23):
-    node scripts/validate_palette.js \
-      "#2f7d32,#1b6ea8,#c2376b,#e0a300" --mode light --pairs all
-    → ALL CHECKS PASS (WARN em CVD floor-band e contraste do amarelo,
-      ambos mitigados pela legenda ter sempre etiqueta de texto visível
-      ao lado de cada amostra de cor — canal secundário exigido pela
-      skill nesse caso).
+Nota sobre acessibilidade: por serem impostas externamente, estas cores
+não passam pelos critérios de separação CVD que se aplicariam a uma
+paleta livre (ex. 211/223 são dois verdes saturados próximos). A legenda
+compensa com etiqueta de texto sempre visível ao lado de cada amostra —
+a cor nunca é o único canal de informação.
+
+IMPORTANTE — 98 NÃO é "sem dados". No catálogo oficial 98 = "Planos de
+água" (azul), uma classe real presente no raster (~2% do território).
+O valor de fundo do raster nacional é **0** (~44% dos pixels, oceano e
+território não-PT); o nodata declarado no GeoTIFF (-32768) não chega
+sequer a ocorrer. Ambos ficam transparentes por não estarem na paleta
+(ver `rgba_for`), sem precisar de nenhuma substituição especial.
+
+Isto é independente do tratamento em simulação/triagem, onde os códigos
+NB Scott & Burgan (91-99) são todos reduzidos a FM98 = não combustível
+(ver `normalize_fuel_model_num` em fuel_models.py). Aqui é só desenho:
+cada código mantém a sua cor e designação próprias.
 """
 from __future__ import annotations
 
-_FAMILY_BASE_HEX: dict[str, str] = {
-    "21x": "#2f7d32",  # verde
-    "22x": "#1b6ea8",  # azul
-    "23x": "#c2376b",  # magenta
-    "255": "#e0a300",  # âmbar
+# Ordem dos grupos tal como aparecem na legenda (combustível primeiro,
+# não-combustível no fim — relevância para comportamento do fogo).
+FUEL_MODEL_GROUP_ORDER: tuple[str, ...] = (
+    "Povoamento sem sub-coberto",
+    "Povoamento com sub-coberto",
+    "Herbáceas / Matos",
+    "Não combustível",
+)
+
+# {código: (R, G, B, A)} — espelho de data/modelos_combustivel_PT_cores.csv
+FUEL_MODEL_RGBA: dict[int, tuple[int, int, int, int]] = {
+    211: (0, 255, 0, 255),        # Eucalipto sem sub-coberto
+    212: (0, 121, 0, 255),        # Folhosas sem sub-coberto
+    213: (0, 77, 0, 255),         # Pinheiro-bravo sem sub-coberto
+    214: (201, 233, 255, 255),    # Resinosas de agulha-curta
+    221: (8, 102, 100, 255),      # Caducifólias com sub-coberto
+    222: (0, 160, 16, 255),       # Esclerófilas com sub-coberto
+    223: (0, 216, 20, 255),       # Eucalipto com sub-coberto
+    224: (162, 224, 0, 255),      # Seleção de varas de Eucalipto
+    225: (22, 188, 100, 255),     # Povoamentos com sub-coberto de fetos
+    226: (148, 102, 78, 255),     # Povoamentos com sub-coberto de herbáceas
+    227: (39, 55, 0, 255),        # Pinheiro-bravo com sub-coberto
+    231: (255, 224, 64, 255),     # Herbáceas altas (>0,5 metros)
+    232: (255, 255, 0, 255),      # Herbáceas baixas (<0,5 metros)
+    233: (255, 117, 51, 255),     # Matos atlânticos altos (>1 metro)
+    234: (255, 152, 104, 255),    # Matos atlânticos baixos (<1 metro)
+    235: (173, 229, 68, 255),     # Matos jovens
+    236: (225, 195, 43, 255),     # Matos mediterrânicos altos (>1 metro)
+    237: (222, 224, 32, 255),     # Matos mediterrânicos baixos (<1 metro)
+    91: (212, 0, 0, 255),         # Urbano
+    93: (66, 207, 183, 255),      # Agricultura de regadios
+    98: (0, 87, 247, 255),        # Planos de água
+    99: (189, 189, 189, 255),     # Rocha
 }
 
-# Modelo 98 (não combustível — rocha/água/urbano/nodata, ver
-# landscape.py) fica sempre transparente, nunca desenhado. Os restantes
-# códigos NB Scott & Burgan (91-97, 99 — ver fuel_models.py,
-# normalize_fuel_model_num) nunca entram em nenhuma família acima, por
-# isso também ficam transparentes por omissão (nunca chegam a `palette`
-# em build_fuel_model_palette) — mesmo resultado visual, sem precisar de
-# mais uma cor a competir pelo já esgotado orçamento de 4 matizes
-# distinguíveis. A legenda do frontend explica-os numa linha à parte
-# (ver FuelModelLegend em SimulationPanels.jsx).
-NODATA_FUEL_MODEL_NUM = 98
+# {código: (designação, grupo)} — mesma fonte.
+FUEL_MODEL_INFO: dict[int, tuple[str, str]] = {
+    211: ("Eucalipto sem sub-coberto", "Povoamento sem sub-coberto"),
+    212: ("Folhosas sem sub-coberto", "Povoamento sem sub-coberto"),
+    213: ("Pinheiro-bravo sem sub-coberto", "Povoamento sem sub-coberto"),
+    214: ("Resinosas de agulha-curta", "Povoamento sem sub-coberto"),
+    221: ("Caducifólias com sub-coberto", "Povoamento com sub-coberto"),
+    222: ("Esclerófilas com sub-coberto", "Povoamento com sub-coberto"),
+    223: ("Eucalipto com sub-coberto", "Povoamento com sub-coberto"),
+    224: ("Seleção de varas de Eucalipto", "Povoamento com sub-coberto"),
+    225: ("Povoamentos com sub-coberto de fetos", "Povoamento com sub-coberto"),
+    226: ("Povoamentos com sub-coberto de herbáceas", "Povoamento com sub-coberto"),
+    227: ("Pinheiro-bravo com sub-coberto", "Povoamento com sub-coberto"),
+    231: ("Herbáceas altas (>0,5 metros)", "Herbáceas / Matos"),
+    232: ("Herbáceas baixas (<0,5 metros)", "Herbáceas / Matos"),
+    233: ("Matos atlânticos altos (>1 metro)", "Herbáceas / Matos"),
+    234: ("Matos atlânticos baixos (<1 metro)", "Herbáceas / Matos"),
+    235: ("Matos jovens", "Herbáceas / Matos"),
+    236: ("Matos mediterrânicos altos (>1 metro)", "Herbáceas / Matos"),
+    237: ("Matos mediterrânicos baixos (<1 metro)", "Herbáceas / Matos"),
+    91: ("Urbano", "Não combustível"),
+    93: ("Agricultura de regadios", "Não combustível"),
+    98: ("Planos de água", "Não combustível"),
+    99: ("Rocha", "Não combustível"),
+}
+
+_TRANSPARENT: tuple[int, int, int, int] = (0, 0, 0, 0)
 
 
-def _family_of(fuel_model_num: int) -> str:
-    if fuel_model_num == 255:
-        return "255"
-    return f"{fuel_model_num // 10}x"
-
-
-def _hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
-    h = hex_color.lstrip("#")
-    return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
-
-
-def _blend(rgb: tuple[int, int, int], target: tuple[int, int, int], frac: float) -> tuple[int, int, int]:
-    return tuple(round(c + (t - c) * frac) for c, t in zip(rgb, target))
-
-
-def _family_members(family: str, all_nums: list[int]) -> list[int]:
-    if family == "255":
-        return [255]
-    prefix = int(family[:-1])
-    return sorted(n for n in all_nums if n // 10 == prefix)
-
-
-def build_fuel_model_palette(fuel_model_nums: list[int]) -> dict[int, tuple[int, int, int, int]]:
+def rgba_for(fuel_model_num: int) -> tuple[int, int, int, int]:
     """
-    Constrói `{fuel_model_num: (r, g, b, a)}` para todos os números
-    dados — luminosidade varia dentro de cada família (mais escuro
-    para o primeiro membro, mais claro para o último, ordenados pelo
-    próprio número de modelo), matiz da família fixo e validado.
-    Modelo 98 (ou qualquer não reconhecido) → totalmente transparente.
+    Cor RGBA de um código de modelo de combustível. Códigos fora do
+    catálogo oficial — nomeadamente o fundo do raster (0), o nodata
+    declarado (-32768) e quaisquer códigos NB não cartografados
+    (92, 94-97) — ficam **transparentes**, para o overlay não pintar
+    território sem informação.
     """
-    palette: dict[int, tuple[int, int, int, int]] = {}
-    families: dict[str, list[int]] = {}
-    for num in fuel_model_nums:
-        if num == NODATA_FUEL_MODEL_NUM:
-            continue
-        families.setdefault(_family_of(num), []).append(num)
-
-    for family, base_hex in _FAMILY_BASE_HEX.items():
-        members = sorted(families.get(family, []))
-        if not members:
-            continue
-        base_rgb = _hex_to_rgb(base_hex)
-        n = len(members)
-        for i, num in enumerate(members):
-            # Passos monótonos de luminosidade dentro da família: do tom
-            # base (i=0) até ~35% mais claro (último membro) — nunca tão
-            # claro que perca separação do fundo/outras famílias.
-            frac = 0.0 if n == 1 else (i / (n - 1)) * 0.35
-            rgb = _blend(base_rgb, (255, 255, 255), frac)
-            palette[num] = (*rgb, 255)
-
-    palette[NODATA_FUEL_MODEL_NUM] = (0, 0, 0, 0)
-    return palette
+    return FUEL_MODEL_RGBA.get(fuel_model_num, _TRANSPARENT)

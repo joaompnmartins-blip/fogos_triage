@@ -60,11 +60,18 @@ export const BASEMAP_LABEL = { osm: 'OSM', satellite: 'SAT', topo: 'TOPO' }
 // outros), é uma source/layer à parte, alternada por visibilidade —
 // mesmo padrão já estabelecido em initSimulationLayers/
 // updateSimulationLayerStyle (SimulationMapLayers.js).
+// Tem de acompanhar MIN_ZOOM em services/api/routes_tiles.py — abaixo
+// disto o servidor devolve 404 (ver lá o porquê: sem overviews no COG,
+// um tile de zoom baixo custa centenas de MB). Exportado para a UI poder
+// avisar que é preciso aproximar, em vez de o overlay ficar em branco
+// sem explicação.
+export const FUEL_MODEL_MIN_ZOOM = 10
+
 export const FUEL_MODEL_TILE_SOURCE = {
   type: 'raster',
   tiles: [`${API_BASE}/tiles/fuel-model/{z}/{x}/{y}.png`],
   tileSize: 256,
-  minzoom: 8,
+  minzoom: FUEL_MODEL_MIN_ZOOM,
   maxzoom: 16,
 }
 
@@ -99,30 +106,46 @@ export function setFuelModelLayerOpacity(map, opacity) {
   }
 }
 
-// Cores por modelo de combustível — espelha exactamente
-// src/fogos_triage/fuel_model_colors.py (matiz por família 21x/22x/23x/
-// 255, luminosidade a variar dentro da família, validado com a skill
-// dataviz — ver docstring desse módulo). Valores hardcoded, não
-// recalculados no cliente: catálogo estático, sem necessidade de pedir
-// ao servidor só para isto.
-export const FUEL_MODEL_COLOR = {
-  211: '#2f7d32',
-  212: '#478c4a',
-  213: '#609b62',
-  214: '#78aa7a',
-  221: '#1b6ea8',
-  222: '#2876ad',
-  223: '#367fb2',
-  224: '#4387b7',
-  225: '#5090bc',
-  226: '#5e98c1',
-  227: '#6ba1c6',
-  231: '#c2376b',
-  232: '#c64374',
-  233: '#c94e7c',
-  234: '#cd5a85',
-  235: '#d0668e',
-  236: '#d47196',
-  237: '#d77d9f',
-  255: '#e0a300',
+// Catálogo oficial dos modelos de combustível PT — cores e designações
+// espelham exactamente src/fogos_triage/fuel_model_colors.py, que por sua
+// vez espelha data/modelos_combustivel_PT_cores.csv (cartografia oficial).
+// **Não "melhorar" estas cores**: são as que os utilizadores já reconhecem
+// da cartografia oficial. Valores hardcoded, não pedidos ao servidor:
+// catálogo estático, e a legenda tem de aparecer mesmo sem rede.
+//
+// Nota: 98 = "Planos de água" é uma classe real (azul), não "sem dados" —
+// o fundo do raster (0) e o nodata ficam transparentes por não estarem
+// aqui. Em simulação/triagem, 91-99 são todos tratados como não
+// combustível (ver normalize_fuel_model_num em fuel_models.py); isto aqui
+// é só desenho.
+export const FUEL_MODEL_GROUP_ORDER = [
+  'Povoamento sem sub-coberto',
+  'Povoamento com sub-coberto',
+  'Herbáceas / Matos',
+  'Não combustível',
+]
+
+export const FUEL_MODELS = {
+  211: { hex: '#00ff00', label: 'Eucalipto sem sub-coberto', grupo: 'Povoamento sem sub-coberto' },
+  212: { hex: '#007900', label: 'Folhosas sem sub-coberto', grupo: 'Povoamento sem sub-coberto' },
+  213: { hex: '#004d00', label: 'Pinheiro-bravo sem sub-coberto', grupo: 'Povoamento sem sub-coberto' },
+  214: { hex: '#c9e9ff', label: 'Resinosas de agulha-curta', grupo: 'Povoamento sem sub-coberto' },
+  221: { hex: '#086664', label: 'Caducifólias com sub-coberto', grupo: 'Povoamento com sub-coberto' },
+  222: { hex: '#00a010', label: 'Esclerófilas com sub-coberto', grupo: 'Povoamento com sub-coberto' },
+  223: { hex: '#00d814', label: 'Eucalipto com sub-coberto', grupo: 'Povoamento com sub-coberto' },
+  224: { hex: '#a2e000', label: 'Seleção de varas de Eucalipto', grupo: 'Povoamento com sub-coberto' },
+  225: { hex: '#16bc64', label: 'Povoamentos com sub-coberto de fetos', grupo: 'Povoamento com sub-coberto' },
+  226: { hex: '#94664e', label: 'Povoamentos com sub-coberto de herbáceas', grupo: 'Povoamento com sub-coberto' },
+  227: { hex: '#273700', label: 'Pinheiro-bravo com sub-coberto', grupo: 'Povoamento com sub-coberto' },
+  231: { hex: '#ffe040', label: 'Herbáceas altas (>0,5 metros)', grupo: 'Herbáceas / Matos' },
+  232: { hex: '#ffff00', label: 'Herbáceas baixas (<0,5 metros)', grupo: 'Herbáceas / Matos' },
+  233: { hex: '#ff7533', label: 'Matos atlânticos altos (>1 metro)', grupo: 'Herbáceas / Matos' },
+  234: { hex: '#ff9868', label: 'Matos atlânticos baixos (<1 metro)', grupo: 'Herbáceas / Matos' },
+  235: { hex: '#ade544', label: 'Matos jovens', grupo: 'Herbáceas / Matos' },
+  236: { hex: '#e1c32b', label: 'Matos mediterrânicos altos (>1 metro)', grupo: 'Herbáceas / Matos' },
+  237: { hex: '#dee020', label: 'Matos mediterrânicos baixos (<1 metro)', grupo: 'Herbáceas / Matos' },
+  91: { hex: '#d40000', label: 'Urbano', grupo: 'Não combustível' },
+  93: { hex: '#42cfb7', label: 'Agricultura de regadios', grupo: 'Não combustível' },
+  98: { hex: '#0057f7', label: 'Planos de água', grupo: 'Não combustível' },
+  99: { hex: '#bdbdbd', label: 'Rocha', grupo: 'Não combustível' },
 }

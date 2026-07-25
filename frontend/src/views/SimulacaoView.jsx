@@ -12,12 +12,14 @@ import {
 import { Legend, ResultsTable, DurationSelect, FuelMoistureScenarioSelect, FileTextInput, FuelModelLegend } from '../components/SimulationPanels'
 import {
   basemapStyle, BASEMAP_LABEL, addFuelModelLayer, setFuelModelLayerVisible, setFuelModelLayerOpacity,
+  FUEL_MODEL_MIN_ZOOM,
 } from '../basemaps'
 
 export default function SimulacaoView({ apiKey, theme }) {
   const { fireId } = useParams()
   const mapRef = useRef(null)
   const containerRef = useRef(null)
+  const setupLayersFnRef = useRef(null)  // reposição pós-style.load, ver abaixo
 
   const [fire, setFire] = useState(null)
   const [basemap, setBasemap] = useState('osm')
@@ -38,6 +40,9 @@ export default function SimulacaoView({ apiKey, theme }) {
   const [showArrows, setShowArrows] = useState(true)
   const [showFuelModel, setShowFuelModel] = useState(false)
   const [fuelModelOpacity, setFuelModelOpacity] = useState(0.7)
+  // Zoom actual do mapa — só para saber se o overlay de combustível
+  // tem tiles a este nível (ver FUEL_MODEL_MIN_ZOOM em basemaps.js).
+  const [mapZoom, setMapZoom] = useState(0)
   const showFuelModelRef = useRef(false)
   const fuelModelOpacityRef = useRef(0.7)
   const pollRef = useRef(null)
@@ -47,6 +52,19 @@ export default function SimulacaoView({ apiKey, theme }) {
       .then(setFire)
       .catch(e => setError(e.message))
   }, [apiKey, fireId])
+
+  // Repõe o que um estilo novo destrói (overlay de combustível + camadas da
+  // simulação). Guardado numa ref e reatribuído em cada render, para o
+  // handler de 'style.load' — registado uma única vez — ver sempre o
+  // `result`/`layer`/`opacity` actuais. Mesmo padrão do MapView.
+  // (O marcador da ocorrência é um maplibregl.Marker, elemento DOM, não uma
+  // camada de estilo — sobrevive ao setStyle sozinho.)
+  setupLayersFnRef.current = () => {
+    const map = mapRef.current
+    if (!map) return
+    addFuelModelLayer(map, { visible: showFuelModelRef.current, opacity: fuelModelOpacityRef.current })
+    if (result) initSimulationLayers(map, result, { layer, opacity, visiblePerimeters, showArrows })
+  }
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current || !fire) return
@@ -59,12 +77,16 @@ export default function SimulacaoView({ apiKey, theme }) {
     })
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right')
     map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right')
+    // Zoom vive fora do React; espelha-se em estado só para a UI poder
+    // avisar quando o overlay de combustível não tem tiles a este nível.
+    setMapZoom(map.getZoom())
+    map.on('zoomend', () => setMapZoom(map.getZoom()))
     new maplibregl.Marker({ color: '#ef4444' })
       .setLngLat([fire.longitude, fire.latitude])
       .addTo(map)
-    map.on('load', () => {
-      addFuelModelLayer(map, { visible: showFuelModelRef.current, opacity: fuelModelOpacityRef.current })
-    })
+    // Registado UMA vez: dispara no carregamento inicial e em cada
+    // setStyle({ diff: false }) do efeito de basemap (ver lá porquê).
+    map.on('style.load', () => setupLayersFnRef.current?.())
     mapRef.current = map
     return () => { map.remove(); mapRef.current = null }
   }, [fire])
@@ -72,11 +94,18 @@ export default function SimulacaoView({ apiKey, theme }) {
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
-    map.setStyle(basemapStyle(basemap, theme))
-    map.once('styledata', () => {
-      addFuelModelLayer(map, { visible: showFuelModelRef.current, opacity: fuelModelOpacityRef.current })
-      if (result) initSimulationLayers(map, result, { layer, opacity, visiblePerimeters, showArrows })
-    })
+    // `{ diff: false }` é ESSENCIAL, não uma optimização: com o valor por
+    // omissão (diff: true) o MapLibre tenta transformar o estilo actual no
+    // novo e **nunca volta a disparar 'style.load'** — o overlay de
+    // combustível e as camadas da simulação eram destruídos e nada os
+    // repunha. Medido directamente:
+    //     setStyle(estilo)                -> style.load NÃO dispara, camadas perdidas
+    //     setStyle(estilo, {diff:false})  -> style.load dispara, camadas repostas
+    // (Antes usava-se `once('styledata')` como remendo, mas esse dispara a
+    // meio do carregamento de estilos vector como o OSM/liberty, que ainda
+    // substitui sources depois disso — as camadas repostas voltavam a
+    // desaparecer sem aviso.)
+    map.setStyle(basemapStyle(basemap, theme), { diff: false })
   }, [basemap, theme])
 
   // Overlay do modelo de combustível — independente de result, actualizado
@@ -227,18 +256,29 @@ export default function SimulacaoView({ apiKey, theme }) {
               MODELOS DE COMBUSTÍVEL
             </label>
           </div>
-          {showFuelModel && (
+          {showFuelModel && mapZoom < FUEL_MODEL_MIN_ZOOM && (
             <div className="map-overlay-panel" style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              borderRadius: 4, padding: '4px 8px',
+              borderRadius: 4, padding: '4px 8px', width: 210,
+              fontSize: 9, fontFamily: 'var(--font-mono)',
+              color: 'var(--warn)', lineHeight: 1.35,
             }}>
-              <span style={{ fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--font-mono)' }}>TRANSP</span>
-              <input type="range" min={0} max={1} step={0.05}
-                value={fuelModelOpacity} onChange={e => setFuelModelOpacity(parseFloat(e.target.value))}
-                style={{ width: 80, cursor: 'pointer' }} />
+              Aproxime o mapa para ver os modelos de combustível
             </div>
           )}
-          {showFuelModel && <FuelModelLegend />}
+          {showFuelModel && mapZoom >= FUEL_MODEL_MIN_ZOOM && (
+            <>
+              <div className="map-overlay-panel" style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                borderRadius: 4, padding: '4px 8px',
+              }}>
+                <span style={{ fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--font-mono)' }}>TRANSP</span>
+                <input type="range" min={0} max={1} step={0.05}
+                  value={fuelModelOpacity} onChange={e => setFuelModelOpacity(parseFloat(e.target.value))}
+                  style={{ width: 80, cursor: 'pointer' }} />
+              </div>
+              <FuelModelLegend />
+            </>
+          )}
 
           {result && (
             <>
