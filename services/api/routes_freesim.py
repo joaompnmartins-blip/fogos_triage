@@ -160,7 +160,7 @@ async def _run_free_simulation(
         from fogos_triage.fuel_models import load_fuel_models_csv
         from fogos_triage.fuel_moisture_scenarios import apply_fuel_moisture_scenario
         from fogos_triage.fuel_moisture_table import parse_fuel_moisture_table
-        from fogos_triage.landscape import LandscapeRasters, ensure_landscape
+        from fogos_triage.landscape import LandscapeRasters, LandscapeReader, ensure_landscape
         from fogos_triage.simulation import run_simulation_async
         from fogos_triage.triage import gust_weather
         from fogos_triage.weather import (
@@ -190,6 +190,28 @@ async def _run_free_simulation(
             rasters_kwargs = {"multiband_path": os.path.join(landscape_dir, landscape_file)}
         else:
             rasters_kwargs = {"rasters": LandscapeRasters.from_directory(landscape_dir)}
+
+        # A ignição vem do utilizador (desenhada ou importada), por isso
+        # pode cair fora do território coberto. O caso traiçoeiro é o
+        # GeoJSON com lat/lon trocados: (39.5, -8.0) lido como lon/lat dá
+        # um ponto perfeitamente válido no Índico, que passa por todas as
+        # validações de intervalo e só se manifestaria como uma simulação
+        # sem sentido. Verifica-se contra a extensão real do raster.
+        with LandscapeReader(**rasters_kwargs) as _reader:
+            outside = [(p_lat, p_lon) for p_lat, p_lon in ignition_points
+                       if not _reader.contains(p_lat, p_lon)]
+            bounds = _reader.bounds_wgs84
+        if outside:
+            p_lat, p_lon = outside[0]
+            extent = (
+                f" A landscape file cobre lon {bounds[0]:.2f}..{bounds[2]:.2f}, "
+                f"lat {bounds[1]:.2f}..{bounds[3]:.2f}." if bounds else ""
+            )
+            raise ValueError(
+                f"Ignição em (lat {p_lat:.4f}, lon {p_lon:.4f}) fora da área coberta "
+                f"pela landscape file.{extent} Confirme que as coordenadas estão em "
+                "EPSG:4326 (WGS84) e que latitude e longitude não estão trocadas."
+            )
 
         fuel_dict = load_fuel_models_csv(
             os.environ.get("FUEL_MODELS_CSV", "/data/fuel_models_pt.csv")

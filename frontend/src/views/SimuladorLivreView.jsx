@@ -55,6 +55,19 @@ function parseIgnitionGeoJSON(text) {
     throw new Error(`GeoJSON inválido: ${e.message}`)
   }
 
+  // O RFC 7946 (GeoJSON) obriga a WGS84 lon/lat e retirou o membro `crs`
+  // do formato — ficheiros com `crs` são do GeoJSON 2008 e costumam vir de
+  // um export QGIS noutro sistema. Aqui não se reprojecta nada (o backend
+  // assume EPSG:4326 e converte para o CRS da landscape file), por isso
+  // mais vale dizer o que se passa do que aceitar coordenadas erradas.
+  const crsName = data?.crs?.properties?.name
+  if (crsName && !/(4326|CRS84)/i.test(crsName)) {
+    throw new Error(
+      `ficheiro declara o sistema de coordenadas "${crsName}" — só é aceite `
+      + 'EPSG:4326 (WGS84). Reexporte nesse sistema.',
+    )
+  }
+
   const features = data?.type === 'FeatureCollection' ? data.features : [data]
   const found = features?.find(f =>
     f?.geometry?.type === 'Point' || f?.geometry?.type === 'LineString')
@@ -64,8 +77,33 @@ function parseIgnitionGeoJSON(text) {
 
   const mode = found.geometry.type === 'Point' ? 'point' : 'linestring'
   const feature = { type: 'Feature', geometry: found.geometry, properties: { mode } }
+
+  // Coordenadas fora do intervalo lon/lat = quase de certeza um sistema
+  // projectado (ex. EPSG:3763 / PT-TM06, o da própria landscape file e o
+  // habitual num projecto QGIS português, onde os valores são metros na
+  // ordem das dezenas de milhar). Sem esta verificação o TerraDraw
+  // recusava-as com um "geometria inválida" que não explicava nada.
+  const coords = mode === 'point' ? [found.geometry.coordinates] : found.geometry.coordinates
+  const bad = coords.find(([lon, lat]) =>
+    !Number.isFinite(lon) || !Number.isFinite(lat)
+    || lon < -180 || lon > 180 || lat < -90 || lat > 90)
+  if (bad) {
+    throw new Error(
+      `coordenada (${bad[0]}, ${bad[1]}) fora do intervalo lon/lat — o ficheiro `
+      + 'não está em EPSG:4326 (WGS84). Se veio do QGIS num sistema projectado '
+      + '(ex. EPSG:3763), reexporte em EPSG:4326.',
+    )
+  }
+
   return { points: _pointsFromIgnitionFeature(feature), feature }
 }
+
+// Requisitos do ficheiro de ignição, num só sítio: serve de tooltip do
+// botão e do texto da dica. Espelha o que parseIgnitionGeoJSON aceita —
+// se um mudar, o outro tem de mudar também.
+const IMPORT_HINT =
+  'Importar ignição: ficheiro GeoJSON (.geojson ou .json) com uma geometria '
+  + 'Point ou LineString, em coordenadas EPSG:4326 (WGS84).'
 
 // Prefixo de sources/layers do TerraDrawMapLibreGLAdapter quando não se
 // passa prefixId (ver node_modules/terra-draw-maplibre-gl-adapter) — usado
@@ -149,6 +187,7 @@ export default function SimuladorLivreView({ apiKey, theme }) {
   const basemapInitRef = useRef(true)  // skip first run do efeito de basemap
 
   const [mapReady, setMapReady] = useState(false)
+  const [showImportHint, setShowImportHint] = useState(false)
   const [drawMode, setDrawMode] = useState(null) // null | 'point' | 'linestring'
   const [ignitionPoints, setIgnitionPoints] = useState([])
   const [basemap, setBasemap] = useState('osm')
@@ -352,6 +391,7 @@ export default function SimuladorLivreView({ apiKey, theme }) {
     // e as suas sources continuam intactas.
     draw.clear()
     rememberIgnition(null)
+    setShowImportHint(false)
     setJobStatus(null)
     setResult(null)
     setError(null)
@@ -365,6 +405,7 @@ export default function SimuladorLivreView({ apiKey, theme }) {
     clearInterval(pollRef.current)
     draw.clear()
     rememberIgnition(null)
+    setShowImportHint(false)
     setDrawMode(null)
     setJobStatus(null)
     setResult(null)
@@ -384,6 +425,7 @@ export default function SimuladorLivreView({ apiKey, theme }) {
       draw.setMode('select')
       draw.selectFeature(id)
       setDrawMode('select')
+      setShowImportHint(false)
       setJobStatus(null)
       setResult(null)
       setError(null)
@@ -485,7 +527,10 @@ export default function SimuladorLivreView({ apiKey, theme }) {
               onClick={handleReset}>
               Limpar
             </button>
-            <label className="btn btn-ghost" style={{ fontSize: 10, padding: '3px 8px', cursor: mapReady ? 'pointer' : 'default', opacity: mapReady ? 1 : 0.5 }}>
+            <label className="btn btn-ghost"
+              title={IMPORT_HINT}
+              onClick={() => setShowImportHint(true)}
+              style={{ fontSize: 10, padding: '3px 8px', cursor: mapReady ? 'pointer' : 'default', opacity: mapReady ? 1 : 0.5 }}>
               ⬆ Importar
               <input type="file" accept=".geojson,.json" disabled={!mapReady} hidden
                 onChange={e => {
@@ -498,6 +543,18 @@ export default function SimuladorLivreView({ apiKey, theme }) {
                 }} />
             </label>
           </div>
+          {/* Requisitos do ficheiro, mostrados ao clicar em Importar. Fica
+              visível depois de a caixa de diálogo do sistema fechar — que é
+              precisamente quando aparece um erro de importação, se houver —
+              e desaparece assim que a importação corre bem. */}
+          {showImportHint && (
+            <div className="hint map-overlay-panel" style={{
+              fontSize: 10, fontFamily: 'var(--font-mono)', padding: '4px 8px',
+              borderRadius: 4, maxWidth: 260, lineHeight: 1.4,
+            }}>
+              {IMPORT_HINT}
+            </div>
+          )}
           {drawMode === 'point' && (
             <div className="hint map-overlay-panel" style={{ fontSize: 10, fontFamily: 'var(--font-mono)', padding: '4px 8px', borderRadius: 4 }}>
               Clique no mapa para marcar o ponto de ignição
