@@ -7,6 +7,11 @@ import { FUEL_MODELS, FUEL_MODEL_GROUP_ORDER } from '../basemaps'
 // ocorrências) e SimuladorLivreView (ignição livre) — mesmo formato de
 // resultado (SimulationResultDetail), só a origem do job difere.
 
+// Legenda dos outputs da simulação (ROS/FLI/Chama). Uma linha por classe,
+// em vez da fila horizontal de antes: os rótulos passaram a ser intervalos
+// ("0,83 – 2,5") e não valores soltos, e cinco desses lado a lado não
+// cabiam no painel. Ordem de cima para baixo = ordem crescente das
+// classes, como no ficheiro de limiares.
 export function Legend({ stops, label }) {
   return (
     <div className="map-overlay-panel" style={{
@@ -14,14 +19,15 @@ export function Legend({ stops, label }) {
       fontFamily: 'var(--font-mono)', fontSize: 9,
     }}>
       <div style={{ color: 'var(--muted)', marginBottom: 4 }}>{label.toUpperCase()}</div>
-      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-        {stops.map(({ v, c }) => (
-          <div key={v} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <div style={{ width: 16, height: 10, borderRadius: 2, background: c }} />
-            <span style={{ color: 'var(--dim)' }}>{v}</span>
-          </div>
-        ))}
-      </div>
+      {stops.map(({ v, c }) => (
+        <div key={v} style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
+          <div style={{
+            width: 12, height: 10, borderRadius: 2, background: c, flexShrink: 0,
+            border: '1px solid rgba(128,128,128,.45)',
+          }} />
+          <span style={{ color: 'var(--dim)', whiteSpace: 'nowrap' }}>{v}</span>
+        </div>
+      ))}
     </div>
   )
 }

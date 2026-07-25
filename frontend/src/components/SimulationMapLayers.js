@@ -2,26 +2,61 @@
 // partilhadas entre SimulacaoView (ligada a ocorrências) e
 // SimuladorLivreView (ignição livre) — mesmo motor, mesma apresentação.
 
-export const ROS_COLOR_EXPR = [
-  'interpolate', ['linear'], ['coalesce', ['get', 'ros_m_min'], 0],
-  1, '#3b82f6', 5, '#22c55e', 15, '#f97316', 30, '#ef4444',
-]
-export const FLI_COLOR_EXPR = [
-  'interpolate', ['linear'], ['coalesce', ['get', 'fi_kw_m'], 0],
-  500, '#3b82f6', 2000, '#22c55e', 4000, '#f97316', 10000, '#ef4444',
-]
-export const FLAME_COLOR_EXPR = [
-  'interpolate', ['linear'], ['coalesce', ['get', 'flame_m'], 0],
-  1.5, '#3b82f6', 2.5, '#22c55e', 3.5, '#f97316', 10, '#ef4444',
-]
+// Limiares e cores de classificação dos outputs FARSITE/FlamMap — espelho
+// fiel de data/limiares_outputs_farsite.txt (classificação oficial). Não
+// substituir por uma rampa "mais bonita": são os intervalos e as cores com
+// que estes mapas são lidos operacionalmente.
+//
+// São CLASSES, não um gradiente: a convenção é `min <= valor < max`, com a
+// última classe aberta no topo. Por isso as camadas usam expressões
+// `step` (patamares) e não `interpolate` — interpolar produziria cores
+// intermédias que não correspondem a classe nenhuma, e um valor mesmo em
+// cima de um limiar apareceria com a cor da classe errada.
+//
+// A mesma rampa (verde-escuro → verde-claro → amarelo → laranja →
+// vermelho) serve os três outputs; só mudam os limiares.
+const CLASS_COLORS = ['#006633', '#92D050', '#FFFF00', '#FF9900', '#FF0000']
 
-export const COLOR_EXPRS = { ros: ROS_COLOR_EXPR, fi: FLI_COLOR_EXPR, flame: FLAME_COLOR_EXPR }
-export const COLOR_LABELS = { ros: 'ROS m/min', fi: 'FLI kW/m', flame: 'Chama m' }
-export const COLOR_STOPS = {
-  ros:   [{ v: 1, c: '#3b82f6' }, { v: 5, c: '#22c55e' }, { v: 15, c: '#f97316' }, { v: '30+', c: '#ef4444' }],
-  fi:    [{ v: 500, c: '#3b82f6' }, { v: 2000, c: '#22c55e' }, { v: 4000, c: '#f97316' }, { v: '10000+', c: '#ef4444' }],
-  flame: [{ v: 1.5, c: '#3b82f6' }, { v: 2.5, c: '#22c55e' }, { v: 3.5, c: '#f97316' }, { v: '10+', c: '#ef4444' }],
+export const OUTPUT_CLASSES = {
+  ros: {
+    prop: 'ros_m_min',
+    unit: 'm/min',
+    breaks: [0.83, 2.5, 5, 13.3],
+    labels: ['0 – 0,83', '0,83 – 2,5', '2,5 – 5', '5 – 13,3', '> 13,3'],
+  },
+  fi: {
+    prop: 'fi_kw_m',
+    unit: 'kW/m',
+    breaks: [1500, 3750, 7500, 10000],
+    labels: ['0 – 1500', '1500 – 3750', '3750 – 7500', '7500 – 10000', '> 10000'],
+  },
+  flame: {
+    prop: 'flame_m',
+    unit: 'm',
+    breaks: [1.3, 2.2, 3.4, 4.7],
+    labels: ['0 – 1,3', '1,3 – 2,2', '2,2 – 3,4', '3,4 – 4,7', '> 4,7'],
+  },
 }
+
+// ['step', valor, cor0, limiar1, cor1, ...] — o MapLibre atribui cor_i ao
+// intervalo [limiar_i, limiar_i+1), exactamente a convenção do ficheiro.
+function _stepExpr({ prop, breaks }) {
+  const expr = ['step', ['coalesce', ['get', prop], 0], CLASS_COLORS[0]]
+  breaks.forEach((b, i) => expr.push(b, CLASS_COLORS[i + 1]))
+  return expr
+}
+
+export const COLOR_EXPRS = {
+  ros: _stepExpr(OUTPUT_CLASSES.ros),
+  fi: _stepExpr(OUTPUT_CLASSES.fi),
+  flame: _stepExpr(OUTPUT_CLASSES.flame),
+}
+export const COLOR_LABELS = { ros: 'ROS m/min', fi: 'FLI kW/m', flame: 'Chama m' }
+export const COLOR_STOPS = Object.fromEntries(
+  Object.entries(OUTPUT_CLASSES).map(([key, { labels }]) => [
+    key, labels.map((v, i) => ({ v, c: CLASS_COLORS[i] })),
+  ]),
+)
 
 // Rampa sequencial (tempo decorrido é uma grandeza ordenada) — um único
 // matiz, claro→escuro, entre os mesmos extremos usados antes (âncoras
