@@ -17,13 +17,24 @@ import {
   FUEL_MODEL_MIN_ZOOM,
 } from '../basemaps'
 
-// Extrai [[lat,lon], ...] das features desenhadas/importadas (Point ou
-// LineString) — filtra por properties.mode, não só geometry.type: com o
-// select mode activo, o TerraDraw pode injectar feições auxiliares no
-// snapshot (ex. midpoints para inserir vértices numa linha seleccionada),
-// que não têm a tag 'point'/'linestring' das feições reais.
-function _ignitionFromSnapshot(snapshot) {
-  const feature = snapshot.find(f => f.properties?.mode === 'point' || f.properties?.mode === 'linestring')
+// Extrai a feição de ignição desenhada/importada (Point ou LineString) do
+// snapshot do TerraDraw — filtra por properties.mode, não só
+// geometry.type: com o select mode activo, o TerraDraw injecta feições
+// auxiliares no snapshot (pegas dos vértices, midpoints), que não têm a
+// tag 'point'/'linestring' das feições reais.
+//
+// Devolve-a já na forma mínima que TerraDraw.addFeatures() aceita — sem
+// id nem propriedades internas — para poder ser reposta tal e qual numa
+// instância nova (é isso que a mantém viva ao trocar de basemap, ver
+// setupLayersFnRef).
+function _ignitionFeatureFromSnapshot(snapshot) {
+  const f = snapshot.find(x => x.properties?.mode === 'point' || x.properties?.mode === 'linestring')
+  if (!f) return null
+  return { type: 'Feature', geometry: f.geometry, properties: { mode: f.properties.mode } }
+}
+
+// Feição -> [[lat,lon], ...] (a API espera lat/lon, o GeoJSON dá lon/lat).
+function _pointsFromIgnitionFeature(feature) {
   if (!feature) return []
   const coords = feature.geometry.type === 'Point'
     ? [feature.geometry.coordinates]
@@ -33,7 +44,7 @@ function _ignitionFromSnapshot(snapshot) {
 
 // Parseia um ficheiro GeoJSON (Feature ou FeatureCollection) com uma
 // geometria Point ou LineString para usar como ignição — mesma conversão
-// de coordenadas de _ignitionFromSnapshot, e a feição devolvida já vem
+// de coordenadas de _pointsFromIgnitionFeature, e a feição devolvida já vem
 // na forma mínima que TerraDraw.addFeatures() aceita (confirmado
 // empiricamente: não precisa de id explícito, TerraDraw gera um).
 function parseIgnitionGeoJSON(text) {
@@ -53,9 +64,7 @@ function parseIgnitionGeoJSON(text) {
 
   const mode = found.geometry.type === 'Point' ? 'point' : 'linestring'
   const feature = { type: 'Feature', geometry: found.geometry, properties: { mode } }
-  const coords = mode === 'point' ? [found.geometry.coordinates] : found.geometry.coordinates
-  const points = coords.map(([lon, lat]) => [lat, lon])
-  return { points, feature }
+  return { points: _pointsFromIgnitionFeature(feature), feature }
 }
 
 // Prefixo de sources/layers do TerraDrawMapLibreGLAdapter quando não se
@@ -166,13 +175,25 @@ export default function SimuladorLivreView({ apiKey, theme }) {
   const showFuelModelRef = useRef(false)
   const fuelModelOpacityRef = useRef(0.7)
   const pollRef = useRef(null)
+  // Última ignição desenhada/importada, na forma mínima aceite pelo
+  // addFeatures(). Vive numa ref (não em estado) porque quem a repõe é o
+  // handler de 'style.load', registado uma só vez — ver setupLayersFnRef.
+  const ignitionFeatureRef = useRef(null)
+
+  // Guarda a ignição actual e reflecte-a no estado da UI. Chamado sempre
+  // que o desenho muda, para a ref nunca ficar desactualizada em relação
+  // ao que está no mapa (ex. depois de arrastar um vértice).
+  const rememberIgnition = (feature) => {
+    ignitionFeatureRef.current = feature
+    setIgnitionPoints(_pointsFromIgnitionFeature(feature))
+  }
 
   // Feição acabada de desenhar (finish já dá o id) — fica logo
   // seleccionada/arrastável, sem clique extra.
   const onDrawFinish = (id) => {
     const draw = drawRef.current
     if (!draw) return
-    setIgnitionPoints(_ignitionFromSnapshot(draw.getSnapshot()))
+    rememberIgnition(_ignitionFeatureFromSnapshot(draw.getSnapshot()))
     draw.setMode('select')
     draw.selectFeature(id)
     setDrawMode('select')
@@ -182,7 +203,12 @@ export default function SimuladorLivreView({ apiKey, theme }) {
   // reflectir a posição/vértices actualizados.
   const onDrawChange = () => {
     const draw = drawRef.current
-    if (draw) setIgnitionPoints(_ignitionFromSnapshot(draw.getSnapshot()))
+    if (!draw) return
+    const feature = _ignitionFeatureFromSnapshot(draw.getSnapshot())
+    // Só actualiza quando há feição real: durante a reposição pós-troca de
+    // basemap o TerraDraw emite 'change' com o snapshot ainda vazio, e sem
+    // esta guarda isso apagaria a ignição que estamos a repor.
+    if (feature) rememberIgnition(feature)
   }
 
   // Repõe tudo o que um estilo novo destrói (TerraDraw + overlay de
@@ -194,6 +220,22 @@ export default function SimuladorLivreView({ apiKey, theme }) {
     const map = mapRef.current
     if (!map) return
     _attachDraw(map, drawRef, onDrawFinish, onDrawChange)
+    // A instância nova nasce vazia — repõe-se nela a ignição que estava
+    // desenhada, para o ponto/linha sobreviver à troca de basemap (é dado
+    // do utilizador, não do estilo do mapa). Fica seleccionada, como
+    // estava antes, para continuar arrastável sem clique extra.
+    const feature = ignitionFeatureRef.current
+    if (feature) {
+      try {
+        const [{ id, valid }] = drawRef.current.addFeatures([feature])
+        if (valid) {
+          drawRef.current.setMode('select')
+          drawRef.current.selectFeature(id)
+          setDrawMode('select')
+          setIgnitionPoints(_pointsFromIgnitionFeature(feature))
+        }
+      } catch { /* estilo pode ainda estar a assentar; a ref mantém-se */ }
+    }
     addFuelModelLayer(map, { visible: showFuelModelRef.current, opacity: fuelModelOpacityRef.current })
     if (result) initSimulationLayers(map, result, { layer, opacity, visiblePerimeters, showArrows })
   }
@@ -238,9 +280,9 @@ export default function SimuladorLivreView({ apiKey, theme }) {
     // properties of undefined (reading 'setData')" ao tentar escrever nas
     // sources que o setStyle() já destruiu.
     try { drawRef.current?.stop() } catch { /* sources já podem ter ido */ }
-    // O desenho em curso perde-se de qualquer forma quando o estilo muda.
-    setIgnitionPoints([])
-    setDrawMode(null)
+    // Nota: a ignição desenhada NÃO se limpa aqui — é dado do utilizador,
+    // não do estilo. Fica guardada em ignitionFeatureRef e é reposta na
+    // instância nova do TerraDraw (ver setupLayersFnRef).
     // `{ diff: false }` é ESSENCIAL, não uma optimização: com o valor por
     // omissão (diff: true) o MapLibre tenta transformar o estilo actual no
     // novo e **nunca volta a disparar 'style.load'** — as nossas sources
@@ -309,7 +351,7 @@ export default function SimuladorLivreView({ apiKey, theme }) {
     // instância; aqui não houve mudança de estilo nenhuma, a instância
     // e as suas sources continuam intactas.
     draw.clear()
-    setIgnitionPoints([])
+    rememberIgnition(null)
     setJobStatus(null)
     setResult(null)
     setError(null)
@@ -322,7 +364,7 @@ export default function SimuladorLivreView({ apiKey, theme }) {
     if (!draw) return
     clearInterval(pollRef.current)
     draw.clear()
-    setIgnitionPoints([])
+    rememberIgnition(null)
     setDrawMode(null)
     setJobStatus(null)
     setResult(null)
@@ -334,11 +376,11 @@ export default function SimuladorLivreView({ apiKey, theme }) {
     if (!draw) return
     clearInterval(pollRef.current)
     try {
-      const { points, feature } = parseIgnitionGeoJSON(text)
+      const { feature } = parseIgnitionGeoJSON(text)
       draw.clear()
       const [{ id, valid }] = draw.addFeatures([feature])
       if (!valid) throw new Error('geometria inválida')
-      setIgnitionPoints(points)
+      rememberIgnition(feature)
       draw.setMode('select')
       draw.selectFeature(id)
       setDrawMode('select')
