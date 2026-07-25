@@ -320,8 +320,15 @@ export default function MapView({ apiKey, theme }) {
           </button>
         </div>
 
+        {/* `pointer-events: all` é obrigatório aqui: o .map-info-panel é
+            pointer-events:none (para o mapa continuar arrastável por baixo
+            do painel) e os filhos herdam-no — sem isto o clique atravessa
+            a checkbox e vai parar ao canvas, e o toggle parecia não fazer
+            nada. É a mesma razão pela qual .map-basemap-btns repõe
+            pointer-events:all (ver global.css). */}
         <label className="map-basemap-btn" style={{
-          display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 6, marginTop: 8,
+          cursor: 'pointer', pointerEvents: 'all',
         }}>
           <input type="checkbox" checked={showFuelModel}
             onChange={e => setShowFuelModel(e.target.checked)} />
@@ -337,7 +344,10 @@ export default function MapView({ apiKey, theme }) {
           </div>
         )}
         {showFuelModel && mapZoom >= FUEL_MODEL_MIN_ZOOM && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 6, marginTop: 6,
+            pointerEvents: 'all',  // idem — senão o slider não recebe o arrasto
+          }}>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--muted)' }}>TRANSP</span>
             <input type="range" min={0} max={1} step={0.05}
               value={fuelModelOpacity} onChange={e => setFuelModelOpacity(parseFloat(e.target.value))}
