@@ -21,6 +21,7 @@ from typing import Optional
 import numpy as np
 
 try:
+    from shapely import set_precision
     from shapely.geometry import LineString, MultiPolygon, Point, Polygon, shape
     from shapely.strtree import STRtree
     from shapely.validation import make_valid
@@ -623,6 +624,7 @@ def _propagate(
     terrain_cache = _refresh_terrain_cache(reader, verts)
 
     snapshots: list[PerimeterSnapshot] = []
+    merge_stats: dict = {}
     snap_idx = 0
     t = 0.0
     total_min = duration_h * 60.0
@@ -743,7 +745,7 @@ def _propagate(
 
         verts = new_verts
         t += dt
-        verts, accumulated_poly = _merge_into_accumulated(verts, accumulated_poly)
+        verts, accumulated_poly = _merge_into_accumulated(verts, accumulated_poly, merge_stats)
         verts = _rediscretize(verts, min_seg_m, max_seg_m)
         # Resincroniza accumulated_poly com o verts simplificado — sem isto,
         # o polígono acumulado cresce em complexidade sem limite a cada
@@ -751,7 +753,7 @@ def _propagate(
         # Polygon usado na PRÓXIMA união não ficava), tornando cada .union()
         # progressivamente mais lento ao longo da simulação.
         if HAS_SHAPELY and len(verts) >= 3:
-            accumulated_poly = Polygon([(x, y) for x, y, _, _ in verts])
+            accumulated_poly = _accumulated_from_verts(verts)
 
         if len(verts) > MAX_PERIMETER_VERTICES:
             min_seg_m *= PERIM_COARSEN_FACTOR
@@ -764,7 +766,7 @@ def _propagate(
             )
             verts = _rediscretize(verts, min_seg_m, max_seg_m)
             if HAS_SHAPELY and len(verts) >= 3:
-                accumulated_poly = Polygon([(x, y) for x, y, _, _ in verts])
+                accumulated_poly = _accumulated_from_verts(verts)
 
         if len(verts) < 3:
             log.warning("Simulação: polígono degenerado após fusão/rediscretização a t=%.1f min", t)
@@ -775,6 +777,17 @@ def _propagate(
         if snap:
             snapshots.append(snap)
         snap_idx += 1
+
+    # Um perímetro congelado dá perímetros iguais entre snapshots com o
+    # ROS/FLI a variar normalmente — sem esta linha, o sintoma chega ao
+    # utilizador sem nada nos logs que o explique.
+    if merge_stats.get("frozen_steps"):
+        log.error(
+            "Simulação: o perímetro ficou congelado em %d timestep(s) — a "
+            "área acumulada não avançou nesses passos e os perímetros "
+            "exportados estão subestimados",
+            merge_stats["frozen_steps"],
+        )
 
     return snapshots, coarsened
 
@@ -870,7 +883,105 @@ def _reassign_ros_fi(new_pts: list, source_verts: list) -> list:
     ]
 
 
-def _merge_into_accumulated(new_verts: list, accumulated_poly):
+# Grelha de coordenadas usada para recuperar de falhas de robustez do
+# GEOS na união (ver _union_robust). 1 cm — duas ordens de grandeza
+# abaixo da resolução do terreno (dezenas de metros), por isso não muda
+# o perímetro de forma observável.
+UNION_PRECISION_M = 0.01
+
+
+def _largest_polygon(geom):
+    """Maior componente Polygon de uma geometria, ou None se não houver."""
+    if geom is None or geom.is_empty:
+        return None
+    if isinstance(geom, Polygon):
+        return geom
+    parts = [g for g in getattr(geom, "geoms", []) if isinstance(g, Polygon) and not g.is_empty]
+    return max(parts, key=lambda p: p.area) if parts else None
+
+
+def _repair_polygon(poly):
+    """Versão válida de `poly`, ou None se não for recuperável.
+
+    make_valid() nem sempre resolve bem muitas auto-intersecções pequenas
+    (pode devolver uma GeometryCollection de fragmentos); buffer(0) é o
+    truque clássico do shapely para esses casos — mais tolerante,
+    tenta-se a seguir antes de desistir.
+    """
+    if poly.is_valid:
+        return poly
+    for repair in (make_valid, lambda p: p.buffer(0)):
+        try:
+            best = _largest_polygon(repair(poly))
+        except Exception:
+            continue
+        if best is not None and best.is_valid:
+            return best
+    return None
+
+
+def _union_robust(accumulated_poly, candidate):
+    """União tolerante a falhas de robustez do GEOS.
+
+    O union() do GEOS levanta `TopologyException: side location conflict`
+    quando as duas formas têm arestas quase coincidentes — o que aqui
+    acontece sistematicamente, porque o candidato de cada timestep nasce
+    dos vértices do acumulado anterior e partilha com ele quase toda a
+    fronteira.
+
+    Isto não era um contratempo, era fatal: ao falhar, o chamador repetia
+    o acumulado anterior, cujos vértices geravam no timestep seguinte um
+    candidato outra vez quase coincidente, a mesma união falhava na mesma
+    aresta, e o perímetro ficava congelado até ao fim da simulação
+    (observado numa corrida de 3h: três perímetros com 77.5 ha e 310
+    vértices exactamente iguais, com o ROS a variar normalmente por
+    baixo).
+
+    A cura documentada é reduzir a precisão das coordenadas antes da
+    operação — com uma grelha explícita o GEOS deixa de ter arestas
+    "quase" coincidentes para desempatar. Só se tenta depois de a união
+    directa falhar, para não degradar o caso normal.
+    """
+    if accumulated_poly is None:
+        return candidate
+    try:
+        return accumulated_poly.union(candidate)
+    except Exception as e:
+        log.warning(
+            "Simulação: união directa falhou (%s) — nova tentativa com "
+            "precisão reduzida a %g m", e, UNION_PRECISION_M,
+        )
+    a = _repair_polygon(set_precision(accumulated_poly, UNION_PRECISION_M))
+    b = _repair_polygon(set_precision(candidate, UNION_PRECISION_M))
+    if a is None or b is None:
+        raise ValueError("redução de precisão não produziu polígonos utilizáveis")
+    return a.union(b)
+
+
+def _accumulated_from_verts(verts: list):
+    """Polígono acumulado ressincronizado com os vértices, já validado.
+
+    O acumulado é reconstruído a partir do `verts` rediscretizado a cada
+    timestep (ver ciclo em _propagate) para não crescer em complexidade
+    sem limite. Mas a rediscretização insere e remove pontos ao longo da
+    frente, o que pode introduzir auto-intersecções — e era exactamente
+    isso que envenenava a união seguinte: o candidato passava por
+    make_valid(), o acumulado ressincronizado não passava por nada.
+    Validar aqui é o que evita o congelamento na origem; o retry de
+    _union_robust é a rede de segurança.
+    """
+    poly = Polygon([(x, y) for x, y, _, _ in verts])
+    repaired = _repair_polygon(poly)
+    if repaired is None:
+        log.warning(
+            "Simulação: acumulado ressincronizado inválido e não reparável "
+            "— mantido como está"
+        )
+        return poly
+    return repaired
+
+
+def _merge_into_accumulated(new_verts: list, accumulated_poly, stats: Optional[dict] = None):
     """Funde a forma deste timestep (new_verts, possivelmente
     auto-intersectante) no polígono acumulado, em vez de reconstruir do
     zero — garante que a área já queimada nunca retrocede nem "salta"
@@ -890,6 +1001,12 @@ def _merge_into_accumulated(new_verts: list, accumulated_poly):
         return new_verts, accumulated_poly
 
     def _repeat_last_good():
+        # Repetir o acumulado é congelar o perímetro neste timestep: a
+        # área queimada não avança, só o ROS/FLI dos vértices é
+        # reatribuído. Conta-se para o chamador poder dizê-lo em vez de
+        # devolver perímetros iguais sem explicação.
+        if stats is not None:
+            stats["frozen_steps"] = stats.get("frozen_steps", 0) + 1
         if accumulated_poly is not None and not accumulated_poly.is_empty:
             pts = list(accumulated_poly.exterior.coords[:-1])
             return _reassign_ros_fi(pts, new_verts), accumulated_poly
@@ -910,7 +1027,7 @@ def _merge_into_accumulated(new_verts: list, accumulated_poly):
             log.warning("Simulação: candidato inválido/vazio neste timestep — repete último acumulado")
             return _repeat_last_good()
 
-        merged = accumulated_poly.union(candidate) if accumulated_poly is not None else candidate
+        merged = _union_robust(accumulated_poly, candidate)
 
         if isinstance(merged, MultiPolygon):
             geoms = sorted(merged.geoms, key=lambda p: p.area, reverse=True)
