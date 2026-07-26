@@ -5,14 +5,15 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { fetchFireDetail, postSimulate, getSimulationJob } from '../api'
 import { fmt, fmtDateTime, FUEL_MOISTURE_SCENARIO_LABEL } from '../constants'
 import {
-  COLOR_LABELS, COLOR_STOPS, msToKmh, perimStyle, arrowsHour,
+  msToKmh,
   initSimulationLayers, updateSimulationLayerStyle,
   downloadGeoJSON, perimetersToFeatureCollection,
 } from '../components/SimulationMapLayers'
-import { Legend, ResultsTable, DurationSelect, FuelMoistureScenarioSelect, FileTextInput, FuelModelLegend } from '../components/SimulationPanels'
+import { ResultsTable, DurationSelect, FuelMoistureScenarioSelect, FileTextInput } from '../components/SimulationPanels'
+import { SimulationOverlayControls } from '../components/SimulationOverlayControls'
+import { useResizableBottomPanel, ResizeHandle } from '../components/useResizableBottomPanel'
 import {
-  basemapStyle, BASEMAP_LABEL, addFuelModelLayer, setFuelModelLayerVisible, setFuelModelLayerOpacity,
-  FUEL_MODEL_MIN_ZOOM,
+  basemapStyle, addFuelModelLayer, setFuelModelLayerVisible, setFuelModelLayerOpacity,
 } from '../basemaps'
 
 export default function SimulacaoView({ apiKey, theme }) {
@@ -46,6 +47,10 @@ export default function SimulacaoView({ apiKey, theme }) {
   const showFuelModelRef = useRef(false)
   const fuelModelOpacityRef = useRef(0.7)
   const pollRef = useRef(null)
+  // `containerRef` já é o div do mapa nesta vista — o do hook (que mede a
+  // altura total disponível) fica como rootRef.
+  const { containerRef: rootRef, panelStyle, onPointerDown, reset } =
+    useResizableBottomPanel('ft_simulacao_bottom_h')
 
   useEffect(() => {
     fetchFireDetail(apiKey, fireId)
@@ -218,7 +223,7 @@ export default function SimulacaoView({ apiKey, theme }) {
   const isRunning = jobStatus === 'pending' || jobStatus === 'running'
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div ref={rootRef} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
 
       <div className="breadcrumb" style={{ flexShrink: 0 }}>
         <Link to="/lista">Ocorrências</Link>
@@ -229,130 +234,27 @@ export default function SimulacaoView({ apiKey, theme }) {
       </div>
 
       {/* Mapa */}
-      <div style={{ flex: '0 0 60%', position: 'relative' }}>
+      <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
         <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
 
-        <div style={{
-          position: 'absolute', top: 10, right: 10, zIndex: 10,
-          display: 'flex', flexDirection: 'column', gap: 6,
-        }}>
-          <div className="map-overlay-panel" style={{ display: 'flex', gap: 4, borderRadius: 4, padding: 4 }}>
-            {['osm', 'satellite', 'topo'].map(b => (
-              <button key={b} className={`btn btn-ghost${basemap === b ? ' active' : ''}`}
-                style={{ fontSize: 10, padding: '3px 8px' }}
-                onClick={() => setBasemap(b)}>
-                {BASEMAP_LABEL[b]}
-              </button>
-            ))}
-          </div>
-
-          <div className="map-overlay-panel" style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            borderRadius: 4, padding: '4px 8px',
-          }}>
-            <label className="filter-check" style={{ fontSize: 9, fontFamily: 'var(--font-mono)' }}>
-              <input type="checkbox" checked={showFuelModel}
-                onChange={e => setShowFuelModel(e.target.checked)} />
-              MODELOS DE COMBUSTÍVEL
-            </label>
-          </div>
-          {showFuelModel && mapZoom < FUEL_MODEL_MIN_ZOOM && (
-            <div className="map-overlay-panel" style={{
-              borderRadius: 4, padding: '4px 8px', width: 210,
-              fontSize: 9, fontFamily: 'var(--font-mono)',
-              color: 'var(--warn)', lineHeight: 1.35,
-            }}>
-              Aproxime o mapa para ver os modelos de combustível
-            </div>
-          )}
-          {showFuelModel && mapZoom >= FUEL_MODEL_MIN_ZOOM && (
-            <>
-              <div className="map-overlay-panel" style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                borderRadius: 4, padding: '4px 8px',
-              }}>
-                <span style={{ fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--font-mono)' }}>TRANSP</span>
-                <input type="range" min={0} max={1} step={0.05}
-                  value={fuelModelOpacity} onChange={e => setFuelModelOpacity(parseFloat(e.target.value))}
-                  style={{ width: 80, cursor: 'pointer' }} />
-              </div>
-              <FuelModelLegend />
-            </>
-          )}
-
-          {result && (
-            <>
-              <div className="map-overlay-panel" style={{ display: 'flex', gap: 4, borderRadius: 4, padding: 4 }}>
-                {Object.entries(COLOR_LABELS).map(([k, label]) => (
-                  <button key={k} className={`btn btn-ghost${layer === k ? ' active' : ''}`}
-                    style={{ fontSize: 9, padding: '3px 6px' }}
-                    onClick={() => setLayer(k)}>
-                    {label.split(' ')[0]}
-                  </button>
-                ))}
-              </div>
-              <div className="map-overlay-panel" style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                borderRadius: 4, padding: '4px 8px',
-              }}>
-                <span style={{ fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--font-mono)' }}>TRANSP</span>
-                <input type="range" min={0} max={1} step={0.05}
-                  value={opacity} onChange={e => setOpacity(parseFloat(e.target.value))}
-                  style={{ width: 80, cursor: 'pointer' }} />
-              </div>
-              <div className="map-overlay-panel" style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                borderRadius: 4, padding: '4px 8px',
-              }}>
-                {/* A hora vai no rótulo: as setas são o campo de propagação
-                    de UM instante (a meteo dessa hora), não da simulação
-                    toda — sem isto ficava por dizer qual. */}
-                <label className="filter-check" style={{ fontSize: 9, fontFamily: 'var(--font-mono)' }}>
-                  <input type="checkbox" checked={showArrows}
-                    onChange={e => setShowArrows(e.target.checked)} />
-                  SETAS DE PROPAGAÇÃO
-                  {arrowsHour(result, visiblePerimeters) != null
-                    && ` (t=${arrowsHour(result, visiblePerimeters)}h)`}
-                </label>
-              </div>
-              <Legend stops={COLOR_STOPS[layer]} label={COLOR_LABELS[layer]} />
-
-              <div className="map-overlay-panel" style={{
-                borderRadius: 4, padding: '4px 6px',
-              }}>
-                <div style={{ fontSize: 9, color: 'var(--muted)', fontFamily: 'var(--font-mono)', marginBottom: 3 }}>
-                  PERÍMETROS
-                </div>
-                <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', maxWidth: 140 }}>
-                  {result.perimeters.map((p, i) => {
-                    const { color } = perimStyle(i, result.perimeters.length)
-                    const on = visiblePerimeters.has(p.t_h)
-                    return (
-                      <button key={p.t_h}
-                        onClick={() => togglePerimeter(p.t_h)}
-                        title={`${p.t_h}h — ${on ? 'esconder' : 'mostrar'}`}
-                        style={{
-                          fontSize: 9, padding: '2px 5px', borderRadius: 3,
-                          fontFamily: 'var(--font-mono)', cursor: 'pointer',
-                          border: `1px solid ${color}`,
-                          background: on ? color : 'transparent',
-                          color: on ? '#0d1410' : color,
-                          opacity: on ? 1 : 0.6,
-                        }}>
-                        {p.t_h}h
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+        <SimulationOverlayControls
+          basemap={basemap} setBasemap={setBasemap}
+          showFuelModel={showFuelModel} setShowFuelModel={setShowFuelModel}
+          fuelModelOpacity={fuelModelOpacity} setFuelModelOpacity={setFuelModelOpacity}
+          mapZoom={mapZoom}
+          result={result} layer={layer} setLayer={setLayer}
+          opacity={opacity} setOpacity={setOpacity}
+          showArrows={showArrows} setShowArrows={setShowArrows}
+          visiblePerimeters={visiblePerimeters} togglePerimeter={togglePerimeter}
+        />
       </div>
+
+      <ResizeHandle onPointerDown={onPointerDown} onDoubleClick={reset}
+        title="Arraste para redimensionar; duplo clique repõe" />
 
       {/* Painel inferior */}
       <div style={{
-        flex: '0 0 40%', overflowY: 'auto', borderTop: '1px solid var(--border)',
+        ...panelStyle,
         padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 12,
       }}>
 

@@ -7,35 +7,29 @@ import { FUEL_MODELS, FUEL_MODEL_GROUP_ORDER } from '../basemaps'
 // ocorrências) e SimuladorLivreView (ignição livre) — mesmo formato de
 // resultado (SimulationResultDetail), só a origem do job difere.
 
-// Legenda dos outputs da simulação (ROS/FLI/Chama). Uma linha por classe,
-// em vez da fila horizontal de antes: os rótulos passaram a ser intervalos
-// ("0,83 – 2,5") e não valores soltos, e cinco desses lado a lado não
-// cabiam no painel. Ordem de cima para baixo = ordem crescente das
-// classes, como no ficheiro de limiares.
-export function Legend({ stops, label }) {
-  return (
-    <div className="map-overlay-panel" style={{
-      borderRadius: 4, padding: '6px 8px',
-      fontFamily: 'var(--font-mono)', fontSize: 9,
-    }}>
-      <div style={{ color: 'var(--muted)', marginBottom: 4 }}>{label.toUpperCase()}</div>
-      {stops.map(({ v, c }) => (
-        <div key={v} style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
-          <div style={{
-            width: 12, height: 10, borderRadius: 2, background: c, flexShrink: 0,
-            border: '1px solid rgba(128,128,128,.45)',
-          }} />
-          <span style={{ color: 'var(--dim)', whiteSpace: 'nowrap' }}>{v}</span>
-        </div>
-      ))}
+// Linhas da legenda dos outputs da simulação (ROS/FLI/Chama), uma por
+// classe: os rótulos são intervalos ("0,83 – 2,5") e não valores soltos,
+// e a ordem de cima para baixo é a ordem crescente das classes, como no
+// ficheiro de limiares.
+//
+// Só as linhas, sem caixa nem cabeçalho — vivem dentro de uma secção
+// colapsável do painel único de controlos (SimulationOverlayControls),
+// em vez de cada legenda trazer a sua própria caixa com borda e padding.
+export function LegendRows({ stops }) {
+  return stops.map(({ v, c }) => (
+    <div key={v} style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
+      <div style={{
+        width: 12, height: 10, borderRadius: 2, background: c, flexShrink: 0,
+        border: '1px solid rgba(128,128,128,.45)',
+      }} />
+      <span style={{ color: 'var(--dim)', whiteSpace: 'nowrap' }}>{v}</span>
     </div>
-  )
+  ))
 }
 
-// Legenda do overlay de tiles do modelo de combustível — 22 entradas
-// (muito mais do que os 4 stops do <Legend> compacto acima), por isso
-// painel próprio, scrollable e agrupado. Cores e designações vêm de
-// FUEL_MODELS (basemaps.js), espelho da cartografia oficial.
+// Linhas da legenda do overlay de modelos de combustível — 22 entradas
+// agrupadas por família. Cores e designações vêm de FUEL_MODELS
+// (basemaps.js), espelho da cartografia oficial.
 //
 // O código numérico aparece ao lado da designação de propósito: é assim
 // que os modelos são referidos nas tabelas de combustível e nos ficheiros
@@ -48,14 +42,11 @@ export function Legend({ stops, label }) {
 // único canal de informação — necessário porque esta paleta é imposta
 // externamente e não passa pelos critérios de separação CVD que se
 // aplicariam a uma paleta escolhida por nós.
-export function FuelModelLegend() {
+//
+// Sem caixa nem cabeçalho — ver LegendRows acima para o porquê.
+export function FuelModelLegendRows() {
   return (
-    <div className="map-overlay-panel" style={{
-      borderRadius: 4, padding: '6px 8px',
-      fontFamily: 'var(--font-mono)', fontSize: 9,
-      maxHeight: 260, overflowY: 'auto', width: 210,
-    }}>
-      <div style={{ color: 'var(--muted)', marginBottom: 4 }}>MODELOS DE COMBUSTÍVEL</div>
+    <>
       {FUEL_MODEL_GROUP_ORDER.map(grupo => (
         <div key={grupo} style={{ marginBottom: 5 }}>
           <div style={{
@@ -80,6 +71,22 @@ export function FuelModelLegend() {
             ))}
         </div>
       ))}
+    </>
+  )
+}
+
+// Versão autónoma (caixa própria, scrollable) — usada pelo MapView, que
+// a mostra sozinha ao canto e não tem o painel de controlos das vistas de
+// simulação.
+export function FuelModelLegend() {
+  return (
+    <div className="map-overlay-panel" style={{
+      borderRadius: 4, padding: '6px 8px',
+      fontFamily: 'var(--font-mono)', fontSize: 9,
+      maxHeight: 260, overflowY: 'auto', width: 210,
+    }}>
+      <div style={{ color: 'var(--muted)', marginBottom: 4 }}>MODELOS DE COMBUSTÍVEL</div>
+      <FuelModelLegendRows />
     </div>
   )
 }
