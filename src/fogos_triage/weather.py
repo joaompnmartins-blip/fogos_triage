@@ -9,11 +9,16 @@ Tem duas funções principais:
 Humidades dos combustíveis mortos: equações Simard 1968 (temperatura em
 Fahrenheit, limiares de RH: ≤10%, 11-50%, >50%).
 
-Humidades dos combustíveis vivos: regressões Yebra 2007 a partir de NDVI
-(VNP09GA) e LST (VNP21A1D) via Google Earth Engine, com fallback sazonal.
+Humidades dos combustíveis vivos: NÃO se calculam aqui — vêm de
+`fogos_triage.lfmc_climatologia` (climatologia sazonal + precipitação
+acumulada a 180 dias, ajustada a medições de campo do ICNF) e entram em
+derive_fire_weather como `live_h_pct`/`live_w_pct`. A precipitação
+acumulada obtém-se com fetch_precipitation_sum, abaixo.
 """
 from __future__ import annotations
 
+import asyncio
+import logging
 import math
 import os
 from datetime import datetime, timedelta
@@ -27,13 +32,7 @@ except ImportError:
 
 from .schemas import WeatherConditions
 
-# ---------------------------------------------------------------------------
-# Google Earth Engine — inicialização lazy e thread-safe
-# ---------------------------------------------------------------------------
-
-_ee_initialized: bool = False
-_ee_init_attempted: bool = False
-
+log = logging.getLogger(__name__)
 
 OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 OPEN_METEO_ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
@@ -195,6 +194,77 @@ async def fetch_open_meteo_archive(
     return _parse_open_meteo_hourly(data, start_time, hours_ahead)
 
 
+async def fetch_precipitation_sum(
+    latitude: float,
+    longitude: float,
+    ate: Optional[datetime] = None,
+    dias: int = 180,
+    client: Optional["httpx.AsyncClient"] = None,
+    tentativas: int = 4,
+) -> Optional[float]:
+    """
+    Precipitação acumulada (mm) nos `dias` anteriores a `ate`.
+
+    É o preditor da climatologia de humidade dos combustíveis vivos —
+    ver `lfmc_climatologia`. O acumulado de 180 dias é o que capta a
+    recarga hídrica do Inverno/Primavera, e é isso que distingue um ano
+    seco de um ano normal: nas medições de campo do ICNF, 2022 (308 mm)
+    deu 81.6% de LFMC contra 99.5% em 2021 (604 mm).
+
+    Usa o arquivo (ERA5), que cobre 1940 até ao presente — por isso
+    funciona para qualquer `start_time` de simulação, incluindo incêndios
+    anteriores a haver satélite com estas bandas.
+
+    O arquivo devolve 429 depois de poucos pedidos seguidos, daí o
+    backoff. Devolve None se não conseguir — quem chama decide o
+    fallback (não se inventa precipitação).
+    """
+    if not HAS_HTTPX:
+        raise ImportError("httpx é necessário para fetch_precipitation_sum")
+
+    # O arquivo serve até hoje inclusive e devolve 400 para datas
+    # futuras (confirmado: end_date=amanhã dá "out of allowed range").
+    # Numa simulação com start_time no futuro, a janela relevante é
+    # mesmo a que termina agora — a chuva que ainda não caiu não conta
+    # para a água que está no solo hoje.
+    fim = min((ate or datetime.now()).date(), datetime.now().date())
+    inicio = fim - timedelta(days=dias)
+    params = {
+        "latitude": latitude,
+        "longitude": longitude,
+        "start_date": inicio.isoformat(),
+        "end_date": fim.isoformat(),
+        "daily": "precipitation_sum",
+        "timezone": "Europe/Lisbon",
+    }
+
+    own_client = client is None
+    if own_client:
+        client = httpx.AsyncClient(timeout=30.0)
+    try:
+        for tentativa in range(1, tentativas + 1):
+            try:
+                resp = await client.get(OPEN_METEO_ARCHIVE_URL, params=params)
+                resp.raise_for_status()
+                valores = [v for v in resp.json()["daily"]["precipitation_sum"] if v is not None]
+                if not valores:
+                    log.warning("Open-Meteo arquivo sem precipitação para %.4f,%.4f", latitude, longitude)
+                    return None
+                return float(sum(valores))
+            except Exception as exc:
+                if tentativa == tentativas:
+                    log.warning(
+                        "Precipitação acumulada falhou para %.4f,%.4f (%s tentativas): %s",
+                        latitude, longitude, tentativas, exc,
+                    )
+                    return None
+                await asyncio.sleep(2 ** tentativa)
+    finally:
+        if own_client:
+            await client.aclose()
+    return None
+
+
 async def fetch_weather_for_start_time(
     latitude: float,
     longitude: float,
@@ -248,170 +318,18 @@ def estimate_fine_dead_moisture_pct(
 
 
 # ---------------------------------------------------------------------------
-# Live Fuel Moisture via VIIRS/GEE — Yebra 2007
+# Nota: a estimativa de humidade dos combustíveis vivos por VIIRS/GEE
+# (Yebra 2007) esteve aqui e foi removida. Validada contra 654 medições de
+# campo do ICNF (LFM/), reprovou: no herbáceo dava viés de +110 pontos
+# percentuais e correlação ZERO (r = -0.03) com o terreno, porque o NDVI de
+# um píxel de 500 m mede o verde das árvores enquanto a herbácea está
+# morta. Substituída por `fogos_triage.lfmc_climatologia` (climatologia
+# sazonal + precipitação acumulada a 180 dias, ajustada aos dados
+# portugueses). Ver LFMC_CLIMATOLOGIA_PLAN.md, incluindo o que mais foi
+# testado e rejeitado — os modelos MODIS que os autores recomendam saem
+# ainda piores.
 # ---------------------------------------------------------------------------
 
-def _init_ee() -> bool:
-    """Inicializa o Earth Engine com service account. True se bem-sucedido."""
-    global _ee_initialized, _ee_init_attempted
-    if _ee_initialized:
-        return True
-    if _ee_init_attempted:
-        return False
-    _ee_init_attempted = True
-
-    service_account = os.environ.get('GEE_SERVICE_ACCOUNT')
-    key_file = os.environ.get('GEE_KEY_FILE')
-    key_json = os.environ.get('GEE_KEY_JSON')
-
-    if not service_account or (not key_file and not key_json):
-        return False
-
-    try:
-        import ee
-
-        if key_file:
-            creds = ee.ServiceAccountCredentials(service_account, key_file)
-        else:
-            import json
-            from google.oauth2 import service_account as gsa
-            key_data = json.loads(key_json)
-            creds = gsa.Credentials.from_service_account_info(
-                key_data,
-                scopes=['https://www.googleapis.com/auth/earthengine'],
-            )
-
-        ee.Initialize(creds)
-        _ee_initialized = True
-        import logging
-        logging.getLogger(__name__).info("GEE Earth Engine inicializado com sucesso")
-        return True
-    except Exception as exc:
-        import logging
-        logging.getLogger(__name__).warning(f"GEE inicialização falhou: {exc}")
-        return False
-
-
-def _viirs_fmc_sync(
-    latitude: float,
-    longitude: float,
-    date: datetime,
-) -> Optional[tuple[float, float]]:
-    """
-    Estima humidade dos combustíveis vivos por VIIRS + Yebra 2007.
-
-    NDVI: VNP09GA (NASA/VIIRS/002/VNP09GA), bandas I1 (red) e I2 (NIR).
-          Escala de reflectância (0.0001) cancela no rácio NDVI.
-    LST : MOD11A1 (MODIS/061/MOD11A1), banda LST_Day_1km.
-    Janela temporal: 16 dias antes de `date`.
-
-    Correção sazonal para anos Normais (Yebra 2007):
-      FDp (herbáceo): (sin(1.5π(DJ + DJ^0.5) / 365))^6 × 1.5
-      FDm (lenhoso) : ((sin(1.6π × DJ / 365))^2 + 1) × 0.5
-
-    Regressões Yebra 2007 Tabela 1:
-      FMC_G = 27.95 + 115.51×FDp + 331.86×NDVI − 1.194×Ts_C
-      FMC_S =  8.73 + 125.87×FDm +  40.79×NDVI − 0.2294×Ts_C
-
-    Devolve (fmc_grass_pct, fmc_shrub_pct) ou None.
-    """
-    if not _init_ee():
-        return None
-
-    try:
-        import ee
-
-        point = ee.Geometry.Point([longitude, latitude])
-        end_date = date.strftime('%Y-%m-%d')
-        start_date = (date - timedelta(days=16)).strftime('%Y-%m-%d')
-
-        # NDVI — bandas I1 (red) e I2 (NIR); fill=28672, válido 0-10000
-        def _mask_vnp09(img):
-            i1 = img.select('I1')
-            i2 = img.select('I2')
-            return img.updateMask(
-                i1.gte(0).And(i1.lte(10000)).And(i2.gte(0)).And(i2.lte(10000))
-            )
-        vnp09 = (
-            ee.ImageCollection('NASA/VIIRS/002/VNP09GA')
-            .filterDate(start_date, end_date)
-            .filterBounds(point)
-            .select(['I1', 'I2'])
-            .map(_mask_vnp09)
-            .mean()
-        )
-        ndvi_img = (
-            vnp09.select('I2').subtract(vnp09.select('I1'))
-            .divide(vnp09.select('I2').add(vnp09.select('I1')))
-            .rename('ndvi')
-        )
-
-        # LST — MODIS MOD11A1 (diário, 1km); escala 0.02 K/DN; fill=0
-        lst_img = (
-            ee.ImageCollection('MODIS/061/MOD11A1')
-            .filterDate(start_date, end_date)
-            .filterBounds(point)
-            .select(['LST_Day_1km'])
-            .map(lambda img: img.updateMask(img.select('LST_Day_1km').gt(7500)))
-            .mean()
-            .multiply(0.02)
-            .subtract(273.15)
-            .rename('lst_c')
-        )
-
-        vals = (
-            ndvi_img.addBands(lst_img)
-            .reduceRegion(
-                reducer=ee.Reducer.mean(),
-                geometry=point.buffer(1000),
-                scale=500,
-                maxPixels=100,
-            )
-            .getInfo()
-        )
-
-        import logging as _log
-        ndvi = vals.get('ndvi')
-        lst_c = vals.get('lst_c')
-        if ndvi is None or lst_c is None:
-            _log.getLogger(__name__).warning(f"GEE sem dados: ndvi={ndvi} lst_c={lst_c}")
-            return None
-
-        # Correção sazonal — anos Normais (Yebra 2007 Eq. 3 e 4)
-        dj = float(date.timetuple().tm_yday)
-        fdp = (math.sin(1.5 * math.pi * (dj + dj**0.5) / 365)) ** 6 * 1.5
-        fdm = ((math.sin(1.6 * math.pi * dj / 365)) ** 2 + 1) * 0.5
-
-        fmc_grass = 27.95 + 115.51 * fdp + 331.86 * ndvi - 1.194 * lst_c
-        fmc_shrub = 8.73 + 125.87 * fdm + 40.79 * ndvi - 0.2294 * lst_c
-
-        return (
-            float(max(0.0, min(250.0, fmc_grass))),
-            float(max(0.0, min(250.0, fmc_shrub))),
-        )
-    except Exception as exc:
-        import logging as _log
-        _log.getLogger(__name__).warning(f"GEE _viirs_fmc_sync falhou: {exc}")
-        return None
-
-
-async def fetch_live_fmc_viirs(
-    latitude: float,
-    longitude: float,
-    date: datetime,
-) -> Optional[tuple[float, float]]:
-    """
-    Estima humidade dos combustíveis vivos via VIIRS/GEE (Yebra 2007).
-
-    Devolve (fmc_herbáceo_pct, fmc_lenhoso_pct) ou None se GEE não
-    disponível. Requer GEE_SERVICE_ACCOUNT e GEE_KEY_FILE (ou GEE_KEY_JSON).
-    Executa em thread-executor para não bloquear o event loop.
-    """
-    import asyncio
-    loop = asyncio.get_running_loop()
-    return await loop.run_in_executor(
-        None, _viirs_fmc_sync, latitude, longitude, date
-    )
 
 
 def derive_fire_weather(
@@ -431,7 +349,7 @@ def derive_fire_weather(
     m_10h  = 1.28 × m_1h        (Rothermel 1972)
     m_100h = m_10h + 1.0%
 
-    live_h_pct / live_w_pct: se fornecidos (de fetch_live_fmc_viirs), usados
+    live_h_pct / live_w_pct: se fornecidos (de lfmc_climatologia), usados
     directamente; caso contrário, fallback conservador (Portugal, verão).
 
     O WAF (Wind Adjustment Factor) vem de Albini & Baughman 1979 e depende de:

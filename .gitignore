@@ -10,3 +10,7 @@ data/AltoMinho/
 
 node_modules/
 frontend/dist/
+
+# Cache da série ERA5 usada por scripts/ajusta_lfmc_climatologia.py
+# (regenerável: o script rebusca do arquivo Open-Meteo se faltar)
+LFM/.meteo_cache_*.json

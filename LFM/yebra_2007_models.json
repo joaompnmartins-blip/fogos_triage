@@ -1,0 +1,192 @@
+{
+  "source": {
+    "citation": "Yebra, M., Aguado, I., García, M., Nieto, H., Chuvieco, E., Salas, J. (2007). Fuel moisture estimation for fire ignition mapping. Wildfire 2007, Sevilla, Spain.",
+    "short_ref": "Yebra et al. (2007)",
+    "study_area": "Cabañeros National Park (calibration); Madrid, Castilla y León, Andalucía (validation)",
+    "units": "FMC in percent (%), dry-weight basis"
+  },
+  "lfmc_models": [
+    {
+      "id": "G1",
+      "vegetation": "grass",
+      "sensor": "MODIS",
+      "method": "empirical",
+      "expression": "-161.1 + 650.2*NDVI",
+      "intercept": -161.1,
+      "terms": [{ "predictor": "NDVI", "coef": 650.2 }],
+      "r2": 0.91,
+      "se_pct": 30.1,
+      "validation_cabaneros": { "r2": 0.91, "slope": 0.93, "const": 12.69, "rmse": 27.38, "rmse_s": 10.24, "rmse_u": 25.40 },
+      "validation_other_sites": { "r2": 0.88, "slope": 0.78, "const": 36.39, "rmse": 42.60, "rmse_s": 27.56, "rmse_u": 32.48 }
+    },
+    {
+      "id": "G2",
+      "vegetation": "grass",
+      "sensor": "MODIS",
+      "method": "empirical",
+      "expression": "-129.12 + 503.51*NDVI + 52.55*FD_G",
+      "intercept": -129.12,
+      "terms": [
+        { "predictor": "NDVI", "coef": 503.51 },
+        { "predictor": "FD_G", "coef": 52.55 }
+      ],
+      "r2": 0.93,
+      "se_pct": 26.3,
+      "validation_cabaneros": { "r2": 0.87, "slope": 0.93, "const": 14.70, "rmse": 33.41, "rmse_s": 11.90, "rmse_u": 31.22 },
+      "validation_other_sites": { "r2": 0.90, "slope": 0.85, "const": 18.17, "rmse": 36.08, "rmse_s": 16.50, "rmse_u": 32.09 },
+      "recommended": true,
+      "recommendation_note": "Chosen by the authors as the operational grassland model (best transferability to other sites)."
+    },
+    {
+      "id": "G3",
+      "vegetation": "grass",
+      "sensor": "MODIS",
+      "method": "RTM",
+      "expression": "-6.7 + 131.4*LAI + 296.7*NDII",
+      "intercept": -6.7,
+      "terms": [
+        { "predictor": "LAI", "coef": 131.4 },
+        { "predictor": "NDII", "coef": 296.7 }
+      ],
+      "r2": 0.89,
+      "se_pct": 29.5,
+      "validation_cabaneros": { "r2": 0.93, "slope": 0.92, "const": 0.17, "rmse": 24.57, "rmse_s": 8.69, "rmse_u": 23.00 },
+      "note": "Requires two MODIS products (MOD09 + MOD15); discarded as less operational."
+    },
+    {
+      "id": "G4",
+      "vegetation": "grass",
+      "sensor": "AVHRR",
+      "method": "empirical",
+      "expression": "27.95 + 115.51*FDp + 331.86*NDVI - 1.194*Ts",
+      "intercept": 27.95,
+      "terms": [
+        { "predictor": "FDp", "coef": 115.51 },
+        { "predictor": "NDVI", "coef": 331.86 },
+        { "predictor": "Ts", "coef": -1.194 }
+      ],
+      "r2": 0.85,
+      "se_pct": 36.9,
+      "validation_cabaneros": { "r2": 0.91, "slope": 0.89, "const": 10.46, "rmse": 27.43, "rmse_s": 13.50, "rmse_u": 23.88 }
+    },
+    {
+      "id": "S1",
+      "vegetation": "shrub",
+      "sensor": "MODIS",
+      "method": "empirical",
+      "expression": "229.1 + 887.2*VARI - 300.7*GVMI",
+      "intercept": 229.1,
+      "terms": [
+        { "predictor": "VARI", "coef": 887.2 },
+        { "predictor": "GVMI", "coef": -300.7 }
+      ],
+      "r2": 0.73,
+      "se_pct": 17.5,
+      "validation_cabaneros": { "r2": 0.73, "slope": 0.922, "const": 9.75, "rmse": 16.03, "rmse_s": 3.43, "rmse_u": 15.66 },
+      "validation_other_sites": { "r2": 0.63, "slope": 0.90, "const": -8.26, "rmse": 27.98, "rmse_s": 18.10, "rmse_u": 21.34 }
+    },
+    {
+      "id": "S2",
+      "vegetation": "shrub",
+      "sensor": "MODIS",
+      "method": "empirical",
+      "expression": "104.38 + 427.57*VARI - 163.67*GVMI + 88.44*FD_S",
+      "intercept": 104.38,
+      "terms": [
+        { "predictor": "VARI", "coef": 427.57 },
+        { "predictor": "GVMI", "coef": -163.67 },
+        { "predictor": "FD_S", "coef": 88.44 }
+      ],
+      "r2": 0.78,
+      "se_pct": 15.2,
+      "validation_cabaneros": { "r2": 0.68, "slope": 0.768, "const": 28.67, "rmse": 17.79, "rmse_s": 9.96, "rmse_u": 14.74 },
+      "validation_other_sites": { "r2": 0.85, "slope": 0.90, "const": -0.40, "rmse": 10.47, "rmse_s": 11.71, "rmse_u": 15.71 },
+      "recommended": true,
+      "recommendation_note": "Chosen by the authors as the operational shrubland model.",
+      "ocr_warning": "The PDF prints a multiplication sign between the GVMI and FD_S terms ('-163.67*GVMI*88.44*FD_S'). A '+' is assumed here. Verify against the original before production use.",
+      "significance_note": "GVMI significant only at 90% in this model; all other predictors at 99%."
+    },
+    {
+      "id": "S3",
+      "vegetation": "shrub",
+      "sensor": "MODIS",
+      "method": "RTM",
+      "expression": "200.3 - 5322.8*PE + 92.3*GVMI",
+      "intercept": 200.3,
+      "terms": [
+        { "predictor": "PE", "coef": -5322.8 },
+        { "predictor": "GVMI", "coef": 92.3 }
+      ],
+      "r2": 0.82,
+      "se_pct": 12.9,
+      "validation_cabaneros": { "r2": 0.56, "slope": 0.513, "const": 23.03, "rmse": 23.04, "rmse_s": 19.30, "rmse_u": 12.57 },
+      "note": "PE is not defined in the paper's table caption (which instead defines DM, unused). Discarded: RMSEs > RMSEu."
+    },
+    {
+      "id": "S4",
+      "vegetation": "shrub",
+      "sensor": "AVHRR",
+      "method": "empirical",
+      "expression": "8.73 + 125.87*FD_S + 40.79*NDVI - 0.2294*Ts",
+      "intercept": 8.73,
+      "terms": [
+        { "predictor": "FD_S", "coef": 125.87 },
+        { "predictor": "NDVI", "coef": 40.79 },
+        { "predictor": "Ts", "coef": -0.2294 }
+      ],
+      "r2": 0.81,
+      "se_pct": 13.3,
+      "validation_cabaneros": { "r2": 0.76, "slope": 0.819, "const": 22.40, "rmse": 14.30, "rmse_s": 7.44, "rmse_u": 12.21 }
+    }
+  ],
+  "day_of_year_functions": {
+    "variable": "DJ = day of year (1-365)",
+    "aliases": { "FDp": "FD_G (grass / pastizal)", "FDm": "FD_S (shrub / matorral)" },
+    "dry_years": {
+      "years": [1999, 2005],
+      "FDp": "(sin(1.5*pi*(DJ + DJ**(1/3))/365))**6 * 0.55",
+      "FDm": "((sin(1.55*pi*DJ/365))**2 + 0.65) * 0.5"
+    },
+    "normal_years": {
+      "years": "all others in the series",
+      "FDp": "(sin(1.5*pi*(DJ + DJ**(1/2))/365))**6 * 1.5",
+      "FDm": "((sin(1.6*pi*DJ/365))**2 + 1) * 0.5"
+    },
+    "ocr_warning": "Eq. 2 (dry-year FDm) has unbalanced parentheses in the PDF; the bracketing given here is the reading consistent with Eq. 4."
+  },
+  "dfmc_model": {
+    "code": "10-hour moisture code (US NFDRS, Bradshaw et al. 1983)",
+    "expression": "1.0317*FMC_10h + 2.1608",
+    "slope": 1.0317,
+    "intercept": 2.1608,
+    "applies_to": ["cured grass", "litter"],
+    "note": "Joint equation for both dead fuel types. FFMC and 10-h code performed comparably; the 10-h code was selected because it needs only temperature and relative humidity."
+  },
+  "moisture_of_extinction": {
+    "live": { "grass": 40, "shrub": 105 },
+    "dead": { "behave_model_1_grass": 12, "behave_model_2_grass": 15, "behave_model_9_litter": 25 },
+    "note": "Grasslands with FMC < 30% are treated as dead fuel."
+  },
+  "fmc_max_historical": {
+    "grass": 340,
+    "shrub": 210,
+    "period": "1996-2005",
+    "note": "Site-specific (Cabañeros); used as the FMC value where IP = 0."
+  },
+  "ignition_potential": {
+    "above_me": "IP = (1 - ((FMC - ME) / (FMC_max - ME))) * 0.2",
+    "below_me_as_printed": "IP = (0.2 + (ME - FMC) / (ME - FMC_min)) * 0.8",
+    "below_me_corrected": "IP = 0.2 + ((ME - FMC) / (ME - FMC_min)) * 0.8",
+    "correction_note": "The printed form gives IP = 0.16 at FMC = ME and 0.96 at FMC = FMC_min, contradicting the text (which specifies 0.2 to 1). Use the corrected form, or verify against Chuvieco et al. (2004), Can. J. For. Res. 34(11): 2284-2293.",
+    "integration": "IP_f = IP_live * pct_live_fuel_load + IP_dead * (100 - pct_live_fuel_load)",
+    "integration_note": "As printed, weights are on a 0-100 scale while IP is 0-1; a division by 100 is implied.",
+    "live_fuel_load_source": "CORINE Land Cover 2000"
+  },
+  "spectral_indices": {
+    "note": "Not defined in the paper; standard formulations from the cited sources.",
+    "NDVI": "(NIR - RED) / (NIR + RED)",
+    "NDII": "(NIR - SWIR) / (NIR + SWIR)",
+    "VARI": "(GREEN - RED) / (GREEN + RED - BLUE)",
+    "GVMI": "((NIR + 0.1) - (SWIR + 0.02)) / ((NIR + 0.1) + (SWIR + 0.02))"
+  }
+}

@@ -147,8 +147,26 @@ Por fazer (próximos passos, por ordem sugerida):
   `simulation_jobs` e endpoints `/simulate`, `/jobs` já preparada)
 - Validação histórica contra incêndios ICNF
 - Frontend desktop (React + MapLibre) — consome a API REST
-- Live fuel moisture real (LFMC Sentinel-2) — atualmente é placeholder
 - Distância a aglomerados populacionais (CAOP + OSM) para o scoring
+
+## Humidade dos combustíveis vivos (LFMC)
+
+Vem de `src/fogos_triage/lfmc_climatologia.py`: climatologia sazonal
+(harmónicas no dia do ano) + precipitação acumulada a 180 dias, ajustada
+a 1339 medições de campo do ICNF (`LFM/`). Coeficientes em
+`data/lfmc_climatologia_pt.csv`, reajustáveis com
+`scripts/ajusta_lfmc_climatologia.py`.
+
+Substituiu a estimativa por VIIRS/Yebra 2007, **removida** por reprovar
+na validação: no herbáceo dava viés de +110 pontos percentuais e
+correlação zero (r = −0.03) com o terreno. Não tentar voltar aos modelos
+MODIS "recomendados" pelos autores — foram testados e são piores. Ver
+`LFMC_CLIMATOLOGIA_PLAN.md`, que registra tudo o que foi testado e
+rejeitado.
+
+A curva do herbáceo só é válida entre 1 de Maio e 29 de Setembro (DJ
+122-272, onde há medições); fora dela devolve um valor verde declarado no
+CSV. Sem esse limite a harmónica extrapola para −354% em Janeiro.
 
 ## Notas de trabalho
 

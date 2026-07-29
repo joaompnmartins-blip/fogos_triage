@@ -163,9 +163,10 @@ async def _run_free_simulation(
         from fogos_triage.landscape import LandscapeRasters, LandscapeReader, ensure_landscape
         from fogos_triage.simulation import run_simulation_async
         from fogos_triage.triage import gust_weather
+        from fogos_triage.lfmc_climatologia import lfmc_climatologia
         from fogos_triage.weather import (
             derive_fire_weather,
-            fetch_live_fmc_viirs,
+            fetch_precipitation_sum,
             fetch_weather_for_start_time,
         )
         from fogos_triage.weather_stream import parse_weather_stream
@@ -248,38 +249,32 @@ async def _run_free_simulation(
                 )
             weather_source = "open_meteo"
 
-        # Humidade viva: VIIRS/GEE se configurado, senão os valores fixos
-        # 60%/80% de derive_fire_weather (NÃO são sazonais, ao contrário do
-        # que este comentário dizia antes).
+        # Humidade viva: climatologia sazonal + precipitação acumulada a
+        # 180 dias, para a data pedida (ver lfmc_climatologia e
+        # LFMC_CLIMATOLOGIA_PLAN.md).
         #
-        # Este caminho requer `earthengine-api` na imagem da API e as
-        # GEE_SERVICE_ACCOUNT/GEE_KEY_JSON no serviço — sem uma das duas
-        # coisas, o except abaixo engole a falha e a simulação corre com os
-        # 60%/80%. Importa agora que FM231/FM232 são dinâmicos: 60% fixa a
-        # fracção curada em ~0,66 o ano inteiro, sobrestimando a propagação
-        # em herbáceas verdes na Primavera.
-        # A data pedida, não a de hoje: o VIIRS compõe uma janela de 16
-        # dias ANTES da data que lhe é dada, por isso passar-lhe sempre
-        # `now` fazia uma simulação de Agosto correr com o verdor de
-        # Fevereiro se fosse pedida em Fevereiro. Com as humidades mortas
-        # já derivadas hora a hora da meteo histórica, o combustível vivo
-        # era o único que ficava preso ao presente.
+        # Substituiu o VIIRS/Yebra, que no herbáceo tinha correlação zero
+        # com as medições de campo portuguesas e devolvia ~138% em pleno
+        # Verão — o que satura a fracção curada de Andrews 2018 em 0% e
+        # mantinha os FM231/FM232 com a herbácea toda verde.
+        #
+        # Se falhar, `derive_fire_weather` usa os seus defaults fixos
+        # (60%/80%), como já acontecia quando o GEE falhava.
         fmc_date = start_time or datetime.now(timezone.utc)
         live_h_pct, live_w_pct = None, None
-        try:
-            live_fmc = await fetch_live_fmc_viirs(lat, lon, fmc_date)
-            if live_fmc:
-                live_h_pct, live_w_pct = live_fmc
-                log.info(
-                    "Simulação livre %s: LFMC VIIRS herbáceo=%.0f%% lenhoso=%.0f%% (janela até %s)",
-                    job_id, live_h_pct, live_w_pct, fmc_date.date(),
-                )
-            else:
-                log.warning(
-                    "Simulação livre %s: VIIRS sem valor — a usar 60%%/80%% fixos", job_id,
-                )
-        except Exception as exc:
-            log.warning("GEE LFMC falhou para simulação livre %s: %s", job_id, exc)
+        p180_mm = await fetch_precipitation_sum(lat, lon, fmc_date)
+        if p180_mm is not None:
+            live_h_pct, live_w_pct = lfmc_climatologia(fmc_date.timetuple().tm_yday, p180_mm)
+            log.info(
+                "Simulação livre %s: LFMC climatologia para %s — herbáceo=%.0f%% "
+                "lenhoso=%.0f%% (P180=%.0fmm)",
+                job_id, fmc_date.date(), live_h_pct, live_w_pct, p180_mm,
+            )
+        else:
+            log.warning(
+                "Simulação livre %s: sem precipitação acumulada — a usar os "
+                "defaults fixos do motor", job_id,
+            )
 
         weather_hourly = [
             derive_fire_weather(wx, live_h_pct=live_h_pct, live_w_pct=live_w_pct)

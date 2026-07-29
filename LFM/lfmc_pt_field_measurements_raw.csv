@@ -1,0 +1,1359 @@
+nucleo_sub_regional,local_recolha,data,hora,t_ar_c,hr_pct,especie,grupo,hcv
+"Beira Baixa, Beiras e Serra da Estrela",Castelo branco,2019-06-04,,,,Esteva,Matos mediterrânicos,1.08
+"Beira Baixa, Beiras e Serra da Estrela",Castelo branco,2019-06-04,,,,P. bravo,Pinhais,1.34
+"Beira Baixa, Beiras e Serra da Estrela",Castelo branco,2019-06-25,,,,Esteva,Matos mediterrânicos,0.97
+"Beira Baixa, Beiras e Serra da Estrela",Castelo branco,2019-06-25,,,,P. bravo,Pinhais,1.12
+Douro,Vila Real,2019-07-01,,,,Urze,Matos atlânticos,1.09
+Douro,Vila Real,2019-07-01,,,,Carqueja,Matos atlânticos,1.18
+Alto Minho e Cávado,Ponte de Lima,2019-07-02,,,,Tojo,Matos atlânticos,1.62
+Alto Minho e Cávado,Ponte de Lima,2019-07-02,,,,Giesta,Giestais,1.83
+Alto Tâmega e Terra de Trás-os-Montes,Bragança,2019-07-03,,,,Tojo,Matos atlânticos,1.35
+Alto Tâmega e Terra de Trás-os-Montes,Bragança,2019-07-03,,,,Urze,Matos atlânticos,1.29
+"Beira Baixa, Beiras e Serra da Estrela",Castelo branco,2019-07-03,,,,Esteva,Matos mediterrânicos,0.92
+"Beira Baixa, Beiras e Serra da Estrela",Castelo branco,2019-07-03,,,,P. bravo,Pinhais,1.15
+"Beira Baixa, Beiras e Serra da Estrela",Castelo branco,2019-07-15,,,,Esteva,Matos mediterrânicos,0.83
+"Beira Baixa, Beiras e Serra da Estrela",Castelo branco,2019-07-15,,,,P. bravo,Pinhais,1.32
+"Beira Baixa, Beiras e Serra da Estrela",Castelo branco,2019-07-15,,,,Carqueja,Matos atlânticos,0.83
+"Aveiro, Viseu e Dão Lafões",Castro d'Aire,2019-07-15,,,,Urze,Matos atlânticos,1.01
+"Aveiro, Viseu e Dão Lafões",Castro d'Aire,2019-07-15,,,,Carqueja,Matos atlânticos,1.03
+Douro,Vila Real,2019-07-15,,,,Urze,Matos atlânticos,0.93
+Douro,Vila Real,2019-07-15,,,,Carqueja,Matos atlânticos,1.06
+Alto Tâmega e Terra de Trás-os-Montes,Bragança,2019-07-17,,,,Tojo,Matos atlânticos,1.2
+Alto Tâmega e Terra de Trás-os-Montes,Bragança,2019-07-17,,,,Urze,Matos atlânticos,0.98
+Alto Minho e Cávado,Ponte de Lima,2019-07-17,,,,Tojo,Matos atlânticos,1.57
+Alto Minho e Cávado,Ponte de Lima,2019-07-17,,,,Giesta,Giestais,1.92
+Alto Tâmega e Terra de Trás-os-Montes,Bragança,2019-07-31,,,,Tojo,Matos atlânticos,1.0
+Alto Tâmega e Terra de Trás-os-Montes,Bragança,2019-07-31,,,,Esteva,Matos mediterrânicos,0.77
+Alto Minho e Cávado,Ponte de Lima,2019-07-31,,,,Tojo,Matos atlânticos,1.31
+Alto Minho e Cávado,Ponte de Lima,2019-07-31,,,,Giesta,Giestais,1.45
+Douro,Vila Real,2019-07-31,,,,Urze,Matos atlânticos,1.06
+Douro,Vila Real,2019-07-31,,,,Carqueja,Matos atlânticos,0.94
+Alto Tâmega e Terra de Trás-os-Montes,Bragança,2019-08-13,,,,Tojo,Matos atlânticos,0.88
+Alto Tâmega e Terra de Trás-os-Montes,Bragança,2019-08-13,,,,Esteva,Matos mediterrânicos,0.99
+"Aveiro, Viseu e Dão Lafões",Castro d'Aire,2019-08-13,,,,Urze,Matos atlânticos,0.94
+"Aveiro, Viseu e Dão Lafões",Castro d'Aire,2019-08-13,,,,Carqueja,Matos atlânticos,0.97
+Alto Minho e Cávado,Ponte de Lima,2019-08-13,,,,Tojo,Matos atlânticos,1.26
+Alto Minho e Cávado,Ponte de Lima,2019-08-13,,,,Giesta,Giestais,1.57
+Douro,Vila Real,2019-08-13,,,,Urze,Matos atlânticos,0.98
+Douro,Vila Real,2019-08-13,,,,Carqueja,Matos atlânticos,0.89
+Médio Tejo e Lezíria do tejo,Santarém,2019-08-22,,,,Tojo,Matos atlânticos,0.89
+Médio Tejo e Lezíria do tejo,Santarém,2019-08-22,,,,P. bravo,Pinhais,1.36
+Alto Minho e Cávado,Ponte de Lima,2019-08-27,,,,Tojo,Matos atlânticos,1.34
+Alto Minho e Cávado,Ponte de Lima,2019-08-27,,,,Giesta,Giestais,1.85
+Alto Tâmega e Terra de Trás-os-Montes,Bragança,2019-08-28,,,,Tojo,Matos atlânticos,0.88
+Alto Tâmega e Terra de Trás-os-Montes,Bragança,2019-08-28,,,,Esteva,Matos mediterrânicos,0.94
+"Aveiro, Viseu e Dão Lafões",Castro d'Aire,2019-08-28,,,,Urze,Matos atlânticos,0.85
+"Aveiro, Viseu e Dão Lafões",Castro d'Aire,2019-08-28,,,,Carqueja,Matos atlânticos,0.82
+Douro,Vila Real,2019-08-28,,,,Urze,Matos atlânticos,0.91
+Douro,Vila Real,2019-08-28,,,,Carqueja,Matos atlânticos,0.81
+Médio Tejo e Lezíria do tejo,Santarém,2019-08-29,,,,Tojo,Matos atlânticos,0.85
+Médio Tejo e Lezíria do tejo,Santarém,2019-08-29,,,,P. bravo,Pinhais,1.36
+"Beira Baixa, Beiras e Serra da Estrela",Castelo branco,2019-09-02,,,,Esteva,Matos mediterrânicos,0.73
+"Beira Baixa, Beiras e Serra da Estrela",Castelo branco,2019-09-02,,,,P. bravo,Pinhais,1.19
+Alto Tâmega e Terra de Trás-os-Montes,Bragança,2019-09-04,,,,Tojo,Matos atlânticos,0.74
+Alto Tâmega e Terra de Trás-os-Montes,Bragança,2019-09-04,,,,Esteva,Matos mediterrânicos,0.84
+Médio Tejo e Lezíria do tejo,Santarém,2019-09-05,,,,Tojo,Matos atlânticos,0.83
+Médio Tejo e Lezíria do tejo,Santarém,2019-09-05,,,,P. bravo,Pinhais,1.51
+"Beira Baixa, Beiras e Serra da Estrela",Castelo branco,2019-09-10,,,,Esteva,Matos mediterrânicos,0.67
+"Beira Baixa, Beiras e Serra da Estrela",Castelo branco,2019-09-10,,,,P. bravo,Pinhais,1.2
+Alto Minho e Cávado,Ponte de Lima,2019-09-10,,,,Tojo,Matos atlânticos,1.34
+Alto Minho e Cávado,Ponte de Lima,2019-09-10,,,,Giesta,Giestais,1.36
+Alto Tâmega e Terra de Trás-os-Montes,Bragança,2019-09-11,,,,Tojo,Matos atlânticos,0.63
+Alto Tâmega e Terra de Trás-os-Montes,Bragança,2019-09-11,,,,Esteva,Matos mediterrânicos,0.86
+Douro,Vila Real,2019-09-11,,,,Urze,Matos atlânticos,0.86
+Douro,Vila Real,2019-09-11,,,,Carqueja,Matos atlânticos,0.67
+"Beira Baixa, Beiras e Serra da Estrela",Castelo branco,2019-09-23,,,,Esteva,Matos mediterrânicos,0.85
+"Beira Baixa, Beiras e Serra da Estrela",Castelo branco,2019-09-23,,,,P. bravo,Pinhais,1.25
+"Aveiro, Viseu e Dão Lafões",Castro d'Aire,2019-09-23,,,,Urze,Matos atlânticos,0.82
+"Aveiro, Viseu e Dão Lafões",Castro d'Aire,2019-09-23,,,,Carqueja,Matos atlânticos,0.8
+Alto Tâmega e Terra de Trás-os-Montes,Bragança,2019-09-25,,,,Tojo,Matos atlânticos,0.75
+Alto Tâmega e Terra de Trás-os-Montes,Bragança,2019-09-25,,,,Esteva,Matos mediterrânicos,1.07
+Douro,Vila Real,2019-09-25,,,,Urze,Matos atlânticos,0.92
+Douro,Vila Real,2019-09-25,,,,Carqueja,Matos atlânticos,0.87
+Douro,Vila Real,2019-10-08,,,,Urze,Matos atlânticos,0.79
+Douro,Vila Real,2019-10-08,,,,Carqueja,Matos atlânticos,0.75
+"Beira Baixa, Beiras e Serra da Estrela",Castelo branco,2019-10-09,,,,Esteva,Matos mediterrânicos,0.78
+"Beira Baixa, Beiras e Serra da Estrela",Castelo branco,2019-10-09,,,,P. bravo,Pinhais,1.27
+"Beira Baixa, Beiras e Serra da Estrela",Castelo branco,2019-10-22,,,,Esteva,Matos mediterrânicos,0.95
+"Beira Baixa, Beiras e Serra da Estrela",Castelo branco,2019-10-22,,,,P. bravo,Pinhais,1.19
+Douro,Vila Real,2019-10-25,,,,Urze,Matos atlânticos,0.84
+Douro,Vila Real,2019-10-25,,,,Carqueja,Matos atlânticos,0.95
+"Beira Baixa, Beiras e Serra da Estrela",Castelo branco,2019-11-13,,,,Esteva,Matos mediterrânicos,1.14
+"Beira Baixa, Beiras e Serra da Estrela",Castelo branco,2019-11-13,,,,P. bravo,Pinhais,1.24
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2020-02-18,14:45,14.4,49.0,Esteva,Matos mediterrânicos,1.4
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2020-02-18,15:15,14.4,49.0,P. bravo,Pinhais,1.21
+Douro,Lamares - Vila Real,2020-02-26,14:48,10.9,57.0,Carqueja,Matos atlânticos,1.14
+Douro,Lamares - Vila Real,2020-02-26,15:03,10.9,57.0,Urze,Matos atlânticos,0.86
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2020-03-10,14:45,21.8,38.0,Esteva,Matos mediterrânicos,1.5
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2020-03-10,14:45,21.8,38.0,Urze,Matos atlânticos,1.13
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2020-03-10,14:30,21.8,38.0,P. bravo,Pinhais,1.06
+Douro,Lamares - Vila Real,2020-05-25,14:26,27.9,32.7,Carqueja,Matos atlânticos,1.7
+Douro,Lamares - Vila Real,2020-05-25,14:26,27.9,32.7,Urze,Matos atlânticos,1.57
+Douro,Lamares - Vila Real,2020-05-25,14:26,27.9,32.7,Herbáceas,Herbáceas,1.61
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2020-05-25,14:45,29.5,43.0,Esteva,Matos mediterrânicos,1.33
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2020-05-25,14:45,29.5,43.0,Urze,Matos atlânticos,0.97
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2020-05-25,14:30,29.5,43.0,P. bravo,Pinhais,1.44
+Médio Tejo e Lezíria do tejo,Santarém,2020-06-06,14:15,35.1,38.0,Tojo,Matos atlânticos,1.05
+Médio Tejo e Lezíria do tejo,Santarém,2020-06-06,14:15,35.1,37.7,P. bravo,Pinhais,1.49
+Médio Tejo e Lezíria do tejo,Santarém,2020-06-06,14:15,35.1,38.0,Herbáceas,Herbáceas,0.27
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2020-06-08,14:45,24.0,36.0,Esteva,Matos mediterrânicos,1.13
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2020-06-08,14:45,24.0,36.0,Urze,Matos atlânticos,0.8
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2020-06-08,14:30,24.0,36.0,P. bravo,Pinhais,1.3
+Alto Tâmega e Terra de Trás-os-Montes,Capeludos - Vila Pouca de Aguiar,2020-06-18,15:00,25.7,39.0,Carqueja,Matos atlânticos,0.96
+Alto Tâmega e Terra de Trás-os-Montes,Capeludos - Vila Pouca de Aguiar,2020-06-18,15:00,25.7,39.0,Urze,Matos atlânticos,0.86
+Alto Tâmega e Terra de Trás-os-Montes,Capeludos - Vila Pouca de Aguiar,2020-06-18,15:00,25.7,39.0,P. bravo,Pinhais,1.79
+Alto Tâmega e Terra de Trás-os-Montes,Capeludos - Vila Pouca de Aguiar,2020-06-18,15:00,25.7,39.0,Giesta,Giestais,1.72
+Douro,Lamares - Vila Real,2020-06-18,14:35,22.7,45.4,Carqueja,Matos atlânticos,1.62
+Douro,Lamares - Vila Real,2020-06-18,14:35,22.7,45.4,Urze,Matos atlânticos,1.33
+Douro,Lamares - Vila Real,2020-06-18,14:35,22.7,45.4,Herbáceas,Herbáceas,1.18
+Alto Tâmega e Terra de Trás-os-Montes,Oleirinhos - Bragança,2020-06-18,14:25,24.0,31.0,Esteva,Matos mediterrânicos,1.19
+Alto Tâmega e Terra de Trás-os-Montes,Oleirinhos - Bragança,2020-06-18,14:25,24.0,31.0,Tojo,Matos atlânticos,1.67
+Algarve,Faro,2020-06-22,,,,Esteva,Matos mediterrânicos,0.561
+Alto Minho e Cávado,Vile - Caminha,2020-06-23,14:00,28.2,47.0,Carqueja,Matos atlânticos,1.02
+Alto Minho e Cávado,Vile - Caminha,2020-06-23,14:00,28.2,47.0,Herbáceas,Herbáceas,1.26
+Alto Minho e Cávado,Vile - Caminha,2020-06-23,14:00,28.2,47.0,Urze,Matos atlânticos,0.88
+Alto Minho e Cávado,Vile - Caminha,2020-06-24,15:00,28.2,47.0,Tojo,Matos atlânticos,1.47
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2020-06-24,14:15,31.0,38.0,P. bravo,Pinhais,1.24
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2020-06-24,14:45,31.0,38.0,Esteva,Matos mediterrânicos,0.99
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2020-06-24,14:45,31.0,38.0,Urze,Matos atlânticos,0.74
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-06-25,15:00,27.5,42.0,Carqueja,Matos atlânticos,1.038
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-06-25,15:00,27.5,42.0,Urze,Matos atlânticos,1.04
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-06-25,12:00,27.5,42.0,Herbáceas,Herbáceas,1.769
+Alto Tâmega e Terra de Trás-os-Montes,Capeludos - Vila Pouca de Aguiar,2020-06-29,14:30,,,Carqueja,Matos atlânticos,0.96
+Alto Tâmega e Terra de Trás-os-Montes,Capeludos - Vila Pouca de Aguiar,2020-06-29,14:30,,,Urze,Matos atlânticos,0.88
+Alto Tâmega e Terra de Trás-os-Montes,Capeludos - Vila Pouca de Aguiar,2020-06-29,14:30,,,P. bravo,Pinhais,1.81
+Douro,Lamares - Vila Real,2020-06-29,14:15,32.1,26.0,Carqueja,Matos atlânticos,1.3
+Douro,Lamares - Vila Real,2020-06-29,14:15,32.1,26.0,Urze,Matos atlânticos,1.11
+Douro,Lamares - Vila Real,2020-06-29,14:15,32.1,26.0,Herbáceas,Herbáceas,1.02
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-06-29,14:00,34.3,22.0,Esteva,Matos mediterrânicos,0.9677
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-06-29,14:05,34.3,22.0,Giesta,Giestais,0.9375
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-06-30,13:00,,,Esteva,Matos mediterrânicos,1.124
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-06-30,13:30,,,Carrasco,Matos mediterrânicos,1.644
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-06-30,,,,Urze,Matos atlânticos,1.197
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-06-30,,,,Tojo,Matos atlânticos,1.16
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-06-30,,,,Eucalipto,Outro,1.635
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-06-30,,,,P. bravo,Pinhais,1.628
+AML e Alentejo Litoral,Ouressa - Sintra,2020-06-30,12:30,,,Urze,Matos atlânticos,1.1354
+AML e Alentejo Litoral,Ouressa - Sintra,2020-06-30,12:30,,,Tojo,Matos atlânticos,1.587
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-01,,,,Urze,Matos atlânticos,1.207
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-01,,,,Tojo,Matos atlânticos,1.384
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-01,,,,Eucalipto,Outro,1.696
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-01,,,,P. bravo,Pinhais,1.755
+Alto Tâmega e Terra de Trás-os-Montes,Oleirinhos - Bragança,2020-07-01,14:20,28.0,37.0,Esteva,Matos mediterrânicos,1.07
+Alto Tâmega e Terra de Trás-os-Montes,Oleirinhos - Bragança,2020-07-01,14:20,28.0,37.0,Tojo,Matos atlânticos,1.23
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-02,,,,Urze,Matos atlânticos,0.98
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-02,,,,Tojo,Matos atlânticos,1.61
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-02,,,,Eucalipto,Outro,1.61
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-02,,,,P. bravo,Pinhais,1.62
+Algarve,Faro,2020-07-03,,,,Esteva,Matos mediterrânicos,0.492
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-03,,,,Urze,Matos atlânticos,1.07
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-03,,,,Tojo,Matos atlânticos,1.47
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-03,,,,Eucalipto,Outro,1.64
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-03,,,,P. bravo,Pinhais,1.57
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-07-06,13:17,,,Esteva,Matos mediterrânicos,0.7759
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-07-06,13:19,,,Carrasco,Matos mediterrânicos,0.9976
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-06,,,,Urze,Matos atlânticos,1.24
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-06,,,,Tojo,Matos atlânticos,1.185
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-06,,,,Eucalipto,Outro,1.85
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-06,,,,P. bravo,Pinhais,1.34
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-06,,,,Urze,Matos atlânticos,1.242
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-07-06,14:30,40.0,18.7,Carqueja,Matos atlânticos,0.967
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-07-06,14:30,40.0,18.7,Urze,Matos atlânticos,0.91
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-07-06,14:30,40.0,18.7,Herbáceas,Herbáceas,0.61
+Douro,Lamares - Vila Real,2020-07-06,14:17,32.2,37.4,Carqueja,Matos atlânticos,1.3
+Douro,Lamares - Vila Real,2020-07-06,14:17,32.2,37.4,Urze,Matos atlânticos,1.11
+Douro,Lamares - Vila Real,2020-07-06,14:17,32.2,37.4,Herbáceas,Herbáceas,0.58
+AML e Alentejo Litoral,Ouressa - Sintra,2020-07-06,14:29,,,Urze,Matos atlânticos,0.9368
+AML e Alentejo Litoral,Ouressa - Sintra,2020-07-06,14:30,,,Tojo,Matos atlânticos,0.983
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-07-06,14:05,38.6,12.4,Esteva,Matos mediterrânicos,0.9014
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-07-06,14:10,38.6,12.4,Giesta,Giestais,0.9119
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-07,,,,Urze,Matos atlânticos,1.23
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-07,,,,Tojo,Matos atlânticos,1.08
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-07,,,,Eucalipto,Outro,1.595
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-07,,,,P. bravo,Pinhais,1.187
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-07,,,,P. bravo,Pinhais,1.187
+Alto Tâmega e Terra de Trás-os-Montes,Capeludos - Vila Pouca de Aguiar,2020-07-07,14:10,32.6,28.0,Carqueja,Matos atlânticos,0.77
+Alto Tâmega e Terra de Trás-os-Montes,Capeludos - Vila Pouca de Aguiar,2020-07-07,14:10,32.6,28.0,Urze,Matos atlânticos,0.86
+Alto Tâmega e Terra de Trás-os-Montes,Capeludos - Vila Pouca de Aguiar,2020-07-07,14:10,32.6,28.0,P. bravo,Pinhais,1.38
+Alto Tâmega e Terra de Trás-os-Montes,Oleirinhos - Bragança,2020-07-07,14:30,,,Esteva,Matos mediterrânicos,1.0
+Alto Tâmega e Terra de Trás-os-Montes,Oleirinhos - Bragança,2020-07-07,14:30,,,Tojo,Matos atlânticos,1.2
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-08,,,,Urze,Matos atlânticos,0.93
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-08,,,,Tojo,Matos atlânticos,1.375
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-08,,,,Eucalipto,Outro,1.87
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-08,,,,P. bravo,Pinhais,1.27
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-07-08,14:00,23.2,64.6,Carqueja,Matos atlânticos,1.14
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-07-08,14:00,23.2,64.6,Urze,Matos atlânticos,1.204
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-07-08,14:00,23.2,64.6,Tojo,Matos atlânticos,1.882
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-07-08,14:00,23.2,64.6,Herbáceas,Herbáceas,0.893
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-07-08,14:00,23.2,64.6,Carqueja,Matos atlânticos,1.14
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-07-08,14:00,23.2,64.6,Urze,Matos atlânticos,1.2
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-07-08,14:00,23.2,64.6,Tojo,Matos atlânticos,1.88
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-07-08,14:00,23.2,64.6,Herbáceas,Herbáceas,0.89
+Alto Minho e Cávado,Vile - Caminha,2020-07-08,14:00,27.1,54.0,Carqueja,Matos atlânticos,0.85
+Alto Minho e Cávado,Vile - Caminha,2020-07-08,14:00,27.1,54.0,Herbáceas,Herbáceas,0.75
+Alto Minho e Cávado,Vile - Caminha,2020-07-08,14:00,27.1,54.0,Urze,Matos atlânticos,0.91
+Alto Minho e Cávado,Vile - Caminha,2020-07-08,15:00,27.1,54.0,Tojo,Matos atlânticos,1.39
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2020-07-08,14:15,37.6,29.0,P. bravo,Pinhais,0.62
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2020-07-08,14:45,34.9,24.0,Esteva,Matos mediterrânicos,0.74
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2020-07-08,14:45,34.9,24.0,Urze,Matos atlânticos,0.49
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-09,,,,Urze,Matos atlânticos,1.18
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-09,,,,Tojo,Matos atlânticos,1.55
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-09,,,,Eucalipto,Outro,1.8
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-09,,,,P. bravo,Pinhais,1.49
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-10,,,,Urze,Matos atlânticos,0.93
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-10,,,,Tojo,Matos atlânticos,1.23
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-10,,,,Eucalipto,Outro,1.55
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-10,,,,P. bravo,Pinhais,1.71
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-07-13,15:15,34.7,30.0,Urze,Matos atlânticos,0.93
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-07-13,15:15,34.7,30.0,Carqueja,Matos atlânticos,0.89
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-07-13,15:15,34.7,30.0,P. bravo,Pinhais,2.02
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-07-13,12:30,,,Carrasco,Matos mediterrânicos,0.2
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-07-13,12:30,,,Esteva,Matos mediterrânicos,0.856
+Alto Tâmega e Terra de Trás-os-Montes,Capeludos - Vila Pouca de Aguiar,2020-07-13,14:15,29.4,37.0,Urze,Matos atlânticos,0.78
+Alto Tâmega e Terra de Trás-os-Montes,Capeludos - Vila Pouca de Aguiar,2020-07-13,14:15,29.4,37.0,Carqueja,Matos atlânticos,0.74
+Alto Tâmega e Terra de Trás-os-Montes,Capeludos - Vila Pouca de Aguiar,2020-07-13,14:15,29.4,37.0,P. bravo,Pinhais,1.53
+Médio Tejo e Lezíria do tejo,Chamusca,2020-07-13,14:15,38.8,26.0,Esteva,Matos mediterrânicos,0.84
+Médio Tejo e Lezíria do tejo,Chamusca,2020-07-13,14:15,38.8,26.0,Tojo,Matos atlânticos,0.94
+Algarve,Faro,2020-07-13,,,,Esteva,Matos mediterrânicos,0.55
+Alto Minho e Cávado,Ponte de Lima,2020-07-13,,,,P. bravo,Pinhais,1.804
+Alto Minho e Cávado,Ponte de Lima,2020-07-13,,,,Eucalipto,Outro,1.61
+Alto Minho e Cávado,Ponte de Lima,2020-07-13,,,,Urze,Matos atlânticos,1.049
+Alto Minho e Cávado,Ponte de Lima,2020-07-13,,,,Tojo,Matos atlânticos,1.953
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-13,,,,P. bravo,Pinhais,1.33
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-13,,,,Eucalipto,Outro,1.64
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-13,,,,Urze,Matos atlânticos,1.06
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-13,,,,Tojo,Matos atlânticos,1.07
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-07-13,14:30,28.9,47.6,Carqueja,Matos atlânticos,1.15
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-07-13,14:30,28.9,47.6,Urze,Matos atlânticos,1.14
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-07-13,14:30,28.9,47.6,Tojo,Matos atlânticos,1.31
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-07-13,14:30,28.9,47.6,Herbáceas,Herbáceas,0.89
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-07-13,14:25,31.5,34.7,Carqueja,Matos atlânticos,0.91
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-07-13,14:25,31.5,34.7,Urze,Matos atlânticos,0.95
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-07-13,14:25,31.5,34.7,Herbáceas,Herbáceas,0.45
+Douro,Lamares - Vila Real,2020-07-13,14:36,31.6,38.3,Carqueja,Matos atlânticos,0.88
+Douro,Lamares - Vila Real,2020-07-13,14:36,31.6,38.3,Urze,Matos atlânticos,0.93
+Douro,Lamares - Vila Real,2020-07-13,14:36,31.6,38.3,Herbáceas,Herbáceas,0.59
+AML e Alentejo Litoral,Ouressa - Sintra,2020-07-13,14:00,32.0,44.7,Urze,Matos atlânticos,0.257
+AML e Alentejo Litoral,Ouressa - Sintra,2020-07-13,14:00,32.0,44.7,Tojo,Matos atlânticos,1.184
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-07-13,14:25,40.0,21.9,Esteva,Matos mediterrânicos,0.882
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-07-13,14:25,40.0,21.9,Giesta,Giestais,1.039
+Médio Tejo e Lezíria do tejo,Santarém,2020-07-13,14:45,39.5,27.1,Tojo,Matos atlânticos,0.89
+Médio Tejo e Lezíria do tejo,Santarém,2020-07-13,14:45,39.5,27.0,P. bravo,Pinhais,1.75
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-14,,,,P. bravo,Pinhais,1.66
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-14,,,,Eucalipto,Outro,1.75
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-14,,,,Urze,Matos atlânticos,1.01
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-14,,,,Tojo,Matos atlânticos,1.27
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-15,,,,P. bravo,Pinhais,1.31
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-15,,,,Eucalipto,Outro,1.24
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-15,,,,Urze,Matos atlânticos,0.84
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-15,,,,Tojo,Matos atlânticos,1.39
+Alto Minho e Cávado,Vile - Caminha,2020-07-15,14:00,28.4,38.4,Carqueja,Matos atlânticos,0.83
+Alto Minho e Cávado,Vile - Caminha,2020-07-15,14:00,28.4,38.4,Herbáceas,Herbáceas,0.52
+Alto Minho e Cávado,Vile - Caminha,2020-07-15,14:00,28.4,38.0,Urze,Matos atlânticos,0.74
+Alto Minho e Cávado,Vile - Caminha,2020-07-15,14:00,28.4,38.0,Tojo,Matos atlânticos,1.36
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-16,,,,P. bravo,Pinhais,1.72
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-16,,,,Eucalipto,Outro,1.69
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-16,,,,Urze,Matos atlânticos,0.98
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-16,,,,Tojo,Matos atlânticos,1.41
+Alto Tâmega e Terra de Trás-os-Montes,Oleirinhos - Bragança,2020-07-16,14:20,33.1,27.1,Esteva,Matos mediterrânicos,1.24
+Alto Tâmega e Terra de Trás-os-Montes,Oleirinhos - Bragança,2020-07-16,14:20,33.1,27.1,Tojo,Matos atlânticos,1.22
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-17,,,,P. bravo,Pinhais,1.46
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-17,,,,Eucalipto,Outro,1.27
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-17,,,,Urze,Matos atlânticos,1.17
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-17,,,,Tojo,Matos atlânticos,1.35
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-07-20,14:27,32.9,28.0,Urze,Matos atlânticos,0.93
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-07-20,14:27,32.9,28.0,Carqueja,Matos atlânticos,0.84
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-07-20,14:27,32.9,28.0,P. bravo,Pinhais,1.9
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-07-20,13:50,33.0,40.0,Carrasco,Matos mediterrânicos,0.2097
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-07-20,13:50,33.0,40.0,Esteva,Matos mediterrânicos,0.802
+Médio Tejo e Lezíria do tejo,Chamusca,2020-07-20,14:00,33.3,28.5,Esteva,Matos mediterrânicos,0.86
+Médio Tejo e Lezíria do tejo,Chamusca,2020-07-20,14:oo,33.3,28.5,Tojo,Matos atlânticos,0.84
+Algarve,Faro,2020-07-20,,,,Esteva,Matos mediterrânicos,0.468
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-07-20,14:00,26.7,38.9,Carqueja,Matos atlânticos,0.948
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-07-20,14:00,26.7,38.9,Urze,Matos atlânticos,0.864
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-07-20,14:00,26.7,38.9,Tojo,Matos atlânticos,1.118
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-07-20,14:00,26.7,38.9,Herbáceas,Herbáceas,0.66
+"Aveiro, Viseu e Dão Lafões",,2020-07-20,,,,Urze,Matos atlânticos,1.04
+"Aveiro, Viseu e Dão Lafões",,2020-07-20,,,,Tojo,Matos atlânticos,1.17
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-07-20,14:45,36.6,19.0,Carqueja,Matos atlânticos,0.901
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-07-20,14:45,36.6,19.0,Urze,Matos atlânticos,0.992
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-07-20,14:45,36.6,19.0,Herbáceas,Herbáceas,0.556
+Douro,Lamares - Vila Real,2020-07-20,14:20,36.2,27.6,Carqueja,Matos atlânticos,1.04
+Douro,Lamares - Vila Real,2020-07-20,14:20,36.2,27.6,Urze,Matos atlânticos,1.15
+Douro,Lamares - Vila Real,2020-07-20,14:20,36.2,27.6,Herbáceas,Herbáceas,0.49
+AML e Alentejo Litoral,Ouressa - Sintra,2020-07-20,15:00,29.4,43.7,Urze,Matos atlânticos,0.2413
+AML e Alentejo Litoral,Ouressa - Sintra,2020-07-20,15:00,29.4,43.7,Tojo,Matos atlânticos,1.19
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-07-20,14:10,38.3,18.0,Esteva,Matos mediterrânicos,0.809
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-07-20,14:10,38.3,18.0,Giesta,Giestais,0.841
+Médio Tejo e Lezíria do tejo,Santarém,2020-07-20,14:30,34.0,33.6,Tojo,Matos atlânticos,0.86
+Médio Tejo e Lezíria do tejo,Santarém,2020-07-20,14:30,34.0,33.6,P. bravo,Pinhais,1.63
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-21,,,,Urze,Matos atlânticos,0.58
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-21,,,,Tojo,Matos atlânticos,1.13
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-21,,,,P. bravo,Pinhais,1.314
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-21,,,,Eucalipto,Outro,1.4
+Alto Minho e Cávado,Vile - Caminha,2020-07-21,14:00,32.0,41.0,Carqueja,Matos atlânticos,0.79
+Alto Minho e Cávado,Vile - Caminha,2020-07-21,14:00,32.0,41.0,Herbáceas,Herbáceas,0.41
+Alto Minho e Cávado,Vile - Caminha,2020-07-21,14:00,32.0,41.0,Urze,Matos atlânticos,0.74
+Alto Minho e Cávado,Vile - Caminha,2020-07-21,14:00,32.0,41.0,Tojo,Matos atlânticos,1.48
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2020-07-22,14:52,33.5,28.6,Esteva,Matos mediterrânicos,0.85
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2020-07-22,14:52,33.5,28.6,Tojo,Matos atlânticos,0.78
+Algarve,Faro,2020-07-22,,,,Esteva,Matos mediterrânicos,0.527
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-22,,,,Urze,Matos atlânticos,1.034
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-22,,,,Tojo,Matos atlânticos,1.23
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-22,,,,P. bravo,Pinhais,1.38
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-22,,,,Eucalipto,Outro,1.68
+Alto Minho e Cávado,Ponte de Lima,2020-07-23,,,,P. bravo,Pinhais,1.732
+Alto Minho e Cávado,Ponte de Lima,2020-07-23,,,,Eucalipto,Outro,1.372
+Alto Minho e Cávado,Ponte de Lima,2020-07-23,,,,Urze,Matos atlânticos,0.978
+Alto Minho e Cávado,Ponte de Lima,2020-07-23,,,,Tojo,Matos atlânticos,1.678
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-23,,,,Urze,Matos atlânticos,0.76
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-23,,,,Tojo,Matos atlânticos,1.3
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-23,,,,P. bravo,Pinhais,1.49
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-23,,,,Eucalipto,Outro,1.51
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-24,,,,Urze,Matos atlânticos,0.88
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-24,,,,Tojo,Matos atlânticos,1.36
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-24,,,,P. bravo,Pinhais,1.29
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-07-24,,,,Eucalipto,Outro,1.36
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-07-27,14h00,33.3,25.8,Urze,Matos atlânticos,0.91
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-07-27,14h00,33.3,25.8,Carqueja,Matos atlânticos,0.77
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-07-27,14h00,33.3,25.8,P. bravo,Pinhais,1.85
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-07-27,14:30,31.6,43.2,Esteva,Matos mediterrânicos,0.679
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-07-27,14:30,31.6,43.2,Carrasco,Matos mediterrânicos,0.8448
+"Aveiro, Viseu e Dão Lafões",,2020-07-27,,,,Urze,Matos atlânticos,0.93
+"Aveiro, Viseu e Dão Lafões",,2020-07-27,,,,Tojo,Matos atlânticos,1.17
+"Aveiro, Viseu e Dão Lafões",,2020-07-27,,,,P. bravo,Pinhais,1.31
+"Aveiro, Viseu e Dão Lafões",,2020-07-27,,,,Eucalipto,Outro,1.48
+Douro,Lamares - Vila Real,2020-07-27,14:30,36.2,22.0,Carqueja,Matos atlânticos,0.96
+Douro,Lamares - Vila Real,2020-07-27,14:30,36.2,22.0,Urze,Matos atlânticos,1.06
+Douro,Lamares - Vila Real,2020-07-27,14:30,36.2,22.0,Herbáceas,Herbáceas,0.37
+AML e Alentejo Litoral,Monsanto - Lisboa,2020-07-27,14:47,31.0,,Carrasco,Matos mediterrânicos,0.823
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-07-27,14:20,36.5,29.0,Esteva,Matos mediterrânicos,0.823
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-07-27,14:20,36.5,29.0,Giesta,Giestais,0.918
+Médio Tejo e Lezíria do tejo,Chamusca,2020-07-28,15:20,33.3,28.5,Esteva,Matos mediterrânicos,0.81
+Médio Tejo e Lezíria do tejo,Chamusca,2020-07-28,15:20,35.0,34.0,Tojo,Matos atlânticos,0.87
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-07-28,14:00,22.9,68.7,Carqueja,Matos atlânticos,1.01
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-07-28,14:00,22.9,68.7,Urze,Matos atlânticos,0.75
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-07-28,14:00,22.9,68.7,Tojo,Matos atlânticos,1.18
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-07-28,14:00,22.9,68.7,Herbáceas,Herbáceas,0.53
+"Aveiro, Viseu e Dão Lafões",,2020-07-28,,,,Urze,Matos atlânticos,0.9
+"Aveiro, Viseu e Dão Lafões",,2020-07-28,,,,Tojo,Matos atlânticos,1.33
+"Aveiro, Viseu e Dão Lafões",,2020-07-28,,,,P. bravo,Pinhais,1.64
+"Aveiro, Viseu e Dão Lafões",,2020-07-28,,,,Eucalipto,Outro,1.67
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-07-28,14:30,30.3,44.5,Carqueja,Matos atlânticos,0.73
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-07-28,14:30,30.3,45.0,Urze,Matos atlânticos,0.68
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-07-28,14:30,30.3,44.5,Herbáceas,Herbáceas,0.5
+Médio Tejo e Lezíria do tejo,Santarém,2020-07-28,15:20,35.0,34.0,Tojo,Matos atlânticos,0.87
+Médio Tejo e Lezíria do tejo,Santarém,2020-07-28,15:20,35.0,34.0,P. bravo,Pinhais,1.63
+Alto Minho e Cávado,Vile - Caminha,2020-07-28,14:00,30.8,45.2,Carqueja,Matos atlânticos,0.73
+Alto Minho e Cávado,Vile - Caminha,2020-07-28,14:00,30.8,45.2,Herbáceas,Herbáceas,0.31
+Alto Minho e Cávado,Vile - Caminha,2020-07-28,14:00,30.8,45.2,Urze,Matos atlânticos,0.63
+Alto Minho e Cávado,Vile - Caminha,2020-07-28,14:00,30.8,45.2,Tojo,Matos atlânticos,1.24
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2020-07-29,,,,Esteva,Matos mediterrânicos,0.8
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2020-07-29,,,,Tojo,Matos atlânticos,0.83
+Alto Minho e Cávado,Vile - Caminha,2020-07-29,14:00,24.0,54.0,Tojo,Matos atlânticos,1.24
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2020-07-29,14:45,37.5,19.0,P. bravo,Pinhais,1.41
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2020-07-29,14:45,37.5,19.0,Esteva,Matos mediterrânicos,0.78
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2020-07-29,14:45,37.5,19.0,Urze,Matos atlânticos,0.7
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-08-03,14:40,31.1,30.6,Urze,Matos atlânticos,0.83
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-08-03,14:40,31.1,30.6,Carqueja,Matos atlânticos,0.78
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-08-03,14:40,31.1,30.6,P. bravo,Pinhais,1.82
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-08-03,14:00,28.5,46.7,Carrasco,Matos mediterrânicos,0.2287
+AML e Alentejo Litoral,Arrábida - setúbal,2020-08-03,14:00,28.5,46.7,Esteva,Matos mediterrânicos,0.737
+Médio Tejo e Lezíria do tejo,Chamusca,2020-08-03,14:15,29.9,39.0,Esteva,Matos mediterrânicos,0.71
+Médio Tejo e Lezíria do tejo,Chamusca,2020-08-03,14:15,29.9,39.0,Tojo,Matos atlânticos,0.84
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-08-03,14:00,21.3,66.3,Carqueja,Matos atlânticos,0.912
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-08-03,14:00,21.3,66.3,Urze,Matos atlânticos,0.847
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-08-03,14:00,21.3,66.3,Tojo,Matos atlânticos,1.139
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-08-03,14:00,21.3,66.3,Herbáceas,Herbáceas,0.519
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-08-03,14:00,33.2,31.0,Carqueja,Matos atlânticos,0.843
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-08-03,14:00,33.2,31.0,Urze,Matos atlânticos,0.729
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-08-03,14:00,33.2,31.0,Herbáceas,Herbáceas,0.264
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-03,,,,Eucalipto,Outro,1.283
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-03,,,,P. bravo,Pinhais,1.486
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-03,,,,Tojo,Matos atlânticos,1.35
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-03,,,,Urze,Matos atlânticos,0.93
+AML e Alentejo Litoral,Monsanto - Lisboa,2020-08-03,14:25,25.0,60.0,Carrasco,Matos mediterrânicos,0.7702
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-08-03,14:50,32.7,27.4,Esteva,Matos mediterrânicos,0.84
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-08-03,14:50,32.7,27.4,Giesta,Giestais,0.893
+Médio Tejo e Lezíria do tejo,Santarém,2020-08-03,15:15,28.8,42.5,Tojo,Matos atlânticos,0.9
+Médio Tejo e Lezíria do tejo,Santarém,2020-08-03,15:15,28.8,42.5,P. bravo,Pinhais,1.62
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-04,,,,Eucalipto,Outro,1.28
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-04,,,,P. bravo,Pinhais,1.64
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-04,,,,Tojo,Matos atlânticos,1.27
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-04,,,,Urze,Matos atlânticos,0.71
+Douro,Lamares - Vila Real,2020-08-04,14:07,29.4,24.2,Carqueja,Matos atlânticos,0.92
+Douro,Lamares - Vila Real,2020-08-04,14:07,29.4,24.2,Urze,Matos atlânticos,0.9
+Douro,Lamares - Vila Real,2020-08-04,14:07,29.4,24.2,Herbáceas,Herbáceas,0.28
+Alto Minho e Cávado,Vile - Caminha,2020-08-04,14:00,31.2,41.5,Carqueja,Matos atlânticos,0.71
+Alto Minho e Cávado,Vile - Caminha,2020-08-04,14:00,31.2,42.0,Urze,Matos atlânticos,0.62
+Alto Minho e Cávado,Vile - Caminha,2020-08-04,14:00,31.2,42.5,Tojo,Matos atlânticos,1.11
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2020-08-05,,,,Esteva,Matos mediterrânicos,0.84
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2020-08-05,,,,Tojo,Matos atlânticos,0.75
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-05,,,,Eucalipto,Outro,1.02
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-05,,,,P. bravo,Pinhais,1.56
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-05,,,,Tojo,Matos atlânticos,1.07
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-05,,,,Urze,Matos atlânticos,0.61
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-06,,,,Eucalipto,Outro,0.97
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-06,,,,P. bravo,Pinhais,1.6
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-06,,,,Tojo,Matos atlânticos,1.14
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-06,,,,Urze,Matos atlânticos,0.67
+Algarve,Faro,2020-08-07,,,,Esteva,Matos mediterrânicos,0.419
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-07,,,,Eucalipto,Outro,0.87
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-07,,,,P. bravo,Pinhais,1.61
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-07,,,,Tojo,Matos atlânticos,1.22
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-07,,,,Urze,Matos atlânticos,0.62
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-08-10,14:26,32.0,35.7,Carqueja,Matos atlânticos,0.74
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-08-10,14:26,32.0,35.7,Urze,Matos atlânticos,0.74
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-08-10,14:26,32.0,35.7,P. bravo,Pinhais,1.76
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-08-10,13:30,27.6,47.5,Carrasco,Matos mediterrânicos,0.2
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-08-10,13:30,27.6,47.5,Esteva,Matos mediterrânicos,0.787
+Médio Tejo e Lezíria do tejo,Chamusca,2020-08-10,14:40,31.8,42.3,Esteva,Matos mediterrânicos,0.7
+Médio Tejo e Lezíria do tejo,Chamusca,2020-08-10,14:40,31.8,42.3,Tojo,Matos atlânticos,0.82
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-08-10,14:00,23.7,61.2,Carqueja,Matos atlânticos,0.753
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-08-10,14:00,23.7,61.2,Urze,Matos atlânticos,0.703
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-08-10,14:00,23.7,61.2,Tojo,Matos atlânticos,1.073
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-08-10,14:00,23.7,61.2,Herbáceas,Herbáceas,0.391
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-08-10,14:15,34.0,32.0,Carqueja,Matos atlânticos,0.79
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-08-10,14:15,34.0,32.0,Urze,Matos atlânticos,0.69
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-08-10,14:15,34.0,32.0,Herbáceas,Herbáceas,0.22
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-10,,,,Eucalipto,Outro,1.24
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-10,,,,P. bravo,Pinhais,1.63
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-10,,,,Tojo,Matos atlânticos,1.25
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-10,,,,Urze,Matos atlânticos,0.62
+Douro,Lamares - Vila Real,2020-08-10,14:37,28.6,34.3,Carqueja,Matos atlânticos,0.77
+Douro,Lamares - Vila Real,2020-08-10,14:37,28.6,34.3,Urze,Matos atlânticos,0.92
+Douro,Lamares - Vila Real,2020-08-10,14:37,28.6,34.3,Herbáceas,Herbáceas,0.24
+AML e Alentejo Litoral,Monsanto - Lisboa,2020-08-10,15:38,26.0,50.0,Carrasco,Matos mediterrânicos,0.7758
+AML e Alentejo Litoral,Ouressa - Sintra,2020-08-10,14:30,25.2,52.7,Urze,Matos atlânticos,0.1917
+AML e Alentejo Litoral,Ouressa - Sintra,2020-08-10,14:30,25.2,52.7,Tojo,Matos atlânticos,0.8708
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-08-10,14:30,32.4,30.4,Esteva,Matos mediterrânicos,0.884
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-08-10,14:30,32.4,30.4,Giesta,Giestais,0.659
+Médio Tejo e Lezíria do tejo,Santarém,2020-08-10,13:45,29.8,46.8,Tojo,Matos atlânticos,0.86
+Médio Tejo e Lezíria do tejo,Santarém,2020-08-10,13:45,29.8,46.8,P. bravo,Pinhais,1.55
+Alto Minho e Cávado,,2020-08-11,,,,Eucalipto,Outro,1.27
+Alto Minho e Cávado,,2020-08-11,,,,P. bravo,Pinhais,1.79
+Alto Minho e Cávado,,2020-08-11,,,,Tojo,Matos atlânticos,1.585
+Alto Minho e Cávado,,2020-08-11,,,,Urze,Matos atlânticos,0.855
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-11,,,,Eucalipto,Outro,1.11
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-11,,,,P. bravo,Pinhais,1.46
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-11,,,,Tojo,Matos atlânticos,1.16
+"Aveiro, Viseu e Dão Lafões",Viseu,2020-08-11,,,,Urze,Matos atlânticos,0.63
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2020-08-12,14:06,20.6,61.2,Tojo,Matos atlânticos,0.98
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2020-08-12,14:06,20.6,61.2,Esteva,Matos mediterrânicos,0.87
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2020-08-12,14:15,28.0,37.0,P. bravo,Pinhais,1.24
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2020-08-12,14:45,28.0,37.0,Esteva,Matos mediterrânicos,0.8
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2020-08-12,14:45,28.0,37.0,Urze,Matos atlânticos,0.52
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-08-17,13:50,30.3,43.5,Esteva,Matos mediterrânicos,0.6123
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-08-17,13:50,30.3,44.0,Carrasco,Matos mediterrânicos,0.7549
+AML e Alentejo Litoral,Monsanto - Lisboa,2020-08-17,14:47,26.0,67.0,Carrasco,Matos mediterrânicos,0.776
+AML e Alentejo Litoral,Ouressa - Sintra,2020-08-17,15:42,28.0,56.0,Urze,Matos atlânticos,0.5631
+AML e Alentejo Litoral,Ouressa - Sintra,2020-08-17,15:42,28.0,56.0,Tojo,Matos atlânticos,0.7593
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-08-17,14h40,29.7,43.6,Esteva,Matos mediterrânicos,0.7545
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-08-17,14h40,29.7,43.6,Giesta,Giestais,0.7319
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2020-08-19,,,,Esteva,Matos mediterrânicos,0.98
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2020-08-19,,,,Tojo,Matos atlânticos,0.89
+Algarve,Faro,2020-08-20,,,,Esteva,Matos mediterrânicos,0.41
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-08-24,14:00,23.7,51.7,Carqueja,Matos atlânticos,0.975
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-08-24,14:00,23.7,51.7,Urze,Matos atlânticos,1.037
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-08-24,14:00,23.7,51.7,Tojo,Matos atlânticos,1.251
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-08-24,14:00,23.7,51.7,Herbáceas,Herbáceas,0.672
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-08-24,14:00,31.0,30.5,Carqueja,Matos atlânticos,0.897
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-08-24,14:00,31.0,30.5,Urze,Matos atlânticos,0.92
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-08-24,14:00,31.0,30.5,Herbáceas,Herbáceas,0.34
+Douro,Lamares - Vila Real,2020-08-24,14:00,30.0,31.0,Carqueja,Matos atlânticos,0.83
+Douro,Lamares - Vila Real,2020-08-24,14:00,30.0,31.0,Urze,Matos atlânticos,0.91
+Douro,Lamares - Vila Real,2020-08-24,14:00,30.0,31.0,,,
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-08-24,14h05,35.1,22.0,Esteva,Matos mediterrânicos,0.7869
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-08-24,14h05,35.1,22.0,Giesta,Giestais,0.8646
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-08-25,14:28,31.1,26.0,Carqueja,Matos atlânticos,0.75
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-08-25,14:28,31.1,26.0,Urze,Matos atlânticos,0.77
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-08-25,14:28,31.1,26.0,P. bravo,Pinhais,1.67
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-08-25,15h30,32.4,38.3,Carrasco,Matos mediterrânicos,0.224
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-08-25,15h30,32.4,38.0,Esteva,Matos mediterrânicos,0.7092
+AML e Alentejo Litoral,Monsanto - Lisboa,2020-08-25,14h34,33.0,27.0,Carrasco,Matos mediterrânicos,0.77
+Alto Minho e Cávado,Ponte de Lima,2020-08-25,,,,P. bravo,Pinhais,1.992
+Alto Minho e Cávado,Ponte de Lima,2020-08-25,,,,Eucalipto,Outro,1.302
+Alto Minho e Cávado,Ponte de Lima,2020-08-25,,,,Urze,Matos atlânticos,0.93
+Alto Minho e Cávado,Ponte de Lima,2020-08-25,,,,Tojo,Matos atlânticos,1.5
+Algarve,Faro,2020-08-25,,,,Esteva,Matos mediterrânicos,0.458
+AML e Alentejo Litoral,Ouressa - Sintra,2020-08-25,14h30,26.2,54.6,Urze,Matos atlânticos,0.2299
+AML e Alentejo Litoral,Ouressa - Sintra,2020-08-25,14h30,26.2,54.6,Tojo,Matos atlânticos,0.9448
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2020-08-26,,34.6,28.6,Esteva,Matos mediterrânicos,0.94
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2020-08-26,,34.6,28.6,Tojo,Matos atlânticos,1.45
+Alto Minho e Cávado,Vile - Caminha,2020-08-27,14:00,24.9,71.0,Carqueja,Matos atlânticos,0.88
+Alto Minho e Cávado,Vile - Caminha,2020-08-27,14:00,24.9,71.0,Urze,Matos atlânticos,0.79
+Alto Minho e Cávado,Vile - Caminha,2020-08-27,14:00,24.9,71.0,Tojo,Matos atlânticos,1.24
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-08-31,15h20,30.0,22.0,Carrasco,Matos mediterrânicos,0.2497
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-08-31,25h20,30.0,22.0,Esteva,Matos mediterrânicos,0.6777
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-08-31,14:00,20.1,35.4,Carqueja,Matos atlânticos,0.96
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-08-31,14:00,20.1,35.4,Urze,Matos atlânticos,0.99
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-08-31,14:00,20.1,35.4,Tojo,Matos atlânticos,1.23
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2020-08-31,14:00,20.1,35.4,Herbáceas,Herbáceas,0.5
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-08-31,15:30,24.8,27.2,Carqueja,Matos atlânticos,0.772
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-08-31,15:30,24.8,27.2,Urze,Matos atlânticos,0.937
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-08-31,15:30,24.8,27.2,Herbáceas,Herbáceas,0.216
+Douro,Lamares - Vila Real,2020-08-31,14h10,29.9,27.0,Carqueja,Matos atlânticos,0.9
+Douro,Lamares - Vila Real,2020-08-31,14h10,29.9,27.0,Urze,Matos atlânticos,0.79
+AML e Alentejo Litoral,Monsanto - Lisboa,2020-08-31,14h20,29.0,15.0,Carrasco,Matos mediterrânicos,0.756
+AML e Alentejo Litoral,Ouressa - Sintra,2020-08-31,14h15,30.7,31.8,Urze,Matos atlânticos,0.202
+AML e Alentejo Litoral,Ouressa - Sintra,2020-08-31,14h15,30.7,31.8,Tojo,Matos atlânticos,1.0974
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-08-31,14h10,30.1,14.5,Esteva,Matos mediterrânicos,0.7139
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-08-31,14h10,30.1,14.5,Giesta,Giestais,0.7966
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-09-01,14:00,27.9,23.8,Carqueja,Matos atlânticos,0.7
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-09-01,14:00,27.9,23.8,Urze,Matos atlânticos,0.67
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-09-01,14:00,27.9,23.8,P. bravo,Pinhais,1.65
+Médio Tejo e Lezíria do tejo,Chamusca,2020-09-01,14:25,29.4,37.7,Esteva,Matos mediterrânicos,0.67
+Médio Tejo e Lezíria do tejo,Chamusca,2020-09-01,14:25,29.4,38.0,Tojo,Matos atlânticos,0.77
+Médio Tejo e Lezíria do tejo,Santarém,2020-09-01,15:25,28.3,33.6,Tojo,Matos atlânticos,0.91
+Médio Tejo e Lezíria do tejo,Santarém,2020-09-01,15:25,28.3,33.6,P. bravo,Pinhais,1.76
+Alto Minho e Cávado,Vile - Caminha,2020-09-02,14:00,28.9,37.0,Carqueja,Matos atlânticos,0.83
+Alto Minho e Cávado,Vile - Caminha,2020-09-02,14:00,28.9,37.0,Urze,Matos atlânticos,0.77
+Alto Minho e Cávado,Vile - Caminha,2020-09-02,14:00,28.9,37.0,Tojo,Matos atlânticos,1.13
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2020-09-03,14:15,34.0,13.0,P. bravo,Pinhais,1.29
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2020-09-03,14:45,34.0,13.0,Esteva,Matos mediterrânicos,0.77
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2020-09-03,14:45,34.0,13.0,Urze,Matos atlânticos,0.63
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-09-07,14:15,27.6,31.6,Carqueja,Matos atlânticos,0.74
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-09-07,14:15,27.6,31.6,Urze,Matos atlânticos,0.57
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-09-07,14:15,27.6,31.6,P. bravo,Pinhais,1.63
+Médio Tejo e Lezíria do tejo,Chamusca,2020-09-07,14:00,33.9,26.0,Tojo,Matos atlânticos,0.69
+Médio Tejo e Lezíria do tejo,Chamusca,2020-09-07,14:00,33.9,26.0,Esteva,Matos mediterrânicos,0.69
+Douro,Lamares - Vila Real,2020-09-07,15:00,23.9,33.9,Carqueja,Matos atlânticos,0.78
+Douro,Lamares - Vila Real,2020-09-07,15:00,23.9,33.9,Urze,Matos atlânticos,0.93
+AML e Alentejo Litoral,Monsanto - Lisboa,2020-09-07,14:45,33.0,27.0,Carrasco,Matos mediterrânicos,0.75
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-09-07,14:40,34.4,20.3,Esteva,Matos mediterrânicos,0.73
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-09-07,14:40,34.4,20.3,Giesta,Giestais,0.72
+Médio Tejo e Lezíria do tejo,Santarém,2020-09-07,15:00,37.8,19.8,Tojo,Matos atlânticos,0.81
+Médio Tejo e Lezíria do tejo,Santarém,2020-09-07,15:00,37.8,19.8,P. bravo,Pinhais,1.53
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-09-08,15:22,32.4,29.4,Esteva,Matos mediterrânicos,0.58
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-09-08,15:22,32.4,29.4,Carrasco,Matos mediterrânicos,0.7
+AML e Alentejo Litoral,Ouressa - Sintra,2020-09-08,13:28,32.3,23.4,Urze,Matos atlânticos,0.43
+AML e Alentejo Litoral,Ouressa - Sintra,2020-09-08,13:28,32.3,23.4,Tojo,Matos atlânticos,0.52
+Alto Minho e Cávado,Vile - Caminha,2020-09-08,14:00,28.5,35.6,Carqueja,Matos atlânticos,0.78
+Alto Minho e Cávado,Vile - Caminha,2020-09-08,14:00,28.5,35.6,Urze,Matos atlânticos,0.83
+Alto Minho e Cávado,Vile - Caminha,2020-09-08,14:00,28.5,35.6,Tojo,Matos atlânticos,1.08
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2020-09-09,14:43,29.9,20.2,Tojo,Matos atlânticos,0.85
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2020-09-09,14:43,29.9,20.2,Esteva,Matos mediterrânicos,0.94
+AML e Alentejo Litoral,Faro,2020-09-09,,,,Esteva,Matos mediterrânicos,0.424
+AML e Alentejo Litoral,Faro,2020-09-11,,,,Esteva,Matos mediterrânicos,0.416
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-09-14,,,,Urze,Matos atlânticos,0.59
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-09-14,,,,Carqueja,Matos atlânticos,0.72
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-09-14,,,,P. bravo,Pinhais,1.84
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-09-14,16:05,27.8,41.9,Esteva,Matos mediterrânicos,0.55
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-09-14,16:05,27.8,41.9,Carrasco,Matos mediterrânicos,0.68
+Douro,Lamares - Vila Real,2020-09-14,14:10,27.0,38.0,Carqueja,Matos atlânticos,0.78
+Douro,Lamares - Vila Real,2020-09-14,14:10,27.0,38.0,Urze,Matos atlânticos,0.99
+AML e Alentejo Litoral,Monsanto - Lisboa,2020-09-14,14:21,24.0,53.0,Carrasco,Matos mediterrânicos,0.75
+AML e Alentejo Litoral,Ouressa - Sintra,2020-09-14,14:38,26.7,50.4,Urze,Matos atlânticos,0.43
+AML e Alentejo Litoral,Ouressa - Sintra,2020-09-14,14:38,26.7,50.4,Tojo,Matos atlânticos,0.67
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-09-14,14:40,29.6,33.0,Esteva,Matos mediterrânicos,0.722
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-09-14,14:40,29.6,33.0,Giesta,Giestais,1.016
+AML e Alentejo Litoral,Faro,2020-09-14,,,,Esteva,Matos mediterrânicos,0.417
+Médio Tejo e Lezíria do tejo,Chamusca,2020-09-15,15:00,28.7,39.5,Tojo,Matos atlânticos,0.38
+Médio Tejo e Lezíria do tejo,Chamusca,2020-09-15,15:00,28.7,39.5,Esteva,Matos mediterrânicos,0.6
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-09-15,15:30,24.6,41.0,Carqueja,Matos atlânticos,0.771
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-09-15,15:30,24.6,41.0,Urze,Matos atlânticos,0.683
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-09-15,15:30,24.6,41.0,Herbáceas,Herbáceas,0.32
+Médio Tejo e Lezíria do tejo,Santarém,2020-09-15,15:40,29.5,38.6,Tojo,Matos atlânticos,0.75
+Médio Tejo e Lezíria do tejo,Santarém,2020-09-15,15:40,29.5,38.6,P. bravo,Pinhais,1.49
+Alto Minho e Cávado,Vile - Caminha,2020-09-15,14:30,24.8,,Carqueja,Matos atlânticos,0.8
+Alto Minho e Cávado,Vile - Caminha,2020-09-15,14:30,24.8,,Urze,Matos atlânticos,0.64
+Alto Minho e Cávado,Vile - Caminha,2020-09-15,14:30,24.8,,Tojo,Matos atlânticos,1.12
+AML e Alentejo Litoral,Faro,2020-09-16,,,,Esteva,Matos mediterrânicos,0.433
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-09-21,15:30,28.4,49.2,Esteva,Matos mediterrânicos,0.6555
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-09-21,15:30,28.4,49.0,Carrasco,Matos mediterrânicos,0.706
+AML e Alentejo Litoral,Monsanto - Lisboa,2020-09-21,14:25,25.0,46.0,Carrasco,Matos mediterrânicos,0.8546
+AML e Alentejo Litoral,Ouressa - Sintra,2020-09-21,14:34,24.5,55.2,Urze,Matos atlânticos,0.5213
+AML e Alentejo Litoral,Ouressa - Sintra,2020-09-21,14:34,24.5,55.0,Tojo,Matos atlânticos,0.6338
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-09-21,14:40,26.1,44.2,Esteva,Matos mediterrânicos,0.99
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-09-21,14:40,26.1,44.2,Giesta,Giestais,0.95
+Médio Tejo e Lezíria do tejo,Chamusca,2020-09-22,14:00,27.6,44.6,Tojo,Matos atlânticos,0.73
+Médio Tejo e Lezíria do tejo,Chamusca,2020-09-22,14:00,27.6,44.6,Esteva,Matos mediterrânicos,0.89
+Médio Tejo e Lezíria do tejo,Santarém,2020-09-22,13:20,24.1,53.5,Tojo,Matos atlânticos,0.79
+Médio Tejo e Lezíria do tejo,Santarém,2020-09-22,13:20,24.1,53.5,P. bravo,Pinhais,1.65
+"Aveiro, Viseu e Dão Lafões",,2020-09-22,,,,P. bravo,Pinhais,1.76
+"Aveiro, Viseu e Dão Lafões",,2020-09-22,,,,Eucalipto,Outro,1.32
+"Aveiro, Viseu e Dão Lafões",,2020-09-22,,,,Urze,Matos atlânticos,0.91
+"Aveiro, Viseu e Dão Lafões",,2020-09-22,,,,Tojo,Matos atlânticos,1.22
+"Aveiro, Viseu e Dão Lafões",,2020-09-23,,,,P. bravo,Pinhais,2.23
+"Aveiro, Viseu e Dão Lafões",,2020-09-23,,,,Eucalipto,Outro,1.08
+"Aveiro, Viseu e Dão Lafões",,2020-09-23,,,,Urze,Matos atlânticos,1.29
+"Aveiro, Viseu e Dão Lafões",,2020-09-23,,,,Tojo,Matos atlânticos,1.63
+"Aveiro, Viseu e Dão Lafões",,2020-09-24,,,,P. bravo,Pinhais,1.73
+"Aveiro, Viseu e Dão Lafões",,2020-09-24,,,,Eucalipto,Outro,1.32
+"Aveiro, Viseu e Dão Lafões",,2020-09-24,,,,Urze,Matos atlânticos,0.85
+"Aveiro, Viseu e Dão Lafões",,2020-09-24,,,,Tojo,Matos atlânticos,1.16
+"Aveiro, Viseu e Dão Lafões",,2020-09-25,,,,P. bravo,Pinhais,1.73
+"Aveiro, Viseu e Dão Lafões",,2020-09-25,,,,Eucalipto,Outro,1.12
+"Aveiro, Viseu e Dão Lafões",,2020-09-25,,,,Urze,Matos atlânticos,0.85
+"Aveiro, Viseu e Dão Lafões",,2020-09-25,,,,Tojo,Matos atlânticos,1.06
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-09-28,14:07,23.7,35.5,Urze,Matos atlânticos,0.85
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-09-28,14:07,23.7,35.5,Carqueja,Matos atlânticos,0.77
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2020-09-28,14:07,23.7,35.5,P. bravo,Pinhais,1.58
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-09-28,12h50,24.7,54.2,Esteva,Matos mediterrânicos,0.816
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-09-28,12h50,24.7,54.2,Carrasco,Matos mediterrânicos,0.7293
+Médio Tejo e Lezíria do tejo,Chamusca,2020-09-28,13:20,27.0,34.5,Tojo,Matos atlânticos,0.85
+Médio Tejo e Lezíria do tejo,Chamusca,2020-09-28,13:20,27.0,34.5,Esteva,Matos mediterrânicos,0.92
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-09-28,14:00,25.8,37.2,Carqueja,Matos atlânticos,0.75
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-09-28,14:00,25.8,37.2,Urze,Matos atlânticos,0.91
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2020-09-28,14:00,25.8,37.2,Herbáceas,Herbáceas,0.27
+Douro,Lamares - Vila Real,2020-09-28,14h15,24.2,30.0,Carqueja,Matos atlânticos,0.85
+AML e Alentejo Litoral,Monsanto - Lisboa,2020-09-28,14h22,25.0,50.0,Carrasco,Matos mediterrânicos,0.8035
+AML e Alentejo Litoral,Ouressa - Sintra,2020-09-28,14h17,22.2,57.9,Urze,Matos atlânticos,0.5578
+AML e Alentejo Litoral,Ouressa - Sintra,2020-09-28,14h17,22.2,58.0,Tojo,Matos atlânticos,0.6109
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-09-28,14h15,29.6,26.9,Esteva,Matos mediterrânicos,0.994
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-09-28,14h15,29.6,26.9,Giesta,Giestais,0.891
+Médio Tejo e Lezíria do tejo,Santarém,2020-09-28,14:00,28.0,36.0,Tojo,Matos atlânticos,0.8
+Médio Tejo e Lezíria do tejo,Santarém,2020-09-28,14:00,28.0,36.0,P. bravo,Pinhais,1.55
+Douro,Lamares - Vila Real,2020-09-28,14h15,24.2,30.0,Urze,Matos atlânticos,0.84
+"Aveiro, Viseu e Dão Lafões",,2020-09-28,,,,P. bravo,Pinhais,1.64
+"Aveiro, Viseu e Dão Lafões",,2020-09-28,,,,Eucalipto,Outro,1.03
+"Aveiro, Viseu e Dão Lafões",,2020-09-28,,,,Urze,Matos atlânticos,0.8
+"Aveiro, Viseu e Dão Lafões",,2020-09-28,,,,Tojo,Matos atlânticos,1.22
+"Aveiro, Viseu e Dão Lafões",,2020-09-29,,,,P. bravo,Pinhais,1.64
+"Aveiro, Viseu e Dão Lafões",,2020-09-29,,,,Eucalipto,Outro,0.975
+"Aveiro, Viseu e Dão Lafões",,2020-09-29,,,,Urze,Matos atlânticos,0.86
+"Aveiro, Viseu e Dão Lafões",,2020-09-29,,,,Tojo,Matos atlânticos,1.41
+Alto Minho e Cávado,Vile - Caminha,2020-09-29,14:00,24.0,54.0,Carqueja,Matos atlânticos,0.81
+Alto Minho e Cávado,Vile - Caminha,2020-09-29,14:00,24.0,54.0,Urze,Matos atlânticos,0.75
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-10-06,13:35,28.4,56.9,Esteva,Matos mediterrânicos,0.7013
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-10-06,13:35,28.4,56.9,Carrasco,Matos mediterrânicos,0.7379
+Médio Tejo e Lezíria do tejo,Chamusca,2020-10-06,13:30,28.5,47.0,Tojo,Matos atlânticos,0.74
+Médio Tejo e Lezíria do tejo,Chamusca,2020-10-06,13:30,28.5,47.0,Esteva,Matos mediterrânicos,0.95
+AML e Alentejo Litoral,Monsanto - Lisboa,2020-10-06,14:22,24.0,68.0,Carrasco,Matos mediterrânicos,0.7817
+AML e Alentejo Litoral,Ouressa - Sintra,2020-10-06,14:46,24.6,55.4,Urze,Matos atlânticos,0.5044
+AML e Alentejo Litoral,Ouressa - Sintra,2020-10-06,14:46,24.6,55.0,Tojo,Matos atlânticos,0.5675
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-10-06,14:15,27.5,43.0,Esteva,Matos mediterrânicos,1.061
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-10-06,14:15,27.5,43.0,Giesta,Giestais,0.977
+Médio Tejo e Lezíria do tejo,Santarém,2020-10-06,13:00,30.0,43.0,Tojo,Matos atlânticos,0.94
+Médio Tejo e Lezíria do tejo,Santarém,2020-10-06,13:00,30.0,43.0,P. bravo,Pinhais,1.49
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-10-12,15:30,25.2,30.8,Esteva,Matos mediterrânicos,0.5857
+AML e Alentejo Litoral,Arrábida - Setúbal,2020-10-12,15:30,25.2,31.0,Carrasco,Matos mediterrânicos,0.7256
+Médio Tejo e Lezíria do tejo,Chamusca,2020-10-12,14:00,23.0,26.0,Tojo,Matos atlânticos,0.69
+Médio Tejo e Lezíria do tejo,Chamusca,2020-10-12,14:00,23.0,26.0,Esteva,Matos mediterrânicos,0.92
+Douro,Lamares - Vila Real,2020-10-12,14:26,18.6,35.0,Carqueja,Matos atlânticos,0.79
+Douro,Lamares - Vila Real,2020-10-12,14:26,18.6,35.0,Urze,Matos atlânticos,0.89
+AML e Alentejo Litoral,Monsanto - Lisboa,2020-10-12,14:15,22.0,26.0,Carrasco,Matos mediterrânicos,0.766
+AML e Alentejo Litoral,Ouressa - Sintra,2020-10-12,13:49,24.2,33.1,Urze,Matos atlânticos,0.5058
+AML e Alentejo Litoral,Ouressa - Sintra,2020-10-12,13:49,24.2,33.0,Tojo,Matos atlânticos,0.495
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-10-12,14:25,22.0,26.0,Esteva,Matos mediterrânicos,0.993
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",Penha - Portalegre,2020-10-12,14:25,22.0,26.0,Giesta,Giestais,0.87
+Médio Tejo e Lezíria do tejo,Santarém,2020-10-12,14:40,24.5,25.0,Tojo,Matos atlânticos,0.77
+Médio Tejo e Lezíria do tejo,Santarém,2020-10-12,14:40,24.5,25.0,P. bravo,Pinhais,1.59
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2020-10-12,14:15,22.8,26.0,P. bravo,Pinhais,1.3
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2020-10-12,14:45,22.8,26.0,Esteva,Matos mediterrânicos,0.9
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2020-10-12,14:45,22.8,26.0,Urze,Matos atlânticos,0.85
+Alto Minho e Cávado,Vile - Caminha,2020-10-13,14:00,23.3,54.0,Carqueja,Matos atlânticos,0.78
+Alto Minho e Cávado,Vile - Caminha,2020-10-13,14:00,23.3,54.0,Urze,Matos atlânticos,0.84
+Alto Minho e Cávado,Vile - Caminha,2020-10-13,14:00,23.3,54.0,Tojo,Matos atlânticos,1.07
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2021-01-12,14:15,12.0,35.0,P. bravo,Pinhais,1.28
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-01-12,14:45,12.0,35.0,Esteva,Matos mediterrânicos,1.17
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-01-12,14:45,12.0,35.0,Urze,Matos atlânticos,0.62
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2021-02-16,14:15,17.0,77.0,P. bravo,Pinhais,1.34
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-02-16,14:45,15.0,68.0,Esteva,Matos mediterrânicos,1.35
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-02-16,14:45,15.0,68.0,Urze,Matos atlânticos,1.0
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2021-03-18,14:15,17.0,44.0,P. bravo,Pinhais,1.19
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-03-18,14:45,18.0,40.0,Esteva,Matos mediterrânicos,1.23
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-03-18,14:45,18.0,40.0,Urze,Matos atlânticos,1.17
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-04-03,14:30,20.4,35.6,Esteva,Matos mediterrânicos,1.4
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-04-03,:30,20.4,35.6,Giesta,Giestais,1.906
+AML e Alentejo Litoral,Ouressa - Sintra,2021-04-12,13:16,18.3,63.2,Urze,Matos atlânticos,1.31
+AML e Alentejo Litoral,Ouressa - Sintra,2021-04-12,13:16,18.3,63.0,Tojo,Matos atlânticos,2.0
+AML e Alentejo Litoral,Arrábida - Setúbal,2021-04-12,14:30,22.9,50.3,Esteva,Matos mediterrânicos,1.55
+AML e Alentejo Litoral,Arrábida - Setúbal,2021-04-12,14:30,22.9,50.0,Carrasco,Matos mediterrânicos,1.65
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2021-04-14,14:15,20.0,55.0,P. bravo,Pinhais,1.16
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-04-14,14:45,21.0,53.0,Esteva,Matos mediterrânicos,1.27
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-04-14,14:45,21.0,53.0,Urze,Matos atlânticos,1.14
+Douro,Lamares - Vila Real,2021-04-16,14:20,14.5,33.4,Carqueja,Matos atlânticos,1.33
+Douro,Lamares - Vila Real,2021-04-16,14:20,14.5,33.4,Urze,Matos atlânticos,1.0
+Douro,Lamares - Vila Real,2021-04-16,14:20,14.5,33.4,Herbáceas,Herbáceas,0.41
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-04-19,14:30,20.1,54.5,Esteva,Matos mediterrânicos,1.42
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-04-19,14:30,20.1,54.5,Giesta,Giestais,3.18
+AML e Alentejo Litoral,Arrábida - Setúbal,2021-04-26,14:00,23.0,51.3,Esteva,Matos mediterrânicos,1.68
+AML e Alentejo Litoral,Arrábida - Setúbal,2021-04-26,14:00,23.0,51.3,Carrasco,Matos mediterrânicos,1.32
+Douro,Lamares - Vila Real,2021-05-03,14:45,16.2,41.5,Carqueja,Matos atlânticos,1.48
+Douro,Lamares - Vila Real,2021-05-03,14:45,16.2,41.5,Urze,Matos atlânticos,1.15
+Douro,Lamares - Vila Real,2021-05-03,14:45,16.2,41.5,Herbáceas,Herbáceas,0.92
+Médio Tejo e Lezíria do tejo,Chamusca,2021-05-04,14:20,27.6,41.5,Esteva,Matos mediterrânicos,1.36
+Médio Tejo e Lezíria do tejo,Chamusca,2021-05-04,14:20,27.6,42.0,Tojo,Matos atlânticos,1.64
+Médio Tejo e Lezíria do tejo,Santarém,2021-05-04,15:20,26.0,37.4,Tojo,Matos atlânticos,1.73
+Médio Tejo e Lezíria do tejo,Santarém,2021-05-04,15:20,26.0,37.0,P. bravo,Pinhais,1.48
+AML e Alentejo Litoral,Ouressa - Sintra,2021-05-17,14:15,21.2,50.6,Urze,Matos atlânticos,1.54
+AML e Alentejo Litoral,Ouressa - Sintra,2021-05-17,14:15,21.2,50.6,Tojo,Matos atlânticos,1.61
+AML e Alentejo Litoral,Arrábida - Setúbal,2021-05-17,13:30,27.0,39.4,Esteva,Matos mediterrânicos,1.25
+AML e Alentejo Litoral,Arrábida - Setúbal,2021-05-17,13:30,27.0,39.4,Carrasco,Matos mediterrânicos,0.93
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-05-17,15:00,22.0,44.0,Carqueja,Matos atlânticos,1.0194
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-05-17,15:00,22.0,44.0,Urze,Matos atlânticos,1.3468
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-05-17,15:00,22.0,44.0,Herbáceas,Herbáceas,1.3679
+Douro,Lamares - Vila Real,2021-05-17,14:40,20.6,33.0,Carqueja,Matos atlânticos,1.64
+Douro,Lamares - Vila Real,2021-05-17,14:40,20.6,33.0,Urze,Matos atlânticos,1.32
+Douro,Lamares - Vila Real,2021-05-17,14:40,20.6,33.0,Herbáceas,Herbáceas,1.23
+Médio Tejo e Lezíria do tejo,Santarém,2021-05-17,12:45,22.1,44.0,Tojo,Matos atlânticos,0.74
+Médio Tejo e Lezíria do tejo,Santarém,2021-05-17,12:45,22.1,44.0,P. bravo,Pinhais,0.96
+Médio Tejo e Lezíria do tejo,Chamusca,2021-05-17,13:40,25.7,38.0,Esteva,Matos mediterrânicos,0.74
+Médio Tejo e Lezíria do tejo,Chamusca,2021-05-17,13:40,25.7,28.0,Tojo,Matos atlânticos,0.96
+Alto Minho e Cávado,Vile - Caminha,2021-05-19,14:00,19.1,45.0,Carqueja,Matos atlânticos,1.09
+Alto Minho e Cávado,Vile - Caminha,2021-05-19,14:00,19.1,45.0,Tojo,Matos atlânticos,2.15
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2021-05-19,14:15,26.2,33.9,P. bravo,Pinhais,1.19
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-05-19,14:45,27.6,19.9,Esteva,Matos mediterrânicos,1.29
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-05-19,14:45,27.6,19.9,Urze,Matos atlânticos,0.92
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-05-19,14:15,22.6,37.5,Herbáceas,Herbáceas,1.491
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-05-19,14:15,22.6,38.0,Carqueja,Matos atlânticos,1.388
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-05-19,14:15,22.6,38.0,Urze,Matos atlânticos,1.194
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-05-19,14:30,18.4,60.1,Carqueja,Matos atlânticos,1.91
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-05-19,14:30,18.4,60.1,Urze,Matos atlânticos,1.48
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-05-19,14:30,18.4,60.1,Tojo,Matos atlânticos,2.35
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-05-19,14:30,18.4,60.1,Herbáceas,Herbáceas,2.18
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-05-19,14:30,24.5,30.0,Esteva,Matos mediterrânicos,1.29
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-05-19,14:30,24.5,30.0,Giesta,Giestais,1.33
+AML e Alentejo Litoral,Faro,2021-05-20,,,,Esteva,Matos mediterrânicos,0.57
+AML e Alentejo Litoral,Arrábida - Setúbal,2021-05-24,14:00,24.5,49.0,Esteva,Matos mediterrânicos,1.3
+AML e Alentejo Litoral,Arrábida - Setúbal,2021-05-24,14:00,24.5,49.0,Carrasco,Matos mediterrânicos,0.9
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2021-05-25,14:15,27.6,36.0,P. bravo,Pinhais,1.18
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-05-25,14:45,25.7,36.0,Esteva,Matos mediterrânicos,1.21
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-05-25,14:45,25.7,36.0,Urze,Matos atlânticos,0.9
+AML e Alentejo Litoral,Faro,2021-05-25,,,,Esteva,Matos mediterrânicos,0.57
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-05-26,14:45,22.0,44.0,Carqueja,Matos atlânticos,0.9
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-05-26,14:45,22.0,44.0,Urze,Matos atlânticos,0.9
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-05-26,14:45,22.0,44.0,Herbáceas,Herbáceas,1.09
+Alto Minho e Cávado,Vile - Caminha,2021-05-26,15:30,22.3,55.0,Carqueja,Matos atlânticos,0.97
+Alto Minho e Cávado,Vile - Caminha,2021-05-26,15:30,22.3,55.0,Herbáceas,Herbáceas,1.24
+Alto Minho e Cávado,Vile - Caminha,2021-05-26,15:30,22.3,55.0,Tojo,Matos atlânticos,2.02
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-05-26,14:00,18.1,56.0,Carqueja,Matos atlânticos,1.68
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-05-26,14:00,18.1,56.0,Urze,Matos atlânticos,1.7
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-05-26,14:00,18.1,56.0,Herbáceas,Herbáceas,2.54
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-05-26,14:00,18.1,56.0,Tojo,Matos atlânticos,2.2
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-05-26,14:00,27.8,36.0,Herbáceas,Herbáceas,1.37
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-05-26,14:00,27.8,36.0,Carqueja,Matos atlânticos,1.33
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-05-26,14:00,27.8,36.0,Urze,Matos atlânticos,1.06
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-05-26,14:00,27.8,36.0,Tojo,Matos atlânticos,1.77
+Douro,Lamares - Vila Real,2021-05-26,14:35,24.0,36.0,Carqueja,Matos atlânticos,1.65
+Douro,Lamares - Vila Real,2021-05-26,14:35,24.0,36.0,Urze,Matos atlânticos,1.57
+Douro,Lamares - Vila Real,2021-05-26,14:35,24.0,36.0,Herbáceas,Herbáceas,1.4
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-05-26,14:45,28.9,30.0,Esteva,Matos mediterrânicos,1.16
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-05-26,14:45,28.9,30.0,Giesta,Giestais,1.26
+Douro,Lamares - Vila Real,2021-05-31,14:40,23.7,42.0,Carqueja,Matos atlânticos,1.66
+Douro,Lamares - Vila Real,2021-05-31,14:40,23.7,42.0,Urze,Matos atlânticos,1.83
+Douro,Lamares - Vila Real,2021-05-31,14:40,23.7,42.0,Herbáceas,Herbáceas,1.02
+AML e Alentejo Litoral,Ouressa - Sintra,2021-05-31,14:30,20.0,60.0,Urze,Matos atlânticos,1.67
+AML e Alentejo Litoral,Ouressa - Sintra,2021-05-31,14:30,20.0,60.0,Tojo,Matos atlânticos,1.25
+AML e Alentejo Litoral,Arrábida - Setúbal,2021-05-31,14:00,22.9,58.0,Esteva,Matos mediterrânicos,1.22
+AML e Alentejo Litoral,Arrábida - Setúbal,2021-05-31,14:00,22.9,58.0,Carrasco,Matos mediterrânicos,0.85
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-05-31,14:30,24.3,41.0,Carqueja,Matos atlânticos,0.8219
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-05-31,14:30,24.3,41.0,Urze,Matos atlânticos,1.3844
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-05-31,14:30,24.3,41.0,Herbáceas,Herbáceas,1.3232
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-05-31,14:30,34.0,38.7,Esteva,Matos mediterrânicos,1.0678
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-05-31,14:30,34.0,38.7,Giesta,Giestais,1.3951
+Médio Tejo e Lezíria do tejo,Santarém,2021-05-31,14:00,29.6,49.0,Tojo,Matos atlânticos,1.26
+Médio Tejo e Lezíria do tejo,Santarém,2021-05-31,14:00,29.6,49.0,P. bravo,Pinhais,1.21
+Médio Tejo e Lezíria do tejo,Chamusca,2021-05-31,14:45,28.9,46.0,Esteva,Matos mediterrânicos,1.2
+Médio Tejo e Lezíria do tejo,Chamusca,2021-05-31,14:45,28.9,46.0,Tojo,Matos atlânticos,1.62
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-06-02,,,,Carqueja,Matos atlânticos,
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-06-02,,,,Urze,Matos atlânticos,
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-06-02,,,,Herbáceas,Herbáceas,
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-06-02,,,,Tojo,Matos atlânticos,
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2021-06-02,14:15,20.6,54.0,Esteva,Matos mediterrânicos,1.7181
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2021-06-02,14:15,20.6,54.0,Tojo,Matos atlânticos,1.5863
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2021-06-02,14:15,20.6,54.0,Herbáceas,Herbáceas,1.8965
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-06-02,14:00,22.6,51.0,Herbáceas,Herbáceas,1.39
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-06-02,14:00,22.6,51.0,Carqueja,Matos atlânticos,1.447
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-06-02,14:00,22.6,51.0,Urze,Matos atlânticos,1.33
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-06-02,14:00,22.6,51.0,Tojo,Matos atlânticos,2.18
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-06-07,14:40,31.8,25.8,Esteva,Matos mediterrânicos,1.023
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-06-07,14:40,31.8,25.8,Giesta,Giestais,1.278
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-06-07,14:30,30.8,32.2,Carqueja,Matos atlânticos,0.9966
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-06-07,14:30,30.8,32.2,Urze,Matos atlânticos,1.1043
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-06-07,14:30,30.8,32.2,Herbáceas,Herbáceas,1.3008
+Douro,Lamares - Vila Real,2021-06-07,14:30,29.0,32.0,Carqueja,Matos atlânticos,1.37
+Douro,Lamares - Vila Real,2021-06-07,14:30,29.0,32.0,Urze,Matos atlânticos,1.54
+Douro,Lamares - Vila Real,2021-06-07,14:30,29.0,32.0,Herbáceas,Herbáceas,1.02
+AML e Alentejo Litoral,Ouressa - Sintra,2021-06-07,14:12,21.5,57.2,Urze,Matos atlânticos,1.34
+AML e Alentejo Litoral,Ouressa - Sintra,2021-06-07,14:12,21.5,57.0,Tojo,Matos atlânticos,1.1
+AML e Alentejo Litoral,Arrábida - Setúbal,2021-06-07,15:00,30.4,34.7,Esteva,Matos mediterrânicos,1.04
+AML e Alentejo Litoral,Arrábida - Setúbal,2021-06-07,15:00,30.4,35.0,Carrasco,Matos mediterrânicos,0.75
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2021-06-07,14:15,35.6,23.5,P. bravo,Pinhais,1.27
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-06-07,14:45,32.8,22.8,Esteva,Matos mediterrânicos,1.13
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-06-07,14:45,32.8,22.8,Urze,Matos atlânticos,0.87
+Médio Tejo e Lezíria do tejo,Chamusca,2021-06-07,13:40,27.8,44.6,Esteva,Matos mediterrânicos,0.96
+Médio Tejo e Lezíria do tejo,Chamusca,2021-06-07,13:40,27.8,44.6,Tojo,Matos atlânticos,1.04
+Médio Tejo e Lezíria do tejo,Santarém,2021-06-07,14:40,29.0,41.4,Tojo,Matos atlânticos,1.26
+Médio Tejo e Lezíria do tejo,Santarém,2021-06-07,14:40,29.0,41.4,P. bravo,Pinhais,1.68
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-06-08,14:00,29.6,34.0,Herbáceas,Herbáceas,1.06
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-06-08,14:00,29.6,34.0,Carqueja,Matos atlânticos,0.83
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-06-08,14:00,29.6,34.0,Urze,Matos atlânticos,0.86
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-06-08,14:00,29.6,34.0,Tojo,Matos atlânticos,1.35
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-06-08,14:00,22.0,24.0,Herbáceas,Herbáceas,1.35
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-06-08,14:00,22.0,24.0,Carqueja,Matos atlânticos,1.6
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-06-08,14:00,22.0,24.0,Urze,Matos atlânticos,1.28
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-06-08,14:00,22.0,24.0,Tojo,Matos atlânticos,1.82
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2021-06-09,14:00,31.9,30.0,Esteva,Matos mediterrânicos,1.4567
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2021-06-09,14:00,31.9,30.0,Tojo,Matos atlânticos,1.3255
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2021-06-09,14:00,31.9,30.0,Herbáceas,Herbáceas,1.8101
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-06-14,14:00,30.7,39.0,Esteva,Matos mediterrânicos,0.9583
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-06-14,14:00,30.7,39.0,Giesta,Giestais,1.025
+Douro,Lamares - Vila Real,2021-06-14,,,,,,
+AML e Alentejo Litoral,Arrábida - Setúbal,2021-06-14,,,,,,
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-06-15,14:30,32.0,33.0,Carqueja,Matos atlânticos,0.9191
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-06-15,14:30,32.0,33.0,Urze,Matos atlânticos,0.9543
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-06-15,14:30,32.0,33.0,Herbáceas,Herbáceas,0.8963
+AML e Alentejo Litoral,Arrábida - Setúbal,2021-06-21,,,,,,
+AML e Alentejo Litoral,Ouressa - Sintra,2021-06-21,,,,,,
+Douro,Lamares - Vila Real,2021-06-23,14:30,20.0,48.0,Carqueja,Matos atlânticos,1.27
+Douro,Lamares - Vila Real,2021-06-23,14:30,20.0,48.0,Urze,Matos atlânticos,1.19
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-06-23,14:15,27.0,36.5,Esteva,Matos mediterrânicos,1.0833
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-06-23,14:15,27.0,36.5,Giesta,Giestais,1.0919
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-06-23,14:15,23.0,43.0,Herbáceas,Herbáceas,0.91
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-06-23,14:15,23.0,43.0,Carqueja,Matos atlânticos,1.14
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-06-23,14:15,23.0,43.0,Urze,Matos atlânticos,1.19
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-06-23,14:15,23.0,43.0,Tojo,Matos atlânticos,1.73
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-06-23,14:00,17.0,59.7,Carqueja,Matos atlânticos,1.53
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-06-23,14:00,17.0,59.7,Urze,Matos atlânticos,1.52
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-06-23,14:00,17.0,59.7,Tojo,Matos atlânticos,1.83
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-06-23,14:00,17.0,59.7,Herbáceas,Herbáceas,1.55
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-06-29,14:30,24.3,41.9,Carqueja,Matos atlânticos,0.8193
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-06-29,14:30,24.3,41.9,Urze,Matos atlânticos,0.936
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-06-29,14:30,24.3,41.9,Herbáceas,Herbáceas,0.7183
+Alto Minho e Cávado,Vile - Caminha,2021-06-29,15:30,19.3,62.1,Carqueja,Matos atlânticos,0.997509782995374
+Alto Minho e Cávado,Vile - Caminha,2021-06-29,15:30,19.3,62.1,Herbáceas,Herbáceas,1.06894447834046
+Alto Minho e Cávado,Vile - Caminha,2021-06-29,15:30,19.3,62.1,Urze,Matos atlânticos,0.937194127243065
+Alto Minho e Cávado,Vile - Caminha,2021-06-29,15:30,19.3,62.1,Tojo,Matos atlânticos,1.82261640798227
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2021-06-29,14:15,30.6,28.0,P. bravo,Pinhais,1.3
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-06-29,14:45,31.8,22.0,Esteva,Matos mediterrânicos,0.94
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-06-29,14:45,31.8,22.0,Urze,Matos atlânticos,0.71
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-06-30,14:30,29.3,28.0,Esteva,Matos mediterrânicos,0.91
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-06-30,14:30,29.3,28.0,Giesta,Giestais,1.16
+Douro,Lamares - Vila Real,2021-06-30,,,,,,
+AML e Alentejo Litoral,Ouressa - Sintra,2021-06-30,,,,,,
+AML e Alentejo Litoral,Arrábida - Setúbal,2021-06-30,,,,,,
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-07-01,14:00,21.3,63.2,Carqueja,Matos atlânticos,1.35
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-07-01,14:00,21.3,63.2,Urze,Matos atlânticos,1.49
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-07-01,14:00,21.3,63.2,Herbáceas,Herbáceas,1.46
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-07-01,14:00,21.3,63.2,Tojo,Matos atlânticos,1.85
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-07-01,14:00,30.0,35.0,Carqueja,Matos atlânticos,1.03
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-07-01,14:00,30.0,35.0,Urze,Matos atlânticos,1.22
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-07-01,14:00,30.0,35.0,Herbáceas,Herbáceas,0.83
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-07-01,14:00,30.0,35.0,Tojo,Matos atlânticos,1.53
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-07-05,14:40,28.8,47.7,Esteva,Matos mediterrânicos,0.934
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-07-05,14:40,28.8,47.7,Giesta,Giestais,0.837
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-07-05,14:20,22.8,60.2,Carqueja,Matos atlânticos,0.8414
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-07-05,14:20,22.8,60.2,Urze,Matos atlânticos,0.7119
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-07-05,14:20,22.8,60.2,Herbáceas,Herbáceas,0.8047
+Douro,Lamares - Vila Real,2021-07-05,14:35,24.3,45.0,Carqueja,Matos atlânticos,1.55
+Douro,Lamares - Vila Real,2021-07-05,14:35,24.3,45.0,Urze,Matos atlânticos,1.19
+Douro,Lamares - Vila Real,2021-07-05,14:35,24.3,45.0,Herbáceas,Herbáceas,0.69
+AML e Alentejo Litoral,Ouressa - Sintra,2021-07-05,15:00,24.3,55.9,Urze,Matos atlânticos,1.57
+AML e Alentejo Litoral,Ouressa - Sintra,2021-07-05,15:00,24.3,55.9,Tojo,Matos atlânticos,1.4
+AML e Alentejo Litoral,Arrábida - Setúbal,2021-07-05,14:00,25.6,55.7,Esteva,Matos mediterrânicos,0.895
+AML e Alentejo Litoral,Arrábida - Setúbal,2021-07-05,14:00,25.6,55.7,Carrasco,Matos mediterrânicos,0.785
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-07-07,14:30,24.8,43.3,Carqueja,Matos atlânticos,1.3
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-07-07,14:30,24.8,43.3,Urze,Matos atlânticos,1.2
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-07-07,14:30,24.8,43.3,Herbáceas,Herbáceas,0.91
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-07-07,14:30,24.8,43.3,Tojo,Matos atlânticos,1.57
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2021-07-08,14:15,35.3,24.2,P. bravo,Pinhais,1.23
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-07-08,14:45,34.7,22.9,Esteva,Matos mediterrânicos,0.85
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-07-08,14:45,34.7,23.0,Urze,Matos atlânticos,0.82
+Douro,Lamares - Vila Real,2021-07-12,14:40,22.5,38.0,Carqueja,Matos atlânticos,1.37
+Douro,Lamares - Vila Real,2021-07-12,14:40,22.5,38.0,Urze,Matos atlânticos,1.21
+Douro,Lamares - Vila Real,2021-07-12,14:40,22.5,38.0,Herbáceas,Herbáceas,0.72
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-07-12,14:15,22.6,49.1,Carqueja,Matos atlânticos,1.03
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-07-12,14:15,22.6,49.1,Urze,Matos atlânticos,1.2
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-07-12,14:15,22.6,49.1,Herbáceas,Herbáceas,0.83
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-07-12,14:15,22.6,49.1,Tojo,Matos atlânticos,1.52
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-07-12,14:30,22.9,40.2,Carqueja,Matos atlânticos,0.7538
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-07-13,15:30,22.9,40.2,Urze,Matos atlânticos,0.638
+Alto Minho e Cávado,Vile - Caminha,2021-07-13,14:00,22.4,59.3,Carqueja,Matos atlânticos,0.94
+Alto Minho e Cávado,Vile - Caminha,2021-07-13,14:00,22.4,59.3,Herbáceas,Herbáceas,1.02
+Alto Minho e Cávado,Vile - Caminha,2021-07-13,14:00,22.4,59.3,Urze,Matos atlânticos,0.93
+Alto Minho e Cávado,Vile - Caminha,2021-07-13,14:00,22.4,59.3,Tojo,Matos atlânticos,1.73
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-07-13,14:40,31.0,24.8,Esteva,Matos mediterrânicos,0.8029
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-07-13,14:40,31.0,24.8,Giesta,Giestais,0.9245
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-07-14,16:30,22.9,40.2,Herbáceas,Herbáceas,0.646
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2021-07-14,14:15,32.8,22.3,P. bravo,Pinhais,1.37
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-07-14,14:45,31.7,20.4,Esteva,Matos mediterrânicos,0.87
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-07-14,14:45,31.7,20.4,Urze,Matos atlânticos,0.39
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2021-07-14,14:54,30.2,27.9,Esteva,Matos mediterrânicos,1.0933
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2021-07-14,14:54,30.2,27.9,Tojo,Matos atlânticos,0.9706
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2021-07-14,14:54,30.2,27.9,Herbáceas,Herbáceas,0.6218
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-07-19,14:45,33.6,25.6,Carqueja,Matos atlânticos,0.7011
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-07-19,14:45,33.6,25.6,Urze,Matos atlânticos,0.5652
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-07-19,14:45,33.6,25.6,Herbáceas,Herbáceas,0.5261
+Douro,Lamares - Vila Real,2021-07-19,14:34,31.06,29.0,Carqueja,Matos atlânticos,0.91
+Douro,Lamares - Vila Real,2021-07-19,14:34,31.06,29.0,Urze,Matos atlânticos,1.13
+Douro,Lamares - Vila Real,2021-07-19,14:34,31.06,29.0,Herbáceas,Herbáceas,0.52
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-07-19,14:40,34.7,36.4,Esteva,Matos mediterrânicos,0.8304
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-07-19,14:40,34.7,36.4,Giesta,Giestais,0.9029
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-07-20,14:15,28.7,47.6,Carqueja,Matos atlânticos,0.943
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-07-20,14:15,28.7,47.6,Urze,Matos atlânticos,1.08
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-07-20,14:15,28.7,47.6,Herbáceas,Herbáceas,0.66
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-07-20,14:15,28.7,48.0,Tojo,Matos atlânticos,1.24
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-07-20,14:00,22.8,63.0,Carqueja,Matos atlânticos,1.31
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-07-20,14:00,22.8,63.2,Urze,Matos atlânticos,1.25
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-07-20,14:00,22.8,63.2,Herbáceas,Herbáceas,1.3
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-07-20,14:00,22.8,63.2,Tojo,Matos atlânticos,1.57
+Alto Minho e Cávado,Vile - Caminha,2021-07-21,14:00,20.5,85.5,Carqueja,Matos atlânticos,1.14
+Alto Minho e Cávado,Vile - Caminha,2021-07-21,14:00,20.5,85.5,Herbáceas,Herbáceas,0.92
+Alto Minho e Cávado,Vile - Caminha,2021-07-21,14:00,20.5,85.5,Urze,Matos atlânticos,1.0
+Alto Minho e Cávado,Vile - Caminha,2021-07-21,14:00,20.5,85.5,Tojo,Matos atlânticos,1.7
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2021-07-21,14:15,32.0,31.9,P. bravo,Pinhais,1.45
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-07-21,14:45,31.3,26.4,Esteva,Matos mediterrânicos,0.83
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-07-21,14:45,31.3,26.4,Urze,Matos atlânticos,0.52
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2021-07-21,14:45,33.7,28.4,Tojo,Matos atlânticos,1.2004
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2021-07-21,14:45,33.7,28.4,Esteva,Matos mediterrânicos,1.0092
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2021-07-21,14:45,33.7,28.4,Herbáceas,Herbáceas,0.2999
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-07-26,14:30,28.8,39.9,Carqueja,Matos atlânticos,0.7467
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-07-26,14:30,28.8,39.9,Urze,Matos atlânticos,0.7391
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-07-26,14:30,28.8,39.9,Herbáceas,Herbáceas,0.4215
+Douro,Lamares - Vila Real,2021-07-26,14:40,29.7,23.0,Carqueja,Matos atlânticos,1.03
+Douro,Lamares - Vila Real,2021-07-26,14:40,29.7,23.0,Urze,Matos atlânticos,0.92
+Douro,Lamares - Vila Real,2021-07-26,14:40,29.7,23.0,Herbáceas,Herbáceas,0.39
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-07-26,14:30,32.0,29.2,Esteva,Matos mediterrânicos,0.7785
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-07-26,14:30,32.0,29.2,Giesta,Giestais,0.8252
+Alto Minho e Cávado,Vile - Caminha,2021-07-27,14:00,25.2,62.5,Carqueja,Matos atlânticos,1.0
+Alto Minho e Cávado,Vile - Caminha,2021-07-27,14:00,25.2,62.5,Herbáceas,Herbáceas,0.61
+Alto Minho e Cávado,Vile - Caminha,2021-07-27,14:00,25.2,62.5,Urze,Matos atlânticos,0.68
+Alto Minho e Cávado,Vile - Caminha,2021-07-27,14:00,25.2,62.5,Tojo,Matos atlânticos,1.48
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2021-07-27,14:15,34.5,25.7,P. bravo,Pinhais,1.26
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-07-27,14:45,32.2,28.1,Esteva,Matos mediterrânicos,0.9
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-07-27,14:45,32.2,28.1,Urze,Matos atlânticos,0.53
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-07-27,14:00,30.0,42.2,Carqueja,Matos atlânticos,0.85
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-07-27,14:00,30.0,42.2,Urze,Matos atlânticos,1.18
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-07-27,14:00,30.0,42.2,Herbáceas,Herbáceas,0.54
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-07-27,14:00,30.0,42.2,Tojo,Matos atlânticos,1.23
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-07-27,14:00,21.0,49.0,Carqueja,Matos atlânticos,1.12
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-07-27,14:00,21.0,49.0,Urze,Matos atlânticos,1.24
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-07-27,14:00,21.0,49.0,Herbáceas,Herbáceas,0.93
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-07-27,14:00,21.0,49.0,Tojo,Matos atlânticos,1.46
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2021-07-28,14:30,27.3,39.2,Tojo,Matos atlânticos,0.7429
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2021-07-28,14:30,27.3,39.2,Esteva,Matos mediterrânicos,0.8821
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2021-07-28,14:30,27.3,39.2,Herbáceas,Herbáceas,0.1322
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-08-02,14:30,31.4,33.0,Esteva,Matos mediterrânicos,0.7656
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-08-02,14:30,31.4,33.0,Giesta,Giestais,0.8534
+Alto Minho e Cávado,Vile - Caminha,2021-08-03,14:00,24.4,55.7,Carqueja,Matos atlânticos,0.89
+Alto Minho e Cávado,Vile - Caminha,2021-08-03,14:00,24.4,55.7,Herbáceas,Herbáceas,0.59
+Alto Minho e Cávado,Vile - Caminha,2021-08-03,14:00,24.4,55.7,Urze,Matos atlânticos,0.77
+Alto Minho e Cávado,Vile - Caminha,2021-08-03,14:00,24.4,55.7,Tojo,Matos atlânticos,1.56
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2021-08-03,14:15,34.7,29.5,P. bravo,Pinhais,1.42
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-08-03,14:45,33.3,26.6,Esteva,Matos mediterrânicos,0.92
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-08-03,14:45,33.3,26.6,Urze,Matos atlânticos,0.63
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-08-03,14:15,28.0,44.5,Carqueja,Matos atlânticos,0.6268
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-08-03,14:45,28.0,44.5,Urze,Matos atlânticos,0.6768
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-08-03,14:45,28.0,44.5,Herbáceas,Herbáceas,0.513
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-08-03,14:30,17.0,69.0,Carqueja,Matos atlânticos,1.16
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-08-03,14:30,17.0,69.0,Urze,Matos atlânticos,0.67
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-08-03,14:30,17.0,69.0,Herbáceas,Herbáceas,0.26
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-08-03,14:30,17.0,69.0,Tojo,Matos atlânticos,1.32
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-08-03,14:00,28.9,40.0,Carqueja,Matos atlânticos,0.55
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-08-03,14:00,28.9,40.0,Urze,Matos atlânticos,0.76
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-08-03,14:00,28.9,40.0,Herbáceas,Herbáceas,0.22
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-08-03,14:00,30.0,40.0,Tojo,Matos atlânticos,1.43
+Douro,Lamares - Vila Real,2021-08-04,14:45,34.7,47.0,Carqueja,Matos atlânticos,0.93
+Douro,Lamares - Vila Real,2021-08-04,14:45,34.7,47.0,Urze,Matos atlânticos,0.94
+Douro,Lamares - Vila Real,2021-08-04,14:45,34.7,47.0,Herbáceas,Herbáceas,0.09
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2021-08-06,14:30,,,Tojo,Matos atlânticos,0.6908
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2021-08-06,14:30,,,Esteva,Matos mediterrânicos,0.9481
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-08-09,14:45,29.5,32.6,Carqueja,Matos atlânticos,0.7616
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-08-09,14:45,29.5,32.6,Urze,Matos atlânticos,0.8706
+Douro,Lamares - Vila Real,2021-08-09,13:30,27.8,36.0,Carqueja,Matos atlânticos,1.01
+Douro,Lamares - Vila Real,2021-08-09,13:30,27.8,36.0,Urze,Matos atlânticos,1.06
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-08-11,14:30,26.0,59.0,Carqueja,Matos atlânticos,1.26
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-08-11,14:30,26.0,59.0,Urze,Matos atlânticos,1.13
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-08-11,14:30,26.0,59.0,Herbáceas,Herbáceas,0.8
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-08-11,14:30,26.0,59.0,Tojo,Matos atlânticos,1.46
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-08-11,14:00,36.6,26.7,Carqueja,Matos atlânticos,0.85
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-08-11,14:00,36.6,26.7,Urze,Matos atlânticos,0.87
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-08-11,14:00,36.6,26.7,Herbáceas,Herbáceas,0.43
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-08-11,14:00,36.6,26.7,Tojo,Matos atlânticos,1.12
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2021-08-12,14:15,35.4,31.2,P. bravo,Pinhais,1.24
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-08-12,14:45,33.8,36.9,Esteva,Matos mediterrânicos,0.87
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-08-12,14:45,33.8,36.9,Urze,Matos atlânticos,0.57
+Douro,Lamares - Vila Real,2021-08-16,14:25,31.0,30.3,Carqueja,Matos atlânticos,0.92
+Douro,Lamares - Vila Real,2021-08-16,14:25,31.0,30.3,Urze,Matos atlânticos,0.86
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-08-16,15:00,33.0,31.7,Carqueja,Matos atlânticos,0.8394
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-08-16,15:00,33.0,31.7,Urze,Matos atlânticos,0.8512
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-08-16,14:40,37.0,14.3,Esteva,Matos mediterrânicos,0.69
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-08-16,14:40,37.0,14.3,Giesta,Giestais,0.86
+Alto Minho e Cávado,Vile - Caminha,2021-08-17,14:00,27.6,42.1,Carqueja,Matos atlânticos,0.77
+Alto Minho e Cávado,Vile - Caminha,2021-08-17,14:00,27.6,42.1,Herbáceas,Herbáceas,0.39
+Alto Minho e Cávado,Vile - Caminha,2021-08-17,14:00,27.6,42.1,Urze,Matos atlânticos,0.78
+Alto Minho e Cávado,Vile - Caminha,2021-08-17,14:00,27.6,42.1,Tojo,Matos atlânticos,1.37
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2021-08-17,14:00,,,Tojo,Matos atlânticos,0.66
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2021-08-17,14:00,,,Esteva,Matos mediterrânicos,0.83
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-08-18,14:30,23.0,52.0,Carqueja,Matos atlânticos,1.06
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-08-18,14:30,23.0,52.0,Urze,Matos atlânticos,1.05
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-08-18,14:30,23.0,52.0,Herbáceas,Herbáceas,0.82
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-08-18,14:30,23.0,52.0,Tojo,Matos atlânticos,1.25
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-08-18,14:00,32.6,27.6,Carqueja,Matos atlânticos,0.73
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-08-18,14:00,32.6,27.6,Urze,Matos atlânticos,0.71
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-08-18,14:00,32.6,27.6,Herbáceas,Herbáceas,0.26
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-08-18,14:00,32.6,27.6,Tojo,Matos atlânticos,1.04
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2021-08-19,12:15,28.1,39.6,P. bravo,Pinhais,1.36
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-08-19,12:45,28.0,39.4,Esteva,Matos mediterrânicos,0.75
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-08-19,12:45,28.0,39.4,Urze,Matos atlânticos,0.54
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-08-23,15:10,33.6,24.0,Carqueja,Matos atlânticos,0.8473
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-08-23,15:10,33.6,24.0,Urze,Matos atlânticos,0.8719
+Douro,Lamares - Vila Real,2021-08-23,14:35,34.9,17.0,Carqueja,Matos atlânticos,0.98
+Douro,Lamares - Vila Real,2021-08-23,14:35,34.9,17.0,Urze,Matos atlânticos,0.83
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2021-08-24,11:45,32.2,34.2,P. bravo,Pinhais,1.42
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-08-24,12:15,31.8,30.8,Esteva,Matos mediterrânicos,0.82
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-08-24,12:15,31.8,30.8,Urze,Matos atlânticos,0.46
+Alto Minho e Cávado,Vile - Caminha,2021-08-24,14:00,30.7,41.3,Carqueja,Matos atlânticos,0.86
+Alto Minho e Cávado,Vile - Caminha,2021-08-24,14:00,30.7,41.3,Herbáceas,Herbáceas,0.36
+Alto Minho e Cávado,Vile - Caminha,2021-08-24,14:00,30.7,41.3,Urze,Matos atlânticos,0.71
+Alto Minho e Cávado,Vile - Caminha,2021-08-24,14:00,30.7,41.3,Tojo,Matos atlânticos,1.36
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-08-24,14:40,42.8,25.6,Esteva,Matos mediterrânicos,0.6564
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-08-24,14:40,42.8,25.6,Giesta,Giestais,0.8575
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-08-25,14:30,22.0,62.0,Carqueja,Matos atlânticos,0.88
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-08-25,14:30,22.0,62.0,Urze,Matos atlânticos,1.08
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-08-25,14:30,22.0,62.0,Herbáceas,Herbáceas,0.75
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-08-25,14:30,22.0,62.0,Tojo,Matos atlânticos,1.13
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-08-25,14:00,33.0,34.6,Carqueja,Matos atlânticos,0.79
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-08-25,14:00,33.0,34.6,Urze,Matos atlânticos,0.81
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-08-25,14:00,33.0,34.6,Giesta,Giestais,0.82
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-08-25,14:00,33.0,34.6,Tojo,Matos atlânticos,1.17
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2021-08-25,14:30,,,Tojo,Matos atlânticos,0.6065
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2021-08-25,14:30,,,Esteva,Matos mediterrânicos,0.8588
+Douro,Lamares - Vila Real,2021-08-30,14:35,28.4,28.0,Carqueja,Matos atlânticos,0.89
+Douro,Lamares - Vila Real,2021-08-30,14:35,28.4,28.0,Urze,Matos atlânticos,0.71
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-08-30,14:00,27.8,46.6,Carqueja,Matos atlânticos,0.6104
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-08-30,14:00,27.8,46.6,Urze,Matos atlânticos,0.5205
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-08-30,14:40,29.1,42.0,Esteva,Matos mediterrânicos,0.7258
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-08-30,14:40,29.1,42.0,Giesta,Giestais,0.7996
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2021-08-31,14:15,30.9,27.7,P. bravo,Pinhais,1.31
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-08-31,14:45,31.2,27.4,Esteva,Matos mediterrânicos,0.64
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-08-31,14:45,31.2,27.4,Urze,Matos atlânticos,0.55
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-08-31,14:30,24.0,44.0,Carqueja,Matos atlânticos,0.86
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-08-31,14:30,24.0,44.0,Urze,Matos atlânticos,0.77
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-08-31,14:30,24.0,44.0,Herbáceas,Herbáceas,0.71
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2021-08-31,14:30,24.0,44.0,Tojo,Matos atlânticos,1.16
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-08-31,14:00,31.0,34.0,Carqueja,Matos atlânticos,0.81
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-08-31,14:00,31.0,34.0,Urze,Matos atlânticos,0.71
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-08-31,14:00,31.0,34.0,Giesta,Giestais,0.9
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2021-08-31,14:00,31.0,34.0,Tojo,Matos atlânticos,1.1
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2021-09-01,14:30,,,Tojo,Matos atlânticos,0.5652
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2021-09-01,14:30,,,Esteva,Matos mediterrânicos,0.7597
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2021-09-06,14:30,30.8,34.2,Carqueja,Matos atlânticos,0.7897
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2021-09-06,14:30,30.8,34.2,Urze,Matos atlânticos,0.6413
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-09-06,14:15,32.7,36.0,Esteva,Matos mediterrânicos,0.76
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-09-06,14:15,32.7,36.0,Giesta,Giestais,0.75
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2021-09-07,14:15,27.8,46.1,P. bravo,Pinhais,1.31
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-09-07,14:45,26.5,42.9,Esteva,Matos mediterrânicos,0.71
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-09-07,14:45,26.5,42.9,Urze,Matos atlânticos,0.48
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2021-09-16,11:30,29.5,43.6,P. bravo,Pinhais,1.33
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-09-16,12:00,27.9,59.5,Esteva,Matos mediterrânicos,0.96
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-09-16,12:00,27.9,59.5,Urze,Matos atlânticos,0.71
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-09-20,14:30,24.2,40.3,Carqueja,Matos atlânticos,0.6031
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2021-09-20,14:30,24.2,40.3,Urze,Matos atlânticos,0.5541
+Douro,Lamares - Vila Real,2021-09-20,14:20,23.2,40.0,Carqueja,Matos atlânticos,0.9
+Douro,Lamares - Vila Real,2021-09-20,14:20,23.2,40.0,Urze,Matos atlânticos,0.91
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-09-21,14:25,29.0,37.0,Esteva,Matos mediterrânicos,1.09
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-09-21,14:25,29.0,37.0,Giesta,Giestais,0.79
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2021-09-22,14:15,25.7,42.2,P. bravo,Pinhais,1.22
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-09-22,14:45,26.5,34.9,Esteva,Matos mediterrânicos,0.89
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-09-22,14:45,26.5,34.9,Urze,Matos atlânticos,0.7
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-09-27,14:25,30.3,38.0,Esteva,Matos mediterrânicos,1.22
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-09-27,14:25,30.3,38.0,Giesta,Giestais,0.83
+Douro,Lamares - Vila Real,2021-09-27,14:30,18.9,79.0,Carqueja,Matos atlânticos,0.91
+Douro,Lamares - Vila Real,2021-09-27,14:30,18.9,79.0,Urze,Matos atlânticos,0.94
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2021-09-30,14:15,27.2,39.9,P. bravo,Pinhais,1.18
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-09-30,14:45,27.6,35.3,Esteva,Matos mediterrânicos,1.14
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-09-30,14:45,27.6,35.3,Urze,Matos atlânticos,0.86
+Douro,Lamares - Vila Real,2021-10-06,14:30,21.2,43.0,Carqueja,Matos atlânticos,0.93
+Douro,Lamares - Vila Real,2021-10-06,14:30,21.2,43.0,Urze,Matos atlânticos,0.99
+Douro,Lamares - Vila Real,2021-10-11,14:30,21.8,30.0,Carqueja,Matos atlânticos,0.89
+Douro,Lamares - Vila Real,2021-10-11,14:30,21.8,30.0,Urze,Matos atlânticos,0.86
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-10-11,14:25,29.2,37.0,Esteva,Matos mediterrânicos,1.16
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-10-11,14:25,29.2,37.0,Giesta,Giestais,0.76
+,,2021-10-13,14:15,25.7,41.0,,,1.24
+,,2021-10-13,14:45,29.6,31.0,,,
+,,2021-10-13,14:45,29.6,31.0,,,0.61
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-10-19,14:30,28.3,44.0,Esteva,Matos mediterrânicos,0.9847
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-10-19,14:30,28.3,44.0,Giesta,Giestais,0.9149
+Douro,Lamares - Vila Real,2021-10-19,14:30,25.2,41.0,Carqueja,Matos atlânticos,0.81
+Douro,Lamares - Vila Real,2021-10-19,14:30,25.2,41.0,Urze,Matos atlânticos,0.92
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-10-26,14:25,24.1,30.0,Esteva,Matos mediterrânicos,0.9955
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-10-26,14:25,24.1,30.0,Giesta,Giestais,0.8152
+"Beira Baixa, Beiras e Serra da Estrela",Zona industrial,2021-11-02,14:15,16.2,76.3,P. bravo,Pinhais,1.35
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-11-02,14:45,14.9,77.3,Esteva,Matos mediterrânicos,1.13
+"Beira Baixa, Beiras e Serra da Estrela",Olelas,2021-11-02,14:45,14.9,77.3,Urze,Matos atlânticos,0.94
+Douro,Lamares - Vila Real,2021-11-05,14:40,17.0,43.0,Carqueja,Matos atlânticos,0.92
+Douro,Lamares - Vila Real,2021-11-05,14:40,17.0,43.0,Urze,Matos atlânticos,0.86
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-11-08,14:35,20.4,39.4,Esteva,Matos mediterrânicos,1.55
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-11-08,14:35,20.4,39.4,Giesta,Giestais,0.9603
+Douro,Lamares - Vila Real,2021-11-15,14:45,14.5,48.0,Carqueja,Matos atlânticos,0.93
+Douro,Lamares - Vila Real,2021-11-15,14:45,14.5,48.0,Urze,Matos atlânticos,0.89
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-12-02,14:35,15.8,37.0,Esteva,Matos mediterrânicos,1.435
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-12-02,14:35,15.8,37.0,Giesta,Giestais,0.958
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-12-13,14:45,19.5,45.0,Esteva,Matos mediterrânicos,1.8823
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2021-12-13,14:45,19.5,45.0,Giesta,Giestais,0.9529
+Douro,Lamares - Vila Real,2021-12-17,14:45,11.0,43.0,Carqueja,Matos atlânticos,0.92
+Douro,Lamares - Vila Real,2021-12-17,14:45,11.0,43.0,Urze,Matos atlânticos,0.99
+AML e Alentejo Litoral,Ouressa - Sintra,,,,,,,
+AML e Alentejo Litoral,Arrábida - Setúbal,,,,,,,
+Douro,Lamares - Vila Real,,,,,,,
+Douro,Lamares - Vila Real,,,,,,,
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-01-11,14:00,19.3,58.7,Esteva,Matos mediterrânicos,1.4574
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-01-11,14:00,19.3,58.7,Giesta,Giestais,1.0895
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-01-17,14:20,15.6,43.7,Esteva,Matos mediterrânicos,1.5321
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-01-17,14:20,15.6,43.7,Giesta,Giestais,0.9937
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-01-17,13:00,15.3,67.4,Esteva,Matos mediterrânicos,1.29
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-01-17,13:00,15.3,67.0,Carrasco,Matos mediterrânicos,0.736
+Douro,Lamares - Vila Real,2022-01-17,14:40,10.5,50.0,Carqueja,Matos atlânticos,0.92
+Douro,Lamares - Vila Real,2022-01-17,14:40,10.5,50.0,Urze,Matos atlânticos,0.99
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-01-25,14:30,13.9,49.9,Esteva,Matos mediterrânicos,1.9481
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-01-25,14:30,13.9,49.9,Giesta,Giestais,1.0901
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-01-31,14:40,18.0,35.9,Esteva,Matos mediterrânicos,1.6771
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-01-31,14:40,18.0,35.9,Giesta,Giestais,0.9803
+Douro,Lamares - Vila Real,2022-01-31,14:45,14.7,46.8,Carqueja,Matos atlânticos,1.05
+Douro,Lamares - Vila Real,2022-01-31,14:45,14.7,46.8,Urze,Matos atlânticos,0.82
+Médio Tejo e Lezíria do tejo,Santarém,2022-01-31,14:26,21.5,40.0,Tojo,Matos atlânticos,1.16
+Médio Tejo e Lezíria do tejo,Santarém,2022-01-31,14:26,21.5,40.0,P. bravo,Pinhais,1.38
+Médio Tejo e Lezíria do tejo,Chamusca,2022-01-31,15:27,19.0,34.0,Esteva,Matos mediterrânicos,1.22
+Médio Tejo e Lezíria do tejo,Chamusca,2022-01-31,15:27,19.0,34.0,Tojo,Matos atlânticos,1.24
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-02-07,14:40,24.2,25.0,Esteva,Matos mediterrânicos,1.7375
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-02-07,14:40,24.2,25.0,Giesta,Giestais,1.0278
+Médio Tejo e Lezíria do tejo,Santarém,2022-02-07,14:35,20.0,41.0,P. bravo,Pinhais,1.38
+Médio Tejo e Lezíria do tejo,Santarém,2022-02-07,14:35,20.0,41.0,Tojo,Matos atlânticos,1.04
+Médio Tejo e Lezíria do tejo,Chamusca,2022-02-07,15:27,19.0,34.0,Esteva,Matos mediterrânicos,1.38
+Médio Tejo e Lezíria do tejo,Chamusca,2022-02-07,15:27,19.0,34.0,Tojo,Matos atlânticos,1.22
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-02-14,14:30,15.0,41.0,Esteva,Matos mediterrânicos,1.6847
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-02-14,14:30,15.0,41.0,Giesta,Giestais,1.1008
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-02-14,14:15,16.0,58.2,Esteva,Matos mediterrânicos,1.1
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-02-14,14:15,16.0,58.0,Carrasco,Matos mediterrânicos,0.771
+Médio Tejo e Lezíria do tejo,Chamusca,2022-02-15,15:15,17.8,43.7,Esteva,Matos mediterrânicos,1.61
+Médio Tejo e Lezíria do tejo,Chamusca,2022-02-15,15:15,17.8,43.7,Tojo,Matos atlânticos,1.48
+Médio Tejo e Lezíria do tejo,Santarém,2022-02-15,15:50,15.4,49.0,Tojo,Matos atlânticos,1.37
+Médio Tejo e Lezíria do tejo,Santarém,2022-02-15,15:50,15.4,49.0,P. bravo,Pinhais,1.35
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-02-21,14:15,22.4,47.8,Esteva,Matos mediterrânicos,1.06
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-02-21,14:15,22.4,47.8,Carrasco,Matos mediterrânicos,0.7
+Douro,Lamares - Vila Real,2022-02-21,14:40,19.0,46.8,Carqueja,Matos atlânticos,1.16
+Douro,Lamares - Vila Real,2022-02-21,14:40,19.0,46.8,Urze,Matos atlânticos,0.8
+Médio Tejo e Lezíria do tejo,Chamusca,2022-02-21,14:25,18.7,44.0,Esteva,Matos mediterrânicos,1.48
+Médio Tejo e Lezíria do tejo,Chamusca,2022-02-21,14:25,18.7,44.0,Tojo,Matos atlânticos,1.47
+Médio Tejo e Lezíria do tejo,Santarém,2022-02-21,15:15,24.4,32.1,Tojo,Matos atlânticos,1.28
+Médio Tejo e Lezíria do tejo,Santarém,2022-02-21,15:15,24.4,32.0,P. bravo,Pinhais,1.38
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-02-22,14:15,20.7,28.0,Esteva,Matos mediterrânicos,1.4603
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-02-22,14:15,20.7,28.0,Giesta,Giestais,1.2602
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-03-07,14:12,16.3,54.1,Esteva,Matos mediterrânicos,1.04
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-03-07,14:12,16.3,54.1,Carrasco,Matos mediterrânicos,0.71
+Douro,Lamares - Vila Real,2022-03-07,14:45,13.2,42.6,Carqueja,Matos atlânticos,0.97
+Douro,Lamares - Vila Real,2022-03-07,14:45,13.2,42.6,Urze,Matos atlânticos,0.79
+Médio Tejo e Lezíria do tejo,Santarém,2022-03-07,13:30,16.6,31.8,Tojo,Matos atlânticos,0.94
+Médio Tejo e Lezíria do tejo,Santarém,2022-03-08,13:30,16.6,32.0,P. bravo,Pinhais,1.38
+Médio Tejo e Lezíria do tejo,Chamusca,2022-03-09,14:00,18.3,33.0,Esteva,Matos mediterrânicos,1.02
+Médio Tejo e Lezíria do tejo,Chamusca,2022-03-10,14:00,18.3,33.0,Tojo,Matos atlânticos,0.87
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-03-14,14:05,15.8,63.6,Esteva,Matos mediterrânicos,1.08
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-03-14,14:05,15.8,63.6,Carrasco,Matos mediterrânicos,0.71
+Médio Tejo e Lezíria do tejo,Santarém,2022-03-14,14:00,14.8,63.3,P. bravo,Pinhais,1.34
+Médio Tejo e Lezíria do tejo,Santarém,2022-03-14,14:00,14.8,63.3,Tojo,Matos atlânticos,1.05
+Douro,Lamares - Vila Real,2022-03-21,14:15,14.5,55.3,Carqueja,Matos atlânticos,1.08
+Douro,Lamares - Vila Real,2022-03-21,14:15,14.5,55.3,Urze,Matos atlânticos,0.78
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-03-22,14:30,18.5,67.4,Esteva,Matos mediterrânicos,1.27
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-03-22,14:30,18.5,67.4,Carrasco,Matos mediterrânicos,0.735
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-03-28,14:30,19.2,48.3,Esteva,Matos mediterrânicos,1.6795
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-03-28,14:30,19.2,48.3,Giesta,Giestais,2.0261
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-03-28,14:23,23.3,49.4,Esteva,Matos mediterrânicos,2.28
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-03-28,14:23,23.3,49.4,Carrasco,Matos mediterrânicos,1.52
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-04-04,14:35,17.5,38.5,Esteva,Matos mediterrânicos,1.16
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-04-04,14:35,17.5,38.5,Carrasco,Matos mediterrânicos,0.69
+Douro,Lamares - Vila Real,2022-04-05,14:45,15.4,58.0,Carqueja,Matos atlânticos,1.09
+Douro,Lamares - Vila Real,2022-04-05,14:45,15.4,58.0,Urze,Matos atlânticos,0.8
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-04-07,15:15,10.8,68.0,Carqueja,Matos atlânticos,1.04
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-04-07,15:15,10.8,68.0,Herbáceas,Herbáceas,0.177
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-04-07,15:15,10.8,68.0,Urze,Matos atlânticos,0.927
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-04-19,14:19,19.5,45.4,Esteva,Matos mediterrânicos,1.06
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-04-19,14:19,19.5,45.4,Carrasco,Matos mediterrânicos,0.736
+Douro,Lamares - Vila Real,2022-04-19,15:00,13.2,64.0,Carqueja,Matos atlânticos,1.96
+Douro,Lamares - Vila Real,2022-04-19,15:00,13.2,64.0,Urze,Matos atlânticos,0.99
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-05-02,15:15,17.6,54.1,Carqueja,Matos atlânticos,1.178
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-05-02,15:15,17.6,54.1,Urze,Matos atlânticos,1.974
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-05-02,15:15,17.6,54.1,Herbáceas,Herbáceas,0.878
+Douro,Lamares - Vila Real,2022-05-02,14:30,16.8,64.0,Carqueja,Matos atlânticos,1.47
+Douro,Lamares - Vila Real,2022-05-02,14:30,53.1,64.0,Urze,Matos atlânticos,1.04
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-05-05,14:30,25.1,34.0,Esteva,Matos mediterrânicos,1.336
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-05-05,14:30,25.1,34.0,Giesta,Giestais,1.6384
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-05-09,15:00,31.6,29.7,Carqueja,Matos atlânticos,1.73
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-05-09,15:00,31.6,29.7,Herbáceas,Herbáceas,1.528
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-05-09,15:00,31.6,29.7,Urze,Matos atlânticos,1.16
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2022-05-10,15:00,31.0,28.6,Esteva,Matos mediterrânicos,0.56
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2022-05-10,15:00,31.0,28.6,Tojo,Matos atlânticos,0.6
+Alto Tâmega e Terra de Trás-os-Montes,frança - Bragança,2022-05-10,15:00,31.0,28.6,Herbáceas,Herbáceas,0.73
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-05-10,14:50,27.3,32.8,Esteva,Matos mediterrânicos,0.878
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-05-10,14:50,27.3,32.8,Carrasco,Matos mediterrânicos,1.13
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-05-16,15:15,16.2,86.2,Carqueja,Matos atlânticos,1.661
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-05-16,15:15,16.2,86.2,Herbáceas,Herbáceas,1.959
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-05-16,15:15,16.2,86.2,Urze,Matos atlânticos,0.965
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-05-18,14:30,29.3,40.3,Esteva,Matos mediterrânicos,1.1788
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-05-18,14:30,29.3,40.3,Giesta,Giestais,1.415
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-05-18,15:30,27.0,46.4,Esteva,Matos mediterrânicos,0.838
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-05-18,15:30,27.0,46.4,Carrasco,Matos mediterrânicos,1.06
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-05-18,15:30,27.0,46.4,Tojo,Matos atlânticos,0.69
+Douro,Lamares - Vila Real,2022-05-18,14:45,21.2,60.7,Carqueja,Matos atlânticos,1.31
+Douro,Lamares - Vila Real,2022-05-18,14:45,21.2,60.7,Urze,Matos atlânticos,0.91
+Douro,Lamares - Vila Real,2022-05-18,14:45,21.2,60.7,Herbáceas,Herbáceas,0.45
+Médio Tejo e Lezíria do tejo,Chamusca,2022-05-18,12:00,27.4,50.7,Esteva,Matos mediterrânicos,1.45
+Médio Tejo e Lezíria do tejo,Chamusca,2022-05-18,12:00,27.4,50.7,Tojo,Matos atlânticos,0.99
+Médio Tejo e Lezíria do tejo,Santarém,2022-05-18,13:10,24.2,62.7,P. bravo,Pinhais,1.35
+Médio Tejo e Lezíria do tejo,Santarém,2022-05-18,13:10,24.2,62.7,Tojo,Matos atlânticos,1.9084
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-05-23,15:15,22.6,40.0,Carqueja,Matos atlânticos,1.301
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-05-23,15:15,22.6,40.0,Herbáceas,Herbáceas,1.463
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-05-23,15:15,22.6,40.0,Urze,Matos atlânticos,0.92
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-05-24,15:00,21.9,36.0,Esteva,Matos mediterrânicos,1.2368
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-05-24,15:00,21.9,36.0,Giesta,Giestais,1.5964
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2022-05-24,12:00,18.0,58.3,Esteva,Matos mediterrânicos,0.59
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2022-05-24,12:00,18.0,58.3,Tojo,Matos atlânticos,0.58
+Alto Tâmega e Terra de Trás-os-Montes,frança - Bragança,2022-05-24,12:00,18.0,58.3,Herbáceas,Herbáceas,0.56
+Médio Tejo e Lezíria do tejo,Chamusca,2022-05-24,13:50,20.5,42.8,Esteva,Matos mediterrânicos,0.98
+Médio Tejo e Lezíria do tejo,Chamusca,2022-05-24,13:50,20.5,42.8,Tojo,Matos atlânticos,0.81
+Médio Tejo e Lezíria do tejo,Santarém,2022-05-24,15:30,21.1,45.5,Tojo,Matos atlânticos,1.52
+Médio Tejo e Lezíria do tejo,Santarém,2022-05-24,15:30,21.1,45.5,P. bravo,Pinhais,1.2831
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2022-05-25,14h30,22.4,35.3,Carqueja,Matos atlânticos,1.43
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2022-05-25,14h30,22.4,35.0,Urze,Matos atlânticos,1.55
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-05-31,13:06,24.0,62.9,Esteva,Matos mediterrânicos,0.8
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-05-31,13:06,24.0,62.9,Carrasco,Matos mediterrânicos,0.9
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-05-31,13:06,24.0,62.9,Tojo,Matos atlânticos,0.65
+Douro,Lamares - Vila Real,2022-05-31,14:30,22.8,53.6,Carqueja,Matos atlânticos,1.22
+Douro,Lamares - Vila Real,2022-05-31,14:30,22.8,53.6,Urze,Matos atlânticos,0.96
+Douro,Lamares - Vila Real,2022-05-31,14:30,22.8,53.6,Herbáceas,Herbáceas,0.71
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2022-06-01,11:28,18.0,58.3,Esteva,Matos mediterrânicos,0.53
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2022-06-01,11:28,18.0,58.3,Tojo,Matos atlânticos,0.54
+Alto Tâmega e Terra de Trás-os-Montes,frança - Bragança,2022-06-01,11:28,18.0,58.3,Herbáceas,Herbáceas,0.9
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-06-06,13:55,25.5,57.2,Esteva,Matos mediterrânicos,0.7
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-06-06,13:55,25.5,57.2,Carrasco,Matos mediterrânicos,0.82
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-06-06,13:55,25.5,57.2,Tojo,Matos atlânticos,0.755
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-06-06,15:10,20.6,60.6,Carqueja,Matos atlânticos,1.082
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-06-06,15:10,20.6,60.6,Urze,Matos atlânticos,1.148
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-06-06,15:10,20.6,60.6,Herbáceas,Herbáceas,1.118
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2022-06-07,12:00,28.0,17.4,Esteva,Matos mediterrânicos,0.55
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2022-06-07,12:00,28.0,17.4,Tojo,Matos atlânticos,0.5
+Alto Tâmega e Terra de Trás-os-Montes,frança - Bragança,2022-06-07,12:00,28.0,17.4,Herbáceas,Herbáceas,0.39
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-06-08,14:15,26.0,50.0,Esteva,Matos mediterrânicos,1.0874
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-06-08,14:15,26.0,50.0,Giesta,Giestais,1.2714
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2022-06-13,14:44,36.8,31.9,Esteva,Matos mediterrânicos,0.53
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2022-06-13,14:44,36.8,31.9,Tojo,Matos atlânticos,0.47
+Alto Tâmega e Terra de Trás-os-Montes,frança - Bragança,2022-06-13,14:44,36.8,31.9,Herbáceas,Herbáceas,0.57
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-06-13,13:18,31.4,39.8,Esteva,Matos mediterrânicos,0.84
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-06-13,13:18,31.4,49.0,Carrasco,Matos mediterrânicos,0.77
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-06-13,13:18,31.4,40.0,Tojo,Matos atlânticos,0.98
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-06-14,14:30,37.7,23.1,Esteva,Matos mediterrânicos,0.98
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-06-14,14:30,37.7,23.1,Giesta,Giestais,1.029
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2022-06-14,14:15,34.2,25.0,Herbáceas,Herbáceas,0.4456
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2022-06-14,14:15,34.2,25.0,Carqueja,Matos atlânticos,0.9141
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2022-06-14,14:15,34.2,25.0,Urze,Matos atlânticos,1.2798
+Médio Tejo e Lezíria do tejo,Chamusca,2022-06-14,13:15,33.0,45.5,Tojo,Matos atlânticos,0.86
+Médio Tejo e Lezíria do tejo,Chamusca,2022-06-14,13:15,33.0,46.0,Esteva,Matos mediterrânicos,1.19
+Médio Tejo e Lezíria do tejo,Santarém,2022-06-14,14:15,35.7,38.2,P. bravo,Pinhais,1.33
+Médio Tejo e Lezíria do tejo,Santarém,2022-06-14,14:15,35.7,38.2,Tojo,Matos atlânticos,1.4036
+Alto Minho e Cávado,Labruja - Ponte de Lima,2022-06-15,14:30,28.3,63.8,Carqueja,Matos atlânticos,0.79
+Alto Minho e Cávado,Labruja - Ponte de Lima,2022-06-15,14:30,28.3,63.8,Herbáceas,Herbáceas,0.98
+Alto Minho e Cávado,Labruja - Ponte de Lima,2022-06-15,14:30,28.3,63.8,Urze,Matos atlânticos,1.02
+Alto Minho e Cávado,Labruja - Ponte de Lima,2022-06-15,14:30,28.3,63.8,Tojo,Matos atlânticos,1.82
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-06-15,15:10,39.0,33.0,Carqueja,Matos atlânticos,1.041
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-06-15,15:10,39.0,33.0,Herbáceas,Herbáceas,0.795
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-06-15,15:10,39.0,33.0,Urze,Matos atlânticos,0.908
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2022-06-21,13:30,22.0,47.0,Esteva,Matos mediterrânicos,0.48
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2022-06-21,13:30,22.0,47.0,Tojo,Matos atlânticos,0.45
+Alto Tâmega e Terra de Trás-os-Montes,frança - Bragança,2022-06-21,13:30,22.0,47.0,Herbáceas,Herbáceas,0.29
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2022-06-21,14:20,18.0,58.0,Herbáceas,Herbáceas,0.75
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2022-06-21,14:20,18.0,58.0,Carqueja,Matos atlânticos,1.03
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2022-06-21,14:20,18.0,58.0,Urze,Matos atlânticos,1.37
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-06-22,14:30,26.5,37.0,Esteva,Matos mediterrânicos,0.983
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-06-22,14:30,26.5,37.0,Giesta,Giestais,0.928
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-06-27,14:30,27.2,27.0,Esteva,Matos mediterrânicos,0.92
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-06-27,14:30,27.2,27.0,Giesta,Giestais,0.89
+Douro,Lamares - Vila Real,2022-06-27,14:45,24.3,34.2,Carqueja,Matos atlânticos,
+Douro,Lamares - Vila Real,2022-06-27,14:45,24.3,34.2,Urze,Matos atlânticos,0.87
+Douro,Lamares - Vila Real,2022-06-27,14:45,24.3,34.2,Herbáceas,Herbáceas,0.48
+Médio Tejo e Lezíria do tejo,Santarém,2022-06-27,14:00,25.0,35.0,Tojo,Matos atlânticos,1.03
+Médio Tejo e Lezíria do tejo,Santarém,2022-06-27,14:00,25.0,35.0,P. bravo,Pinhais,1.33
+Médio Tejo e Lezíria do tejo,Chamusca,2022-06-27,15:00,27.0,32.0,Esteva,Matos mediterrânicos,0.53
+Médio Tejo e Lezíria do tejo,Chamusca,2022-06-27,15:00,27.0,32.0,Tojo,Matos atlânticos,0.71
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2022-06-28,14:15,27.7,29.6,Herbáceas,Herbáceas,0.42
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2022-06-28,14:15,27.7,29.6,Carqueja,Matos atlânticos,0.95
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2022-06-28,14:15,27.7,29.6,Urze,Matos atlânticos,1.17
+Alto Minho e Cávado,Labruja - Ponte de Lima,2022-06-29,14:30,16.1,69.3,Carqueja,Matos atlânticos,1.3
+Alto Minho e Cávado,Labruja - Ponte de Lima,2022-06-29,14:30,16.1,69.3,Herbáceas,Herbáceas,1.32
+Alto Minho e Cávado,Labruja - Ponte de Lima,2022-06-29,14:30,16.1,69.3,Urze,Matos atlânticos,0.81
+Alto Minho e Cávado,Labruja - Ponte de Lima,2022-06-29,14:30,16.1,69.3,Tojo,Matos atlânticos,1.83
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2022-06-29,14:30,16.3,66.0,Carqueja,Matos atlânticos,1.4
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2022-06-29,14:30,16.3,66.0,Urze,Matos atlânticos,1.31
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2022-06-29,14:30,16.3,66.0,Tojo,Matos atlânticos,1.93
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2022-06-29,14:30,16.3,66.0,Herbáceas,Herbáceas,1.15
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2022-07-04,14:30,31.0,40.0,Herbáceas,Herbáceas,0.34
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2022-07-04,14:30,31.0,40.0,Carqueja,Matos atlânticos,0.91
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2022-07-04,14:30,31.0,40.0,Urze,Matos atlânticos,1.12
+Douro,Lamares - Vila Real,2022-07-04,14:45,28.5,42.0,Carqueja,Matos atlânticos,0.87
+Douro,Lamares - Vila Real,2022-07-04,14:45,28.5,42.0,Urze,Matos atlânticos,0.92
+Douro,Lamares - Vila Real,2022-07-04,14:45,28.5,42.0,Herbáceas,Herbáceas,0.61
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-07-05,14:00,31.7,31.0,Esteva,Matos mediterrânicos,0.885
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-07-05,14:00,31.7,31.0,Giesta,Giestais,0.906
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2022-07-05,12:05,32.8,27.06,Esteva,Matos mediterrânicos,0.52
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2022-07-05,12:05,32.8,27.06,Tojo,Matos atlânticos,0.36
+Alto Tâmega e Terra de Trás-os-Montes,frança - Bragança,2022-07-05,13:05,32.8,27.06,Herbáceas,Herbáceas,0.17
+Alto Minho e Cávado,Labruja - Ponte de Lima,2022-07-06,14:00,27.4,53.0,Carqueja,Matos atlânticos,1.36
+Alto Minho e Cávado,Labruja - Ponte de Lima,2022-07-06,14:00,27.4,53.0,Herbáceas,Herbáceas,1.43
+Alto Minho e Cávado,Labruja - Ponte de Lima,2022-07-06,14:00,27.4,53.0,Urze,Matos atlânticos,0.9
+Alto Minho e Cávado,Labruja - Ponte de Lima,2022-07-06,14:00,27.4,53.0,Tojo,Matos atlânticos,1.74
+Médio Tejo e Lezíria do tejo,Santarém,2022-07-06,15:00,33.0,37.0,Tojo,Matos atlânticos,1.11
+Médio Tejo e Lezíria do tejo,Santarém,2022-07-06,15:00,33.0,37.0,P. bravo,Pinhais,1.38
+Médio Tejo e Lezíria do tejo,Chamusca,2022-07-06,14:30,36.0,35.0,Esteva,Matos mediterrânicos,0.64
+Médio Tejo e Lezíria do tejo,Chamusca,2022-07-06,14:30,36.0,35.0,Tojo,Matos atlânticos,0.91
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-07-12,14:30,39.5,12.5,Esteva,Matos mediterrânicos,0.811
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-07-12,14:30,39.5,12.5,Giesta,Giestais,0.846
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2022-07-12,14:40,38.2,21.1,Herbáceas,Herbáceas,0.47
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2022-07-12,14:40,38.2,21.1,Carqueja,Matos atlânticos,0.88
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2022-07-12,14:40,38.2,21.1,Urze,Matos atlânticos,1.16
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2022-07-12,13:50,40.0,20.3,Esteva,Matos mediterrânicos,0.47
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2022-07-12,13:50,40.0,20.3,Tojo,Matos atlânticos,0.4
+Alto Tâmega e Terra de Trás-os-Montes,frança - Bragança,2022-07-12,13:50,40.0,20.3,Herbáceas,Herbáceas,0.29
+Douro,Lamares - Vila Real,2022-07-12,14:45,38.0,20.0,Carqueja,Matos atlânticos,0.84
+Douro,Lamares - Vila Real,2022-07-12,14:45,38.0,20.0,Urze,Matos atlânticos,
+Douro,Lamares - Vila Real,2022-07-12,14:45,38.0,20.0,Herbáceas,Herbáceas,0.17
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-07-19,14:30,33.6,29.0,Esteva,Matos mediterrânicos,0.838
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-07-19,14:30,33.6,29.0,Giesta,Giestais,0.848
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2022-07-19,12:00,28.0,49.2,Esteva,Matos mediterrânicos,0.48
+Alto Tâmega e Terra de Trás-os-Montes,França - Bragança,2022-07-19,12:00,28.0,49.2,Tojo,Matos atlânticos,0.4
+Alto Tâmega e Terra de Trás-os-Montes,frança - Bragança,2022-07-19,12:00,28.0,49.2,Herbáceas,Herbáceas,0.21
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-07-19,14:00,25.7,56.5,Esteva,Matos mediterrânicos,0.76
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-07-19,14:00,25.7,56.5,Carrasco,Matos mediterrânicos,0.71
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-07-19,14:00,25.7,56.5,Tojo,Matos atlânticos,0.67
+Médio Tejo e Lezíria do tejo,Santarém,2022-07-19,13:20,31.0,40.0,Tojo,Matos atlânticos,1.01
+Médio Tejo e Lezíria do tejo,Santarém,2022-07-19,13:20,31.0,40.0,P. bravo,Pinhais,1.32
+Médio Tejo e Lezíria do tejo,Chamusca,2022-07-19,14:10,32.0,37.0,Esteva,Matos mediterrânicos,0.45
+Médio Tejo e Lezíria do tejo,Chamusca,2022-07-19,14:10,32.0,37.0,Tojo,Matos atlânticos,0.5498
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-07-25,14:30,38.0,13.0,Esteva,Matos mediterrânicos,0.767
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-07-25,14:30,38.0,13.0,Giesta,Giestais,0.862
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-07-25,13:00,35.1,27.3,Esteva,Matos mediterrânicos,0.769
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-07-25,13:00,35.1,27.3,Carrasco,Matos mediterrânicos,0.742
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-07-25,13:00,35.1,27.3,Tojo,Matos atlânticos,0.652
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-07-25,15:15,29.0,28.0,Carqueja,Matos atlânticos,0.81
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-07-25,15:15,29.0,28.0,Herbáceas,Herbáceas,0.36
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-07-25,15:15,29.0,28.0,Urze,Matos atlânticos,0.716
+Médio Tejo e Lezíria do tejo,Santarém,2022-07-26,14:25,31.8,40.6,Tojo,Matos atlânticos,0.92
+Médio Tejo e Lezíria do tejo,Santarém,2022-07-26,14:25,31.8,40.6,P. bravo,Pinhais,1.36
+Médio Tejo e Lezíria do tejo,Chamusca,2022-07-26,15:35,33.1,30.3,Tojo,Matos atlânticos,0.75
+Médio Tejo e Lezíria do tejo,Chamusca,2022-07-26,15:35,33.1,30.3,Esteva,Matos mediterrânicos,0.7883
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2022-07-27,14h30,31.0,35.0,Carqueja,Matos atlânticos,0.55
+Alto Tâmega e Terra de Trás-os-Montes,Anelhe - Chaves,2022-07-27,14h30,31.0,35.0,Urze,Matos atlânticos,1.02
+Alto Minho e Cávado,Labruja - Ponte de Lima,2022-07-28,14h30,23.6,62.7,Carqueja,Matos atlânticos,1.03
+Alto Minho e Cávado,Labruja - Ponte de Lima,2022-07-28,14h30,23.6,62.7,Herbáceas,Herbáceas,0.31
+Alto Minho e Cávado,Labruja - Ponte de Lima,2022-07-28,14h30,23.6,62.7,Urze,Matos atlânticos,0.89
+Alto Minho e Cávado,Labruja - Ponte de Lima,2022-07-28,14h30,23.6,62.7,Tojo,Matos atlânticos,1.47
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-08-01,14h45,40.7,21.7,Esteva,Matos mediterrânicos,0.743
+"Alto Alentejo, Alentejo Central e Baixo Alentejo",S.Penha - Portalegre,2022-08-01,14h45,40.7,21.7,Giesta,Giestais,0.843
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-08-01,15:00,26.1,58.6,Esteva,Matos mediterrânicos,0.705
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-08-01,15:00,26.1,58.6,Carrasco,Matos mediterrânicos,0.718
+AML e Alentejo Litoral,Arrábida - Setúbal,2022-08-01,15:00,26.1,58.6,Tojo,Matos atlânticos,0.648
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2022-08-02,14:30,33.0,27.0,Carqueja,Matos atlânticos,0.8144
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2022-08-02,14:30,33.0,27.0,Urze,Matos atlânticos,0.77
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2022-08-02,14:30,33.0,27.0,Tojo,Matos atlânticos,1.1578
+Tâmega e Sousa e Ave,Felgueira - Vale de Cambra,2022-08-02,14:30,33.0,27.0,Herbáceas,Herbáceas,0.4581
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-08-02,14:30,34.0,28.0,Carqueja,Matos atlânticos,0.666
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-08-02,14:30,34.0,28.0,Urze,Matos atlânticos,0.639
+"Aveiro, Viseu e Dão Lafões",Granja - Castro Daire,2022-08-02,14:30,34.0,28.0,Herbáceas,Herbáceas,0.363
+Médio Tejo e Lezíria do tejo,Santarém,2022-08-02,15:17,39.0,32.0,P. bravo,Pinhais,1.38
+Médio Tejo e Lezíria do tejo,Santarém,2022-08-02,15:17,39.0,32.0,Tojo,Matos atlânticos,0.88
+Médio Tejo e Lezíria do tejo,Chamusca,2022-08-02,16:00,37.0,18.0,Esteva,Matos mediterrânicos,0.66
+Médio Tejo e Lezíria do tejo,Chamusca,2022-08-02,16:00,37.0,18.0,Tojo,Matos atlânticos,0.5482
+Alto Minho e Cávado,Labruja - Ponte de Lima,2022-08-03,14:30,28.6,58.6,Carqueja,Matos atlânticos,1.0
+Alto Minho e Cávado,Labruja - Ponte de Lima,2022-08-03,14:30,28.6,58.6,Herbáceas,Herbáceas,0.55
+Alto Minho e Cávado,Labruja - Ponte de Lima,2022-08-03,14:30,28.6,58.6,Urze,Matos atlânticos,0.77
+Alto Minho e Cávado,Labruja - Ponte de Lima,2022-08-03,14:30,28.6,58.6,Tojo,Matos atlânticos,1.25

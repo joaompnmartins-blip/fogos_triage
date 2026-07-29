@@ -26,7 +26,6 @@ RUN pip install --no-cache-dir \
     shapely \
     boto3 \
     httpx \
-    earthengine-api
 
 # Copiar código (precisamos do package fogos_triage para fuel_models e schemas)
 COPY pyproject.toml ./

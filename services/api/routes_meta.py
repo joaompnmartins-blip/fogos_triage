@@ -266,8 +266,9 @@ async def _run_and_update(
         from fogos_triage.schemas import WeatherConditions
         from fogos_triage.simulation import run_simulation_async
         from fogos_triage.triage import gust_weather
+        from fogos_triage.lfmc_climatologia import lfmc_climatologia
         from fogos_triage.weather import (
-            derive_fire_weather, fetch_live_fmc_viirs, fetch_weather_for_start_time,
+            derive_fire_weather, fetch_precipitation_sum, fetch_weather_for_start_time,
         )
         from fogos_triage.weather_stream import parse_weather_stream
 
@@ -326,38 +327,37 @@ async def _run_and_update(
                 raw_hourly = []
             weather_source = "open_meteo" if raw_hourly else "triagem"
 
-        # Humidade viva: por omissão herda-se a da triagem da ocorrência
-        # (que, estando a triagem congelada no arranque, é a do início do
-        # incêndio — o que se quer para simular o arranque).
+        # Humidade viva: climatologia sazonal + precipitação acumulada a
+        # 180 dias, para a data da simulação (ver lfmc_climatologia e
+        # LFMC_CLIMATOLOGIA_PLAN.md).
         #
-        # Com `start_time` dado, isso deixa de servir: a triagem é do
-        # momento em que a ocorrência foi ingerida, e pedir uma data
-        # diferente — em particular um incêndio de há meses, via arquivo
-        # ERA5 — corria com o verdor de hoje. As humidades mortas já eram
-        # derivadas hora a hora da meteo histórica; o combustível vivo era
-        # o único que ficava preso ao presente. Recalcula-se para a data
-        # pedida, com fallback para a triagem se o GEE não responder.
+        # `start_time` é respeitado de propósito. As humidades mortas já
+        # eram derivadas hora a hora da meteo da data pedida; o
+        # combustível vivo era o único que ficava preso ao presente,
+        # porque herdava o valor da triagem da ocorrência. Com o P180 a
+        # vir do arquivo ERA5 (1940 até hoje), uma simulação de um
+        # incêndio antigo passa a correr com o combustível vivo desse ano
+        # — coisa que o satélite não permitia (o VNP09GA só existe desde
+        # 2012).
+        #
+        # Se falhar, o valor da triagem é o fallback; se nem esse existir,
+        # o motor usa os seus defaults.
+        data_lfmc = start_time if (start_time and not weather_stream_text) else datetime.now()
         fmc_source = "triagem"
-        if start_time and not weather_stream_text:
-            try:
-                live_fmc = await fetch_live_fmc_viirs(lat, lon, start_time)
-                if live_fmc:
-                    fm_live_h, fm_live_w = live_fmc
-                    fmc_source = "viirs_start_time"
-                    log.info(
-                        "Simulação %s: LFMC VIIRS para %s — herbáceo=%.0f%% lenhoso=%.0f%%",
-                        job_id, start_time.date(), fm_live_h, fm_live_w,
-                    )
-                else:
-                    log.warning(
-                        "Simulação %s: VIIRS sem valor para %s — mantém o da triagem",
-                        job_id, start_time.date(),
-                    )
-            except Exception as exc:
-                log.warning(
-                    "Simulação %s: GEE LFMC falhou para %s (%s) — mantém o da triagem",
-                    job_id, start_time.date(), exc,
-                )
+        p180_mm = await fetch_precipitation_sum(lat, lon, data_lfmc)
+        if p180_mm is not None:
+            fm_live_h, fm_live_w = lfmc_climatologia(data_lfmc.timetuple().tm_yday, p180_mm)
+            fmc_source = "climatologia"
+            log.info(
+                "Simulação %s: LFMC climatologia para %s — herbáceo=%.0f%% "
+                "lenhoso=%.0f%% (P180=%.0fmm)",
+                job_id, data_lfmc.date(), fm_live_h, fm_live_w, p180_mm,
+            )
+        else:
+            log.warning(
+                "Simulação %s: sem precipitação acumulada para %s — mantém o da triagem",
+                job_id, data_lfmc.date(),
+            )
 
         if raw_hourly:
             # derive_fire_weather aplica Simard 1968 (humidades mortas) + WAF
