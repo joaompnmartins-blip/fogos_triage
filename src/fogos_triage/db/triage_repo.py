@@ -59,12 +59,13 @@ class TriageResultRepository:
                         wind_midflame_ms, wind_adjustment_factor,
                         fuel_moisture_1h_pct, fuel_moisture_10h_pct,
                         fuel_moisture_100h_pct, fuel_moisture_live_h_pct,
-                        fuel_moisture_live_w_pct, notes
+                        fuel_moisture_live_w_pct, notes,
+                        latitude, longitude
                     )
                     VALUES (
                         $1, $2, $3, $4, $5, $6, $7, $8, $9,
                         $10, $11, $12, $13, $14, $15, $16, $17, $18, $19,
-                        $20, $21, $22, $23, $24, $25
+                        $20, $21, $22, $23, $24, $25, $26, $27
                     )
                     RETURNING id
                     """,
@@ -93,6 +94,11 @@ class TriageResultRepository:
                     result.weather.fuel_moisture_live_h_pct,
                     result.weather.fuel_moisture_live_w_pct,
                     result.notes,
+                    # Guardadas para o congelamento da triagem poder
+                    # detectar correcções de localização — ver
+                    # OccurrenceRepository.needs_triage e migração 006.
+                    result.occurrence.latitude,
+                    result.occurrence.longitude,
                 )
                 return row["id"]
 

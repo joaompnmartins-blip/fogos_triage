@@ -167,7 +167,6 @@ railway up
 | `FUEL_MODELS_CSV` | `/data/fuel_models_pt.csv` | Caminho CSV modelos PT |
 | `LANDSCAPE_DIR` | (vazia → DEV_MODE) | Diretório TIFFs Landscape File |
 | `POLL_INTERVAL_S` | `120` | Segundos entre polls fogos.pt |
-| `TRIAGE_MAX_AGE_MIN` | `15` | Re-triar se mais velho que isto |
 | `LOG_LEVEL` | `INFO` | DEBUG/INFO/WARNING/ERROR |
 | `DEV_MODE` | `false` | Se true usa MockLandscape (terreno fixo) |
 

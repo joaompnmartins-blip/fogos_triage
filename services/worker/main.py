@@ -5,7 +5,8 @@ Loop:
 1. A cada POLL_INTERVAL_S segundos, vai à API fogos.pt
 2. Para cada ocorrência:
    - upsert na BD (regista histórico)
-   - se é relevante para triagem e não foi triada recentemente:
+   - se é relevante para triagem e ainda não foi triada (a triagem é
+     congelada no arranque da ocorrência — ver needs_triage):
      - lookup landscape (DEM, slope, aspect, fuel)
      - fetch Open-Meteo no ponto exato (fonte primária de meteo)
      - correr triage_occurrence
@@ -22,7 +23,6 @@ Variáveis de ambiente:
   ficheiro; usado pelos pilotos regionais, ex. Alto Minho)
 - FUEL_MODELS_CSV: caminho para o CSV dos modelos PT
 - POLL_INTERVAL_S: segundos entre polls (default 120)
-- TRIAGE_MAX_AGE_MIN: minutos a partir dos quais re-triar (default 15)
 - LOG_LEVEL: DEBUG/INFO/WARNING/ERROR
 - R2_ACCOUNT_ID: Cloudflare Account ID (para download dos TIFFs no arranque)
 - R2_ACCESS_KEY_ID: R2 API Token Access Key ID
@@ -67,7 +67,6 @@ class WorkerConfig:
             "/data/fuel_models_pt.csv",
         )
         self.poll_interval_s = int(os.environ.get("POLL_INTERVAL_S", "120"))
-        self.triage_max_age_min = int(os.environ.get("TRIAGE_MAX_AGE_MIN", "15"))
         self.log_level = os.environ.get("LOG_LEVEL", "INFO")
         # Modo desenvolvimento — sem landscape real, usa mock
         self.dev_mode = os.environ.get("DEV_MODE", "false").lower() == "true"
@@ -92,6 +91,7 @@ _MIGRATIONS = [
     "003_add_fuel_moisture.sql",
     "004_free_simulation_jobs.sql",
     "005_vigilancia_terminated.sql",
+    "006_triage_coords.sql",
 ]
 
 
@@ -259,8 +259,10 @@ async def process_fire(
     occ_repo = OccurrenceRepository(pool)
     triage_repo = TriageResultRepository(pool)
 
-    # 1. Upsert ocorrência
-    is_new, has_changes = await occ_repo.upsert_fire(fire)
+    # 1. Upsert ocorrência. O retorno (is_new, has_changes) já não
+    #    decide a triagem — ver o comentário abaixo —, mas a chamada
+    #    continua a ser precisa: é ela que escreve occurrence_history.
+    await occ_repo.upsert_fire(fire)
 
     # 2. Decidir se triagem é necessária
     if not fire.is_triage_relevant:
@@ -269,15 +271,17 @@ async def process_fire(
     if fire.is_terminated:
         return f"{fire.fire_id} — terminada"
 
-    needs = is_new or has_changes
-    if not needs:
-        needs = await occ_repo.needs_retriage(
-            fire.fire_id,
-            max_age_minutes=config.triage_max_age_min,
-        )
-
-    if not needs:
-        return None  # nada a fazer
+    # A triagem é congelada no arranque da ocorrência: é um protocolo de
+    # despacho, uma decisão do minuto zero, não um valor a recalcular
+    # continuamente. Antes bastava a fogos.pt actualizar o número de
+    # operacionais (`has_changes`) — ou passarem 15 minutos — para repetir
+    # terreno, Open-Meteo, VIIRS e motor de fogo; num incêndio grande
+    # eram centenas de triagens iguais, e o valor mostrado ao utilizador
+    # deixava de ser o do despacho.
+    #
+    # A única excepção é a localização mudar — ver needs_triage.
+    if not await occ_repo.needs_triage(fire.fire_id, fire.latitude, fire.longitude):
+        return None  # triagem congelada, nada a fazer
 
     # 3. Triagem
     occurrence = fogos_to_occurrence(fire)
@@ -406,7 +410,7 @@ async def run_worker():
     )
     log.info("=== fogos_triage worker a iniciar ===")
     log.info(f"poll_interval={config.poll_interval_s}s "
-             f"triage_max_age={config.triage_max_age_min}min "
+             f"triagem=congelada-no-arranque "
              f"dev_mode={config.dev_mode}")
     if config.gee_service_account:
         log.info(f"GEE configurado: {config.gee_service_account}")

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 from datetime import datetime
 from typing import Optional
 
@@ -23,6 +24,27 @@ except ImportError:
 from ..ingestion.fogos_client import FogosFire
 
 log = logging.getLogger(__name__)
+
+# Quanto é que a ocorrência tem de se deslocar para valer a pena repetir
+# a triagem congelada (ver needs_triage). A triagem amostra uma
+# vizinhança à volta do ponto, por isso uma correcção de algumas dezenas
+# de metros não muda o terreno de forma significativa; e um limiar
+# diferente de zero evita repetir a triagem por arredondamentos na
+# coordenada devolvida pela fogos.pt.
+TRIAGE_MOVE_TOLERANCE_M = 50.0
+
+
+def _distance_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Distância aproximada em metros (equirectangular).
+
+    Chega e sobra para comparar duas leituras da mesma ocorrência, que
+    distam metros ou centenas de metros — não vale a pena Haversine nem
+    uma dependência de projecção para isto.
+    """
+    lat_med = math.radians((lat1 + lat2) / 2.0)
+    dx = math.radians(lon2 - lon1) * math.cos(lat_med)
+    dy = math.radians(lat2 - lat1)
+    return math.hypot(dx, dy) * 6_371_000.0
 
 
 class OccurrenceRepository:
@@ -241,23 +263,58 @@ class OccurrenceRepository:
             )
             return [dict(r) for r in rows]
 
-    async def needs_retriage(self, fire_id: str, max_age_minutes: int = 15) -> bool:
+    async def needs_triage(
+        self,
+        fire_id: str,
+        latitude: float,
+        longitude: float,
+        move_tolerance_m: float = TRIAGE_MOVE_TOLERANCE_M,
+    ) -> bool:
         """
-        True se a triagem mais recente é mais velha que `max_age_minutes`
-        ou se nunca foi feita.
+        True se esta ocorrência ainda não tem triagem, ou se a localização
+        se afastou mais de `move_tolerance_m` da que foi usada na triagem
+        congelada.
+
+        A triagem é **congelada no arranque da ocorrência**: vale como
+        protocolo de despacho, que é uma decisão do minuto zero, e não faz
+        sentido recalculá-la de dois em dois minutos porque a fogos.pt
+        actualizou o número de operacionais. Antes, qualquer mudança de
+        efectivos ou de estado — mais uma triagem a cada 15 minutos —
+        disparava tudo outra vez: terreno, Open-Meteo, VIIRS e motor de
+        fogo. Num incêndio grande isso são centenas de triagens idênticas.
+
+        A excepção é a localização: a fogos.pt corrige-a com frequência
+        nas primeiras horas, e uma triagem congelada na coordenada errada
+        descreve o terreno errado.
+
+        A comparação é contra a coordenada **guardada na própria triagem**
+        (migração 006), não contra a linha anterior de `occurrences`: um
+        diff entre ciclos só apanharia a correcção no instante em que
+        acontece, e perdia-a se o worker estivesse em baixo nesse momento.
+
+        Nota: uma triagem que falhe por excepção não grava linha nenhuma,
+        por isso repete-se sozinha no ciclo seguinte. O que fica congelado
+        é a triagem que **grava** com dados degradados (Open-Meteo em
+        defaults, ou sem LFMC) — decisão deliberada.
         """
         async with self.pool.acquire() as conn:
             row = await conn.fetchrow(
                 """
-                SELECT EXTRACT(EPOCH FROM (NOW() - computed_at))/60 AS age_min
+                SELECT latitude, longitude
                 FROM triage_results
                 WHERE fire_id = $1 AND is_latest = TRUE
                 """,
                 fire_id,
             )
-            if row is None:
-                return True
-            return row["age_min"] > max_age_minutes
+        if row is None:
+            return True
+        if row["latitude"] is None or row["longitude"] is None:
+            # Triagem anterior à migração 006 — sem coordenada guardada
+            # não há como saber se a ocorrência se moveu. Mantém-se
+            # congelada; forçar uma re-triagem aqui faria com que o
+            # deploy desta alteração retriasse tudo o que está activo.
+            return False
+        return _distance_m(row["latitude"], row["longitude"], latitude, longitude) > move_tolerance_m
 
     async def save_open_meteo_snapshot(
         self,
