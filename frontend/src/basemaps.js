@@ -152,3 +152,18 @@ export const FUEL_MODELS = {
   98: { hex: '#0057f7', label: 'Planos de água', grupo: 'Não combustível' },
   99: { hex: '#bdbdbd', label: 'Rocha', grupo: 'Não combustível' },
 }
+
+// Rótulo legível de um modelo de combustível, a partir do código que a API
+// devolve ("FM232") ou do número. Mostrar só "FM232" obriga quem lê a ir
+// à legenda traduzir — e o código sozinho não diz nada a quem não decorou
+// a tabela.
+//
+// Devolve o código tal e qual se o modelo não estiver no catálogo: os
+// códigos NB do raster (91-99) estão cá, mas um modelo novo que apareça
+// nos dados não deve fazer desaparecer a informação que já existe.
+export function fuelModelLabel(code) {
+  if (code == null) return null
+  const num = parseInt(String(code).replace(/\D/g, ''), 10)
+  const m = FUEL_MODELS[num]
+  return m ? `${code} · ${m.label}` : String(code)
+}

@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { fmt, windDirText, FUEL_MOISTURE_SCENARIO_LABEL } from '../constants'
 import { msToKmh } from './SimulationMapLayers'
 import { FUEL_MODELS, FUEL_MODEL_GROUP_ORDER } from '../basemaps'
@@ -15,6 +15,40 @@ import { FUEL_MODELS, FUEL_MODEL_GROUP_ORDER } from '../basemaps'
 // Só as linhas, sem caixa nem cabeçalho — vivem dentro de uma secção
 // colapsável do painel único de controlos (SimulationOverlayControls),
 // em vez de cada legenda trazer a sua própria caixa com borda e padding.
+// Cabeçalho clicável de legenda. O triângulo indica o estado e o elemento
+// é um <button> para continuar acessível por teclado.
+//
+// Vive aqui, e não em SimulationOverlayControls, porque o Mapa nacional
+// também precisa dele: a legenda dos modelos de combustível tem 22
+// entradas e ocupa 260px, e quem está a olhar para o mapa quer poder
+// fechá-la sem desligar o overlay.
+export function CollapsibleLegend({ title, open, onToggle, children, maxHeight = 200 }) {
+  return (
+    <>
+      <button
+        onClick={onToggle}
+        title={open ? 'Fechar legenda' : 'Abrir legenda'}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 4, width: '100%',
+          background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+          fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--muted)',
+          textAlign: 'left',
+        }}>
+        <span style={{ width: 8, flexShrink: 0 }}>{open ? '▾' : '▸'}</span>
+        {title}
+      </button>
+      {open && (
+        <div style={{
+          marginTop: 4, maxHeight, overflowY: 'auto',
+          fontFamily: 'var(--font-mono)', fontSize: 9,
+        }}>
+          {children}
+        </div>
+      )}
+    </>
+  )
+}
+
 export function LegendRows({ stops }) {
   return stops.map(({ v, c }) => (
     <div key={v} style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
@@ -78,15 +112,22 @@ export function FuelModelLegendRows() {
 // Versão autónoma (caixa própria, scrollable) — usada pelo MapView, que
 // a mostra sozinha ao canto e não tem o painel de controlos das vistas de
 // simulação.
-export function FuelModelLegend() {
+export function FuelModelLegend({ defaultOpen = true }) {
+  const [open, setOpen] = useState(defaultOpen)
   return (
     <div className="map-overlay-panel" style={{
       borderRadius: 4, padding: '6px 8px',
       fontFamily: 'var(--font-mono)', fontSize: 9,
-      maxHeight: 260, overflowY: 'auto', width: 210,
+      width: 210, pointerEvents: 'auto',
     }}>
-      <div style={{ color: 'var(--muted)', marginBottom: 4 }}>MODELOS DE COMBUSTÍVEL</div>
-      <FuelModelLegendRows />
+      {/* Aberta por omissão: aqui a legenda só aparece quando o overlay
+          está ligado, e nesse momento quem ligou quer ver as cores. Nas
+          simulações é o contrário — o painel está sempre visível, por isso
+          lá nasce fechada. */}
+      <CollapsibleLegend title="MODELOS DE COMBUSTÍVEL"
+        open={open} onToggle={() => setOpen(o => !o)} maxHeight={240}>
+        <FuelModelLegendRows />
+      </CollapsibleLegend>
     </div>
   )
 }

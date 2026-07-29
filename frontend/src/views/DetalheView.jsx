@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { fetchFireDetail } from '../api'
 import { SeverityBadge, FireTypeBadge } from '../components/SeverityBadge'
 import { fmt, fmtDateTime, fmtDuration, windDirText, SEVERITY_COLOR, SEVERITY_LABEL } from '../constants'
+import { fuelModelLabel } from '../basemaps'
 
 function InfoRow({ label, value, unit, color }) {
   return (
@@ -183,7 +184,7 @@ export default function DetalheView({ apiKey }) {
           {fire.aerial > 0 && <InfoRow label="Aéreos" value={fire.aerial} />}
           {fire.heli_fight > 0 && <InfoRow label="Heli-combate" value={fire.heli_fight} />}
           {t && <InfoRow label="Intensidade (central)" value={fmt(t.priority_score, 0)} unit="kW/m" color={priorityColor} />}
-          {t && <InfoRow label="Combustível" value={t.fuel_model_code} />}
+          {t && <InfoRow label="Combustível" value={fuelModelLabel(t.fuel_model_code)} />}
         </div>
 
         {/* Terreno */}
@@ -193,7 +194,7 @@ export default function DetalheView({ apiKey }) {
             <InfoRow label="Altitude" value={fmt(terrain.elevation_m, 0)} unit="m" />
             <InfoRow label="Declive" value={fmt(terrain.slope_degrees, 1)} unit="°" />
             <InfoRow label="Aspecto" value={fmt(terrain.aspect_degrees, 0)} unit="°" />
-            <InfoRow label="Combustível" value={terrain.fuel_model_code} />
+            <InfoRow label="Combustível" value={fuelModelLabel(terrain.fuel_model_code)} />
             {terrain.stand_height_m != null && (
               <InfoRow label="Alt. vegetal" value={fmt(terrain.stand_height_m, 1)} unit="m" />
             )}

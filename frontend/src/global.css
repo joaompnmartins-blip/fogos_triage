@@ -526,13 +526,22 @@ input, select, textarea { font: inherit; }
 .info-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  /* baseline e não center: os valores podem passar a duas linhas (o
+     rótulo do modelo de combustível chega a 39 caracteres) e com center
+     a etiqueta ficava a flutuar a meio da altura. */
+  align-items: baseline;
+  gap: 12px;
   padding: 5px 0;
   border-bottom: 1px solid var(--border);
 }
 .info-row:last-child { border-bottom: none; }
-.info-label { font-size: 11px; color: var(--muted); }
-.info-val { font-family: var(--font-mono); font-size: 11px; color: var(--text); }
+.info-label { font-size: 11px; color: var(--muted); flex-shrink: 0; }
+.info-val {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text);
+  text-align: right;
+}
 
 .scenario-grid {
   display: grid;

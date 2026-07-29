@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { BASEMAP_LABEL, FUEL_MODEL_MIN_ZOOM } from '../basemaps'
 import { COLOR_LABELS, COLOR_STOPS, perimStyle, arrowsHour } from './SimulationMapLayers'
-import { LegendRows, FuelModelLegendRows } from './SimulationPanels'
+import { CollapsibleLegend, LegendRows, FuelModelLegendRows } from './SimulationPanels'
 
 // Coluna de controlos sobre o mapa, partilhada por SimulacaoView e
 // SimuladorLivreView — antes estava duplicada nas duas vistas, com nove
@@ -31,35 +31,6 @@ function Section({ children, first }) {
     }}>
       {children}
     </div>
-  )
-}
-
-// Cabeçalho clicável de legenda. O triângulo indica o estado e o elemento
-// é um <button> para continuar acessível por teclado.
-function CollapsibleLegend({ title, open, onToggle, children }) {
-  return (
-    <>
-      <button
-        onClick={onToggle}
-        title={open ? 'Fechar legenda' : 'Abrir legenda'}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 4, width: '100%',
-          background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-          fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--muted)',
-          textAlign: 'left',
-        }}>
-        <span style={{ width: 8, flexShrink: 0 }}>{open ? '▾' : '▸'}</span>
-        {title}
-      </button>
-      {open && (
-        <div style={{
-          marginTop: 4, maxHeight: 200, overflowY: 'auto',
-          fontFamily: 'var(--font-mono)', fontSize: 9,
-        }}>
-          {children}
-        </div>
-      )}
-    </>
   )
 }
 
