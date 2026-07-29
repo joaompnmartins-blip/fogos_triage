@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 import math
+import re
 import threading
 from dataclasses import dataclass
 from pathlib import Path
@@ -44,16 +45,51 @@ LANDSCAPE_TIFS = [
 
 # Nomes das bandas (via tag `description`) num ficheiro Landscape File
 # combinado (multibanda), na ordem usada pelo ficheiro-piloto Alto Minho.
+# Chave canónica normalizada (só letras/dígitos, minúsculas) → nome
+# interno do campo. A correspondência é por PREFIXO, não exacta — ver
+# band_name_from_description.
 BAND_NAME_MAP = {
-    "Elevation": "elevation",
-    "Slope": "slope",
-    "Aspect": "aspect",
-    "Fuel Model": "fuel_model",
-    "Canopy Cover": "canopy_cover",
-    "Stand Height": "stand_height",
-    "Canopy Base Height": "canopy_base_height",
-    "Canopy Bulk Density": "canopy_bulk_density",
+    "elevation": "elevation",
+    "slope": "slope",
+    "aspect": "aspect",
+    "fuelmodel": "fuel_model",
+    "canopycover": "canopy_cover",
+    "standheight": "stand_height",
+    "canopybaseheight": "canopy_base_height",
+    "canopybulkdensity": "canopy_bulk_density",
 }
+
+# Erros de escrita conhecidos nas etiquetas dos ficheiros landscape,
+# corrigidos antes da comparação.
+_BAND_DESC_FIXES = {"heigth": "height"}
+
+
+def band_name_from_description(desc: str | None) -> str | None:
+    """Nome interno do campo a partir da etiqueta `description` da banda.
+
+    Os ficheiros landscape não etiquetam todos as bandas da mesma
+    maneira: o de 2026 v1 traz "Fuel Model"/"Stand Height", o v2 traz
+    "FuelModel_10x10_2026_v2"/"StandHeigth_10x10_2026" — com sufixos de
+    resolução/ano/versão e "Heigth" mal escrito.
+
+    A correspondência exacta que aqui estava não reconhecia uma única
+    banda do v2, e a consequência era pior do que um erro: o leitor caía
+    no fallback posicional sem dizer nada. Funciona enquanto a ordem das
+    bandas do ficheiro coincidir com BAND_ORDER_FALLBACK, e passa a ler
+    bandas trocadas — declive como modelo de combustível — no dia em que
+    não coincidir, sem nada nos logs.
+
+    Por isso: normaliza (só letras e dígitos, minúsculas), corrige os
+    erros de escrita conhecidos, e aceita por prefixo, ficando com a
+    chave mais longa que corresponda.
+    """
+    if not desc:
+        return None
+    key = re.sub(r"[^a-z0-9]", "", desc.lower())
+    for wrong, right in _BAND_DESC_FIXES.items():
+        key = key.replace(wrong, right)
+    matches = [c for c in BAND_NAME_MAP if key.startswith(c)]
+    return BAND_NAME_MAP[max(matches, key=len)] if matches else None
 # Fallback caso o ficheiro não tenha as tags `description` nas bandas.
 BAND_ORDER_FALLBACK = [
     "elevation", "slope", "aspect", "fuel_model",
@@ -236,13 +272,31 @@ class LandscapeReader:
             self._datasets["_multiband"] = ds
             descriptions = ds.descriptions or ()
             for i, desc in enumerate(descriptions, start=1):
-                name = BAND_NAME_MAP.get(desc)
+                name = band_name_from_description(desc)
                 if name:
                     self._band_index[name] = i
             if not self._band_index:
-                # ficheiro sem tags description — assume ordem fixa
+                # ficheiro sem tags description — assume ordem fixa. Não
+                # é um caminho benigno: se a ordem real não for esta,
+                # lê-se a banda errada sem nunca dar erro. Fica em aviso
+                # para aparecer nos logs.
+                log.warning(
+                    "Landscape: nenhuma banda de %s reconhecida pelas "
+                    "etiquetas %s — a assumir a ordem fixa %s",
+                    self.multiband_path.name, list(descriptions),
+                    BAND_ORDER_FALLBACK[:ds.count],
+                )
                 for i, name in enumerate(BAND_ORDER_FALLBACK[:ds.count], start=1):
                     self._band_index[name] = i
+            elif len(self._band_index) < min(ds.count, len(BAND_ORDER_FALLBACK)):
+                # Reconhecimento parcial: as bandas identificadas usam-se
+                # na mesma, mas convém saber quais ficaram de fora.
+                log.warning(
+                    "Landscape: só %d de %d bandas de %s reconhecidas — "
+                    "etiquetas %s",
+                    len(self._band_index), ds.count,
+                    self.multiband_path.name, list(descriptions),
+                )
         else:
             for name, path in [
                 ("elevation", self.rasters.elevation),
