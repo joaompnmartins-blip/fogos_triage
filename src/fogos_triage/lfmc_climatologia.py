@@ -32,7 +32,27 @@ from typing import Optional
 
 log = logging.getLogger(__name__)
 
-_CSV_DEFAULT = Path(__file__).resolve().parent.parent.parent / "data" / "lfmc_climatologia_pt.csv"
+_NOME_CSV = "lfmc_climatologia_pt.csv"
+
+# Onde procurar o CSV, por ordem. Os Dockerfiles fazem `COPY data /data`,
+# por isso em contentor o ficheiro fica em /data e NÃO ao lado do
+# package — é o mesmo motivo por que o FUEL_MODELS_CSV aponta para
+# /data/fuel_models_pt.csv. Em desenvolvimento vale o layout do repo.
+_CSV_CANDIDATOS = [
+    Path(__file__).resolve().parent.parent.parent / "data" / _NOME_CSV,
+    Path("/data") / _NOME_CSV,
+]
+
+
+def _csv_path() -> Path:
+    """Primeiro candidato que exista; se nenhum, o primeiro (para a
+    mensagem de erro apontar para o sítio esperado em desenvolvimento)."""
+    if env := os.environ.get("LFMC_CLIMATOLOGIA_CSV"):
+        return Path(env)
+    for p in _CSV_CANDIDATOS:
+        if p.exists():
+            return p
+    return _CSV_CANDIDATOS[0]
 
 
 @dataclass(frozen=True)
@@ -99,7 +119,7 @@ def carrega_curvas(path: str | Path | None = None) -> dict[str, CurvaLFMC]:
     if _curvas is not None and path is None:
         return _curvas
 
-    p = Path(path or os.environ.get("LFMC_CLIMATOLOGIA_CSV") or _CSV_DEFAULT)
+    p = Path(path) if path else _csv_path()
     curvas: dict[str, CurvaLFMC] = {}
     with p.open(encoding="utf-8") as f:
         for linha in csv.DictReader(f):
