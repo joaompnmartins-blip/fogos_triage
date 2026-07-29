@@ -469,6 +469,7 @@ class LandscapeReader:
         self,
         names: list[str],
         min_x: float, min_y: float, max_x: float, max_y: float,
+        max_dim: Optional[int] = None,
     ) -> tuple[dict[str, np.ndarray], dict[str, Optional[float]], "rasterio.Affine"]:
         """
         Lê uma janela (bbox em coordenadas do CRS nativo) de uma vez para
@@ -481,10 +482,32 @@ class LandscapeReader:
         mapeia (linha, coluna) da janela para (x, y).
         Pixels fora da extensão do raster são preenchidos com o nodata da
         camada (boundless read).
+
+        `max_dim`: se dado, limita o maior lado do array devolvido, lendo
+        decimado em vez de à resolução nativa. É o que faz o GDAL usar as
+        overviews do ficheiro — sem isto lê-se sempre a 10 m, e uma janela
+        à escala nacional chega a 139 megapíxeis (~278 MB por banda), que
+        foi o que obrigou a limitar os tiles a zoom >= 10. O
+        `window_transform` devolvido já vem escalado para a grelha
+        efectivamente lida, portanto quem reprojecta não precisa de saber
+        se houve decimação.
+
+        A decimação usa vizinho mais próximo: a banda do modelo de
+        combustível é categórica e qualquer média inventaria números de
+        modelo inexistentes.
         """
         window = rasterio.windows.from_bounds(min_x, min_y, max_x, max_y, self.transform)
         window = window.round_offsets().round_lengths()
         window_transform = rasterio.windows.transform(window, self.transform)
+
+        out_shape = None
+        if max_dim is not None and max(window.height, window.width) > max_dim:
+            escala = max_dim / max(window.height, window.width)
+            out_shape = (max(int(window.height * escala), 1),
+                         max(int(window.width * escala), 1))
+            window_transform = window_transform * rasterio.Affine.scale(
+                window.width / out_shape[1], window.height / out_shape[0],
+            )
 
         arrays: dict[str, np.ndarray] = {}
         nodata: dict[str, Optional[float]] = {}
@@ -501,7 +524,11 @@ class LandscapeReader:
                 band = 1
             band_nodata = ds.nodatavals[band - 1] if ds.nodatavals else ds.nodata
             fill_value = band_nodata if band_nodata is not None else -9999.0
-            arr = ds.read(band, window=window, boundless=True, fill_value=fill_value)
+            arr = ds.read(
+                band, window=window, boundless=True, fill_value=fill_value,
+                out_shape=out_shape,
+                resampling=rasterio.enums.Resampling.nearest,
+            )
             arrays[name] = arr
             nodata[name] = band_nodata
 

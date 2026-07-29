@@ -61,11 +61,14 @@ export const BASEMAP_LABEL = { osm: 'OSM', satellite: 'SAT', topo: 'TOPO' }
 // mesmo padrão já estabelecido em initSimulationLayers/
 // updateSimulationLayerStyle (SimulationMapLayers.js).
 // Tem de acompanhar MIN_ZOOM em services/api/routes_tiles.py — abaixo
-// disto o servidor devolve 404 (ver lá o porquê: sem overviews no COG,
-// um tile de zoom baixo custa centenas de MB). Exportado para a UI poder
-// avisar que é preciso aproximar, em vez de o overlay ficar em branco
-// sem explicação.
-export const FUEL_MODEL_MIN_ZOOM = 10
+// disto o servidor devolve 404 (ver lá o porquê e as medições).
+// Exportado para a UI poder avisar que é preciso aproximar, em vez de o
+// overlay ficar em branco sem explicação.
+//
+// Baixou de 10 para 8 quando o landscape file passou a ter overviews e o
+// renderizador passou a ler decimado: um tile de z=8 custava 278 MB e
+// ~11 s, custa agora 18 MB e 1,5 s. A 8 já se vê o país inteiro.
+export const FUEL_MODEL_MIN_ZOOM = 8
 
 export const FUEL_MODEL_TILE_SOURCE = {
   type: 'raster',

@@ -21,18 +21,25 @@ log = logging.getLogger(__name__)
 
 router_tiles = APIRouter(prefix="/tiles", tags=["tiles"])
 
-# Zoom mínimo servido. NÃO baixar sem antes construir overviews no COG
-# (`gdaladdo -r nearest ... 2 4 8 16 32 64`): o landscape file nacional não
-# as tem, por isso cada tile obriga a ler a janela inteira à resolução
-# nativa (10 m). Medido no ficheiro real, por tile:
-#     z=8  → 139 Mpx = 278 MB e ~11 s     (um ecrã ≈ 12 tiles ≈ 3,3 GB → OOM)
-#     z=9  →  34 Mpx =  68 MB
-#     z=10 →   8 Mpx =  17 MB e ~0,9 s
-#     z=12 →                      ~0,1 s
-# Ler decimado (out_shape) não resolve — sem overviews o GDAL continua a
-# descomprimir todos os blocos (medido: 6,9 s → 5,5 s, apenas ~20%).
-# Com overviews construídas, isto pode voltar a 8 (ou menos).
-MIN_ZOOM = 10
+# Zoom mínimo servido. Esteve em 10 enquanto o landscape file nacional
+# não teve overviews: sem elas cada tile obrigava a ler a janela inteira
+# à resolução nativa (10 m), e a z=8 isso são 139 Mpx = 278 MB e ~11 s
+# por tile — um ecrã são ~12 tiles, ~3,3 GB, ou seja OOM. Ler decimado
+# também não resolvia, porque sem overviews o GDAL descomprime todos os
+# blocos na mesma (medido na altura: 6,9 s → 5,5 s, uns 20%).
+#
+# O Landscape_PT_2026_v2_cog.tif traz pirâmide (níveis 4-256, nearest), e
+# o renderizador passou a pedir leitura decimada (ver max_dim em
+# _render_fuel_model_tile), portanto as duas condições estão satisfeitas.
+# Medido no ficheiro v2 real, por tile:
+#     z=8  → 1,5 s e 18 MB de pico   (era 278 MB)
+#     z=10 → 0,13 s                  (era ~0,9 s, e 3,3 s em produção)
+#     z=12 → 0,13 s
+#     z=14 → 0,06 s
+#
+# Se algum dia se voltar a um landscape file sem overviews, isto tem de
+# subir para 10 outra vez.
+MIN_ZOOM = 8
 MAX_ZOOM = 16
 TILE_SIZE = 256
 
@@ -148,10 +155,25 @@ def _render_fuel_model_tile(config: APIConfig, z: int, x: int, y: int) -> bytes:
         margin_x = (src_max_x - src_min_x) * 0.1
         margin_y = (src_max_y - src_min_y) * 0.1
 
+        # max_dim: o destino são 256x256 píxeis, por isso ler a janela à
+        # resolução nativa de 10 m é desperdício puro — a zoom baixo são
+        # dezenas de milhões de píxeis lidos para produzir 65 mil. Com o
+        # limite, o GDAL serve-se das overviews do COG e devolve já quase
+        # à escala certa: a z=8 isto passou de ~278 MB e 11s (que rebentava
+        # a memória, e obrigou a limitar os tiles a zoom >= 10) para 18 MB
+        # e 1.5s.
+        #
+        # 4x TILE_SIZE e não 2x: medido a z=10, com 2x só 56% dos píxeis
+        # coincidem com a leitura nativa e com 4x são 66% (a diferença é
+        # escolha de píxel dentro da mesma vizinhança — a distribuição de
+        # classes desvia-se 0.5% e o conjunto de classes é o mesmo). 8x
+        # aproximaria mais mas custa 6x o tempo, o que não se justifica
+        # para uma diferença que não se vê.
         arrays, nodata, window_transform = reader.read_window(
             ["fuel_model"],
             src_min_x - margin_x, src_min_y - margin_y,
             src_max_x + margin_x, src_max_y + margin_y,
+            max_dim=4 * TILE_SIZE,
         )
         src_arr = arrays.get("fuel_model")
         if src_arr is None:
