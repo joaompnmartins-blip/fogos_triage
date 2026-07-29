@@ -80,27 +80,37 @@ def _encode_rgba_png(rgba: np.ndarray) -> bytes:
         return memfile.read()
 
 
-def _palette_version() -> str:
+def _cache_version(landscape_file: str | None) -> str:
     """
-    Token curto derivado da própria paleta, usado no caminho da cache —
-    mudar uma cor em fuel_model_colors.py muda este token e invalida
+    Token curto derivado de tudo o que determina o conteúdo de um tile,
+    usado no caminho da cache — mudar uma cor em fuel_model_colors.py ou
+    trocar o ficheiro landscape muda este token e invalida
     automaticamente todos os tiles já gravados, sem passo manual e sem
     ter de limpar o volume persistente à mão em cada deploy. (Os tiles
     antigos ficam órfãos no disco; são pequenos e podem ser apagados a
     qualquer momento.)
+
+    O nome do ficheiro landscape entra no token porque a paleta sozinha
+    não chega: ao passar do Landscape_PT_2026 v1 para o v2 mudaram
+    modelos de combustível em parte do país, e com a chave só da paleta
+    os tiles antigos continuariam a ser servidos — a mostrar o
+    combustível errado, sem nada que o denunciasse. Da primeira vez
+    escapou por acaso, porque o LANDSCAPE_DIR também mudou e a cache
+    nasceu vazia.
     """
     import hashlib
 
     from fogos_triage.fuel_model_colors import FUEL_MODEL_RGBA
 
-    payload = repr(sorted(FUEL_MODEL_RGBA.items())).encode()
+    payload = repr((sorted(FUEL_MODEL_RGBA.items()), landscape_file)).encode()
     return hashlib.sha1(payload).hexdigest()[:8]
 
 
-def _cache_path(landscape_dir: str, z: int, x: int, y: int) -> Path:
+def _cache_path(landscape_dir: str, landscape_file: str | None,
+                z: int, x: int, y: int) -> Path:
     return (
         Path(landscape_dir) / "tile_cache" / "fuel-model"
-        / _palette_version() / str(z) / str(x) / f"{y}.png"
+        / _cache_version(landscape_file) / str(z) / str(x) / f"{y}.png"
     )
 
 
@@ -188,7 +198,7 @@ async def get_fuel_model_tile(z: int, x: int, y: int, config: APIConfig = Depend
     if z < MIN_ZOOM or z > MAX_ZOOM:
         raise HTTPException(status_code=404, detail=f"Zoom fora do intervalo suportado ({MIN_ZOOM}-{MAX_ZOOM})")
 
-    cache_path = _cache_path(config.landscape_dir, z, x, y)
+    cache_path = _cache_path(config.landscape_dir, config.landscape_file, z, x, y)
     if cache_path.exists():
         return Response(content=cache_path.read_bytes(), media_type="image/png")
 
