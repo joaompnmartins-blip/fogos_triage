@@ -266,7 +266,9 @@ async def _run_and_update(
         from fogos_triage.schemas import WeatherConditions
         from fogos_triage.simulation import run_simulation_async
         from fogos_triage.triage import gust_weather
-        from fogos_triage.weather import derive_fire_weather, fetch_weather_for_start_time
+        from fogos_triage.weather import (
+            derive_fire_weather, fetch_live_fmc_viirs, fetch_weather_for_start_time,
+        )
         from fogos_triage.weather_stream import parse_weather_stream
 
         import asyncio as _asyncio
@@ -324,9 +326,42 @@ async def _run_and_update(
                 raw_hourly = []
             weather_source = "open_meteo" if raw_hourly else "triagem"
 
+        # Humidade viva: por omissão herda-se a da triagem da ocorrência
+        # (que, estando a triagem congelada no arranque, é a do início do
+        # incêndio — o que se quer para simular o arranque).
+        #
+        # Com `start_time` dado, isso deixa de servir: a triagem é do
+        # momento em que a ocorrência foi ingerida, e pedir uma data
+        # diferente — em particular um incêndio de há meses, via arquivo
+        # ERA5 — corria com o verdor de hoje. As humidades mortas já eram
+        # derivadas hora a hora da meteo histórica; o combustível vivo era
+        # o único que ficava preso ao presente. Recalcula-se para a data
+        # pedida, com fallback para a triagem se o GEE não responder.
+        fmc_source = "triagem"
+        if start_time and not weather_stream_text:
+            try:
+                live_fmc = await fetch_live_fmc_viirs(lat, lon, start_time)
+                if live_fmc:
+                    fm_live_h, fm_live_w = live_fmc
+                    fmc_source = "viirs_start_time"
+                    log.info(
+                        "Simulação %s: LFMC VIIRS para %s — herbáceo=%.0f%% lenhoso=%.0f%%",
+                        job_id, start_time.date(), fm_live_h, fm_live_w,
+                    )
+                else:
+                    log.warning(
+                        "Simulação %s: VIIRS sem valor para %s — mantém o da triagem",
+                        job_id, start_time.date(),
+                    )
+            except Exception as exc:
+                log.warning(
+                    "Simulação %s: GEE LFMC falhou para %s (%s) — mantém o da triagem",
+                    job_id, start_time.date(), exc,
+                )
+
         if raw_hourly:
             # derive_fire_weather aplica Simard 1968 (humidades mortas) + WAF
-            # para cada hora; humidades vivas mantêm-se do snapshot de triagem
+            # para cada hora
             weather_hourly = [
                 derive_fire_weather(
                     wx,
@@ -393,6 +428,14 @@ async def _run_and_update(
         result["meta"]["fuel_moisture_scenario"] = fuel_moisture_scenario
         result["meta"]["weather_source"] = weather_source
         result["meta"]["fuel_moisture_source"] = fuel_moisture_source
+        # Distinto de fuel_moisture_source (que é sobre as MORTAS): diz se
+        # o combustível vivo veio da triagem da ocorrência ou foi
+        # recalculado no VIIRS para a data pedida. Sem isto não se
+        # distingue uma simulação histórica correcta de uma que correu com
+        # o verdor de hoje porque o GEE falhou.
+        result["meta"]["live_fuel_moisture_source"] = fmc_source
+        result["meta"]["live_fuel_moisture_h_pct"] = fm_live_h
+        result["meta"]["live_fuel_moisture_w_pct"] = fm_live_w
         result["meta"]["start_time"] = (
             start_time.isoformat() if start_time and not weather_stream_text else None
         )

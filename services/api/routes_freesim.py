@@ -258,14 +258,21 @@ async def _run_free_simulation(
         # 60%/80%. Importa agora que FM231/FM232 são dinâmicos: 60% fixa a
         # fracção curada em ~0,66 o ano inteiro, sobrestimando a propagação
         # em herbáceas verdes na Primavera.
+        # A data pedida, não a de hoje: o VIIRS compõe uma janela de 16
+        # dias ANTES da data que lhe é dada, por isso passar-lhe sempre
+        # `now` fazia uma simulação de Agosto correr com o verdor de
+        # Fevereiro se fosse pedida em Fevereiro. Com as humidades mortas
+        # já derivadas hora a hora da meteo histórica, o combustível vivo
+        # era o único que ficava preso ao presente.
+        fmc_date = start_time or datetime.now(timezone.utc)
         live_h_pct, live_w_pct = None, None
         try:
-            live_fmc = await fetch_live_fmc_viirs(lat, lon, datetime.now(timezone.utc))
+            live_fmc = await fetch_live_fmc_viirs(lat, lon, fmc_date)
             if live_fmc:
                 live_h_pct, live_w_pct = live_fmc
                 log.info(
-                    "Simulação livre %s: LFMC VIIRS herbáceo=%.0f%% lenhoso=%.0f%%",
-                    job_id, live_h_pct, live_w_pct,
+                    "Simulação livre %s: LFMC VIIRS herbáceo=%.0f%% lenhoso=%.0f%% (janela até %s)",
+                    job_id, live_h_pct, live_w_pct, fmc_date.date(),
                 )
             else:
                 log.warning(
