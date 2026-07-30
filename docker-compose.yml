@@ -41,7 +41,6 @@ services:
       FUEL_MODELS_CSV: /data/fuel_models_pt.csv
       LANDSCAPE_DIR: /data/landscape
       POLL_INTERVAL_S: "120"
-      TRIAGE_MAX_AGE_MIN: "15"
       LOG_LEVEL: INFO
       DEV_MODE: "false"
     depends_on:
@@ -49,6 +48,20 @@ services:
         condition: service_healthy
     volumes:
       - ./data:/data:ro
+
+  windninja:
+    build:
+      context: .
+      dockerfile: services/windninja/Dockerfile
+    environment:
+      LOG_LEVEL: INFO
+      WINDNINJA_TIMEOUT_S: "180"
+    ports:
+      - "8080:8080"
+    # Sem volume, de propósito: recebe a janela do DEM no pedido. No
+    # Railway "each service can only have a single volume" e os volumes
+    # não se partilham entre serviços — montar aqui o ./data funcionaria
+    # localmente e falharia no deploy. Ver WINDNINJA_PLAN.md.
 
   api:
     build:
@@ -60,12 +73,16 @@ services:
       API_KEYS: "dev-key-change-me-in-prod"
       ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:3000"
       REQUIRE_AUTH: "true"
+      WINDNINJA_URL: http://windninja:8080
       LOG_LEVEL: INFO
     ports:
       - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
+      # sem `condition:` — a integração falha aberta, e a API tem de
+      # arrancar mesmo com o sidecar em baixo
+      windninja: {}
     volumes:
       - ./data:/data:ro
 
