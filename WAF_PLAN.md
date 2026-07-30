@@ -254,6 +254,61 @@ factor de escala que se possa comunicar como "menos X%".
 | Alto Minho (mato) | −5% | −3% | −8% |
 | Gerês (copado) | **−49%** | **−47%** | **−41%** |
 
+### Passo 3, confronto com o RMRS-GTR-266 (2026-07-30)
+
+Chegaram a `WAF/` os ficheiros do **Andrews 2012, RMRS-GTR-266** (USDA FS,
+domínio público) — a fonte primária do WAF, com implementação de
+referência que passa 36/36 verificações documentadas.
+
+**As nossas duas fórmulas batem ao dígito com a dela**, testado em
+`waf_sem_abrigo` (H = 0.2/1.0/1.5/3.0/6.0 ft) e `waf_sob_copado`
+(FM2, CC 40%, CH 50 ft, CR 0.5/0.7/0.9). Doze pontos de validação do §10
+entraram no `test_referencia_fernandes.py`.
+
+Aplicado, com a regra do FuelCalc (§4):
+
+- **`min(copado, leito)`**, nunca o do copado sozinho. O relatório
+  chama-lhe a armadilha do FARSITE e manda guardar contra ela: com
+  cobertura baixa e copado alto a fórmula abrigada devolve valores
+  *acima* da do leito — diria que estar sob árvores acelera o vento.
+  Acontecia em 13 píxeis da janela do Gerês, um a 1.95× o descoberto.
+- **Fim do limiar de 20% de cobertura.** Um limiar cria um degrau entre
+  píxeis vizinhos quase iguais; com o mínimo, o cruzamento das curvas
+  dá-se sozinho (≈8% para copado de 20 m) e a transição é contínua.
+- O WAF deixou de depender do `has_overstory`, que continua a decidir só
+  o sombreamento das humidades. São perguntas diferentes.
+
+Efeito medido: **0.04–0.06% dos píxeis**, −11% a −14% de WAF neles. É
+quase nulo porque a cobertura no raster é binária — 73% a 0%, 27% a
+≥20%, nada pelo meio. Vale como garantia de que o impossível não
+acontece, não como mudança de números.
+
+### EM ABERTO — a direcção do factor 1.15
+
+**As duas fontes contradizem-se, e a diferença é de 32% no vento.**
+
+| Fonte | Diz |
+|---|---|
+| `modelos_PFernandes/MODELO_FOGO_REFERENCIA.md` §3 | `U(20 ft) = U(10 m) × 1.15` |
+| RMRS-GTR-266 §1 (Turner & Lawson 1978) | `U20 = U10m / 1.15` |
+
+O RMRS está fisicamente certo: 20 pés são 6.10 m, **abaixo** dos 10 m, e
+o vento cresce com a altura, logo `U(20ft) < U(10m)`. Multiplicar só pode
+ser a conversão invertida.
+
+A referência do projecto é internamente consistente com o `×1.15` (§3.3:
+20 km/h × 1.15 × 0.40 = 9.2 km/h), e a tabela §7.3 é a saída do
+`run_validation()` dela. **Não pode arbitrar**: o nosso 18/18 diz que
+reproduzimos a implementação do Fernandes, não que a física esteja certa.
+
+Inverter para `/1.15` dá `|erro| mediano 27.6%` e `0/18` — um desvio
+sistemático de −22% a −31%, sem dispersão. Essa uniformidade é a
+assinatura de um erro puro de escala do vento, e é a prova de que as duas
+fontes divergem num escalar só.
+
+Decidir com o Paulo Fernandes. Se o RMRS ganhar, o ROS cai ~28% em toda a
+linha e a tabela §7.3 deixa de servir de calibração.
+
 ### Por fazer
 
 - Deploy e verificação em produção.

@@ -1,0 +1,21 @@
+fuel_model,description,waf_1978_nfdrs,waf_1988_nfdrs_constant,waf_1988_min,waf_1988_max,waf_nfmas_retired
+A,Western grasses (annual),0.6,0.6,,,0.36
+B,California chaparral,0.5,0.5,0.5,0.5,0.55
+C,Pine-grass savanna,0.4,0.4,0.3,0.5,0.25
+D,Southern rough,0.4,0.4,0.4,0.4,0.12
+E,Hardwood litter (winter),0.4,0.4,0.3,0.5,0.25
+F,Intermediate brush,0.5,0.5,0.5,0.5,0.42
+G,Short needle (heavy dead),0.4,0.4,0.3,0.3,0.12
+H,Short needle (normal dead),0.4,0.4,0.3,0.3,0.17
+I,Heavy slash,0.5,0.5,,,0.46
+J,Intermediate slash,0.5,0.5,,,0.43
+K,Light slash,0.5,0.5,,,0.36
+L,Western grasses (perennial),0.6,0.5,,,0.44
+N,Sawgrass,0.6,0.5,0.5,0.5,0.55
+O,High pocosin,0.5,0.5,0.5,0.5,0.55
+P,Southern pine plantation,0.4,0.3,0.3,0.3,0.12
+Q,Alaska black spruce,0.4,0.2,0.2,0.3,0.63
+R,Hardwood litter (summer),0.4,0.4,0.3,0.5,0.08
+S,Tundra,0.6,0.6,0.6,0.6,0.45
+T,Sagebrush-grass,0.6,0.6,0.6,0.6,0.42
+U,Western pines,0.4,0.3,0.3,0.3,0.12

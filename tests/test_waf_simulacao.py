@@ -119,8 +119,15 @@ def main():
     check(f"copado denso abriga ({mf_cop:.2f} < {mf_desc:.2f})", mf_cop < mf_desc)
     check("sob copado = 20 pés x WAF do copado",
           abs(mf_cop - v20 * waf_sob_copado(18.0 / 0.3048, 0.70)) < 1e-12)
-    check("cobertura abaixo do limiar não abriga (usa o leito)",
-          _midflame_no_ponto(v20, pinhal, 5.0, 18.0) == mf_desc)
+    # Não há limiar de cobertura: o mínimo das duas fórmulas é que decide,
+    # e abaixo de ~8% a do leito ganha sozinha (ver waf.py).
+    check("cobertura residual acaba no leito, sem degrau",
+          _midflame_no_ponto(v20, pinhal, 3.0, 18.0) == mf_desc)
+    check("cobertura de 15% já abriga",
+          _midflame_no_ponto(v20, pinhal, 15.0, 18.0) < mf_desc)
+    check("o abrigo nunca acelera o vento (armadilha do FARSITE)",
+          all(_midflame_no_ponto(v20, pinhal, c, 30.0) <= mf_desc + 1e-12
+              for c in (1.0, 5.0, 10.0, 20.0, 50.0, 90.0)))
     check("sem altura conhecida não abriga",
           _midflame_no_ponto(v20, pinhal, 70.0, None) == mf_desc)
 

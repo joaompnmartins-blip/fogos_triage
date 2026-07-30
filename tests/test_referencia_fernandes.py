@@ -26,7 +26,9 @@ sys.path.insert(0, str(RAIZ / "src"))
 
 from fogos_triage.engine import _rothermel_direct  # noqa: E402
 from fogos_triage.fuel_models import load_fuel_models_csv  # noqa: E402
-from fogos_triage.waf import waf_albini_baughman, waf_sem_abrigo, waf_sob_copado  # noqa: E402
+from fogos_triage.waf import (  # noqa: E402
+    COBERTURA_MINIMA_FRAC, waf_albini_baughman, waf_sem_abrigo, waf_sob_copado,
+)
 from fogos_triage.weather import WIND_10M_TO_20FT  # noqa: E402
 
 CSV = RAIZ / "data" / "fuel_models_pt.csv"
@@ -75,11 +77,51 @@ def main():
           waf_sob_copado(65.0, 0.70) < waf_sem_abrigo(1.0))
     check("mais cobertura abriga mais",
           waf_sob_copado(65.0, 0.80) < waf_sob_copado(65.0, 0.25))
-    check("cobertura abaixo do limiar usa a fórmula do leito",
-          waf_albini_baughman(1.0, altura_copado_m=20, cobertura_frac=0.10)
+    # Já não há limiar de cobertura: com o mínimo das duas fórmulas, é o
+    # cruzamento das curvas que decide, e para um copado de 20 m dá-se
+    # por volta dos 8% de cobertura.
+    check("cobertura residual (3%) acaba na fórmula do leito",
+          waf_albini_baughman(1.0, altura_copado_m=20, cobertura_frac=0.03)
           == waf_sem_abrigo(1.0))
+    check("cobertura de 15% já abriga (antes era ignorada até aos 20%)",
+          waf_albini_baughman(1.0, altura_copado_m=20, cobertura_frac=0.15)
+          < waf_sem_abrigo(1.0))
     check("sem copado usa a fórmula do leito",
           waf_albini_baughman(1.0) == waf_sem_abrigo(1.0))
+
+    print("\nPontos de validação do RMRS-GTR-266 §10 (Andrews 2012, USDA FS):")
+    # A fonte primária do WAF, com valores publicados. A referência do
+    # projecto (Fernandes) usa as mesmas duas fórmulas; estes números
+    # confirmam-nas contra quem as documenta.
+    for h, esperado in ((1.0, 0.362), (0.2, 0.275), (6.0, 0.547), (1.5, 0.393)):
+        check(f"leito de {h} ft -> {esperado}",
+              abs(waf_sem_abrigo(h) - esperado) < 5e-4, f"{waf_sem_abrigo(h):.4f}")
+    # Tabela do §10: FM2, CC 40%, CH 50 ft, três razões de copa.
+    for cr, esperado in ((0.5, 0.17), (0.7, 0.15), (0.9, 0.13)):
+        check(f"copado CC40% CH50ft CR{cr} -> {esperado}",
+              abs(waf_sob_copado(50.0, 0.40, cr) - esperado) < 5e-3,
+              f"{waf_sob_copado(50.0, 0.40, cr):.4f}")
+    for cc, esperado in ((0.60, 0.18), (0.80, 0.16), (1.00, 0.14)):
+        check(f"copado CC{cc:.0%} CH50ft CR0.3 -> {esperado}",
+              abs(waf_sob_copado(50.0, cc, 0.3) - esperado) < 5e-3,
+              f"{waf_sob_copado(50.0, cc, 0.3):.4f}")
+
+    print("\nArmadilha do FARSITE (§4) — o abrigo nunca pode acelerar o vento:")
+    # Cobertura baixa com copado alto faz a fórmula abrigada passar acima
+    # da do leito. O relatório manda guardar contra isto; a regra do
+    # FuelCalc (mínimo dos dois) fá-lo e ainda tira o degrau no limiar.
+    check("a fórmula crua sobe acima de 0.7 com 1% de cobertura (é o bug)",
+          waf_sob_copado(100.0, 0.01) > 0.7, f"{waf_sob_copado(100.0, 0.01):.3f}")
+    for cc in (0.20, 0.25, 0.35, 0.60, 0.90):
+        w = waf_albini_baughman(1.0, altura_copado_m=30.0, cobertura_frac=cc)
+        check(f"CC {cc:.0%} sob copado de 30 m nunca excede o leito",
+              w <= waf_sem_abrigo(1.0) + 1e-12, f"{w:.3f} vs {waf_sem_abrigo(1.0):.3f}")
+    # Sem degrau: atravessar o limiar não pode dar um salto no WAF.
+    salto = abs(waf_albini_baughman(1.0, altura_copado_m=20.0,
+                                    cobertura_frac=COBERTURA_MINIMA_FRAC)
+                - waf_albini_baughman(1.0, altura_copado_m=20.0,
+                                      cobertura_frac=COBERTURA_MINIMA_FRAC - 1e-9))
+    check(f"limiar deixou de ser um degrau (salto {salto:.4f})", salto < 1e-6)
 
     print("\nDomínio dos modelos PT — WAF sempre fisicamente plausível:")
     wafs = {n: waf_sem_abrigo(m.depth) for n, m in fm.items() if n != 98}

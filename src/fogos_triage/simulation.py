@@ -580,11 +580,6 @@ _TERRAIN_CACHE_MARGIN_M = 300.0
 # lado.
 _TERRAIN_FIELDS = ["slope", "aspect", "fuel_model", "canopy_cover", "stand_height"]
 
-# Acima desta cobertura de copas considera-se que há copado a abrigar o
-# combustível de superfície. Mesmo limiar da triagem (triage.py), para o
-# mesmo píxel não mudar de fórmula conforme quem pergunta.
-_COBERTURA_OVERSTORY_PCT = 10.0
-
 
 def _vento_20ft_uniforme(wx: WeatherConditions) -> float:
     """Vento a 20 pés (6.1 m) da meteo horária, em m/s.
@@ -638,11 +633,14 @@ def _midflame_no_ponto(
     """
     if fm.depth <= 0:
         return vento_20ft * WAF_SEM_MODELO
-    tem_copado = (canopy_cover_pct or 0.0) > _COBERTURA_OVERSTORY_PCT
+    # O copado entra sempre que o raster o dá — sem limiar de cobertura.
+    # Quem arbitra se chega a abrigar é o `min()` das duas fórmulas dentro
+    # do `waf_albini_baughman`, o que mantém a transição contínua entre
+    # píxeis vizinhos (ver waf.py).
     waf = waf_albini_baughman(
         fm.depth,
-        altura_copado_m=stand_height_m if tem_copado else None,
-        cobertura_frac=(canopy_cover_pct / 100.0) if tem_copado else None,
+        altura_copado_m=stand_height_m,
+        cobertura_frac=(canopy_cover_pct / 100.0) if canopy_cover_pct else None,
     )
     return vento_20ft * waf
 

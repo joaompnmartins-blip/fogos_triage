@@ -383,15 +383,19 @@ def derive_fire_weather(
     # fórmula dá 0.1% e 18/18.
     #
     # Sem `fuel_bed_depth_ft` não há como calcular a fórmula do leito, e
-    # cai-se no valor por omissão — que é o comportamento histórico da
-    # simulação e serve de ponte enquanto ela não passa o modelo por
-    # píxel.
+    # cai-se no valor por omissão.
+    #
+    # O copado entra sempre que existe, sem passar pelo `has_overstory`.
+    # Os dois não são a mesma pergunta: o `has_overstory` decide se o
+    # combustível está à sombra (humidades), e para isso um limiar faz
+    # sentido; o abrigo do vento é contínuo, e quem arbitra se o copado
+    # chega a abrigar é o `min()` das duas fórmulas lá dentro.
     wind_20ft = wx.wind_speed_10m_ms * WIND_10M_TO_20FT
     if fuel_bed_depth_ft is not None:
         waf = waf_albini_baughman(
             fuel_bed_depth_ft,
-            altura_copado_m=stand_height_m if has_overstory else None,
-            cobertura_frac=(canopy_cover_pct / 100.0) if has_overstory else None,
+            altura_copado_m=stand_height_m,
+            cobertura_frac=(canopy_cover_pct / 100.0) if canopy_cover_pct else None,
         )
     else:
         waf = WAF_SEM_MODELO

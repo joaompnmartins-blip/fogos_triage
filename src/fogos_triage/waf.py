@@ -36,11 +36,17 @@ ALTURA_REFERENCIA_FT = 20.0
 
 M_TO_FT = 1 / 0.3048
 
-# Abaixo desta cobertura de copas o copado não abriga de forma
-# significativa e usa-se a fórmula do leito. A referência (§3.3) associa
-# `forest_open` a "copado aberto, povoamento esparso"; 20% é o limiar que
-# a escada anterior já usava para distinguir "com coberto" de "sem".
-COBERTURA_MINIMA_FRAC = 0.20
+# Cobertura mínima para sequer considerar a fórmula do copado. Zero, de
+# propósito: quem decide se há abrigo é o `min()` das duas fórmulas
+# (regra do FuelCalc, ver `waf_albini_baughman`), não um limiar fixo.
+#
+# Havia aqui 20%, herdado da escada de degraus. Um limiar cria uma
+# descontinuidade — dois píxeis vizinhos com 19.9% e 20.1% de cobertura
+# saltavam de WAF —, e é justamente o que o RMRS-GTR-266 §4 aponta como
+# a maior fonte de divergência entre implementações. Com o mínimo, o
+# cruzamento das duas curvas dá-se sozinho onde deve (≈8% de cobertura
+# para um copado de 20 m) e a transição é contínua.
+COBERTURA_MINIMA_FRAC = 0.0
 
 # Razão de copa (comprimento de copa viva / altura total) assumida quando
 # não é conhecida. NÃO existe nos nossos dados — nem no raster nem nos
@@ -117,12 +123,29 @@ def waf_albini_baughman(
     leito **só para comparabilidade**, e diz-o expressamente — é por isso
     que o teste de regressão a força, e não é isso que o terreno pede.
     """
+    do_leito = waf_sem_abrigo(espessura_leito_ft)
     tem_copado = (
         altura_copado_m is not None
         and altura_copado_m > 0
         and cobertura_frac is not None
+        and cobertura_frac > 0
         and cobertura_frac >= cobertura_minima
     )
-    if tem_copado:
-        return waf_sob_copado(altura_copado_m * M_TO_FT, cobertura_frac, razao_copa)
-    return waf_sem_abrigo(espessura_leito_ft)
+    if not tem_copado:
+        return do_leito
+    do_copado = waf_sob_copado(altura_copado_m * M_TO_FT, cobertura_frac, razao_copa)
+    # Regra do FuelCalc: o mínimo dos dois, nunca o do copado sozinho.
+    #
+    # RMRS-GTR-266 §4 chama-lhe a "armadilha do FARSITE": com cobertura
+    # baixa e copado alto a fórmula abrigada devolve valores ACIMA da do
+    # leito — 0.74 para 1% de cobertura —, o que diria que estar debaixo
+    # de árvores acelera o vento. O relatório manda explicitamente
+    # guardar contra isto ("sheltered WAF should never exceed unsheltered
+    # WAF; guard for this"). Na janela do Gerês acontecia em 13 píxeis,
+    # um deles com o abrigado a 1.95x o descoberto.
+    #
+    # O mínimo faz mais do que aparar esses casos: elimina a
+    # descontinuidade em degrau no limiar (§4, "FuelCalc removes the
+    # step"), que numa paisagem contínua se veria como uma fronteira
+    # artificial no mapa entre píxeis vizinhos quase iguais.
+    return min(do_copado, do_leito)
