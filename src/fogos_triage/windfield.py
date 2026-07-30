@@ -142,6 +142,7 @@ async def fetch_wind_fields(
     epsg: int = 3763,
     mesh: str = "fine",
     client: Optional["httpx.AsyncClient"] = None,
+    waf_simulacao: float = 0.40,
 ) -> Optional[WindFieldSet]:
     """
     Um campo por hora de `weather_hourly`, do sidecar WindNinja.
@@ -154,10 +155,17 @@ async def fetch_wind_fields(
     houver `use_gusts` ou cenário de humidades, esta função deve ser
     chamada depois de esses já terem alterado o `weather_hourly`.
 
+    `waf_simulacao` tem de ser o MESMO factor que o motor aplica ao campo
+    (`simulation._WAF_SIMULACAO`): usa-se aqui para desfazer a conversão e
+    recuperar o vento a 10 m, e lá para a refazer por ponto. Se os dois
+    divergirem, o vento entra escalado.
+
     Devolve `None` em qualquer falha, incluindo falha a meio: um conjunto
     parcial daria metade das horas com relevo e metade sem, o que é pior
     do que nenhuma e muito mais difícil de diagnosticar.
     """
+    if waf_simulacao <= 0:
+        raise ValueError("waf_simulacao tem de ser positivo")
     if not HAS_HTTPX:
         log.warning("Campo de vento: httpx não instalado")
         return None
@@ -176,14 +184,26 @@ async def fetch_wind_fields(
     campos: list[WindField] = []
     try:
         for i, wx in enumerate(weather_hourly):
-            # O vento de entrada é o de 10 m, não o midflame: o WindNinja
-            # trabalha à altura de referência e o WAF vegetativo é aplicado
-            # depois, por píxel, do lado do motor.
-            velocidade = getattr(wx, "wind_speed_10m_ms", None)
+            # O WindNinja quer o vento à altura de referência (10 m), mas a
+            # fonte de verdade sobre que vento a simulação vai usar é o
+            # `wind_midflame_ms` — é o ÚNICO campo de vento que o motor
+            # Rothermel lê.
+            #
+            # A distinção importa por causa do `gust_weather`: com rajadas,
+            # ele altera só o midflame e deixa `wind_speed_10m_ms` no valor
+            # sustentado de propósito (para os dois continuarem distintos
+            # na exibição). Ler o `wind_speed_10m_ms` mandava o vento
+            # sustentado ao WindNinja enquanto o motor propagava com a
+            # rajada — apanhado em produção, onde a corrida com rajadas
+            # deu campos de 3.0 m/s enquanto o fogo corria a 5.9.
+            #
+            # Desfaz-se por isso o WAF, em vez de ler o campo de 10 m.
             direccao = getattr(wx, "wind_direction_deg", None)
-            if velocidade is None or direccao is None:
+            midflame = getattr(wx, "wind_midflame_ms", None)
+            if midflame is None or direccao is None:
                 log.warning("Campo de vento: hora %d sem vento — desiste", i)
                 return None
+            velocidade = midflame / waf_simulacao
             corpo = {
                 **janela, "epsg": epsg, "nodata": -9999.0,
                 "input_speed_ms": float(velocidade),

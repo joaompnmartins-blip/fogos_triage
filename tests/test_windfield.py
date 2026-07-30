@@ -118,6 +118,10 @@ def main():
                 wind_direction_deg=d, precipitation_mm_24h=0, cloud_cover_pct=0)
 
         horas = [wx(4.3, 161.0), wx(3.3, 280.0)]
+        # derive_fire_weather nao corre aqui, por isso o midflame vem do
+        # WAF da simulacao aplicado a mao
+        from dataclasses import replace as _replace
+        horas = [_replace(h, wind_midflame_ms=h.wind_speed_10m_ms * 0.40) for h in horas]
         xs, ys = rio_transform("EPSG:4326", "EPSG:3763", [-8.15], [41.75])  # Gerês
         cx, cy = xs[0], ys[0]
 
@@ -154,6 +158,43 @@ def main():
             check(f"161° e 280° dão campos diferentes (r={r_:+.2f})", r_ < 0.95)
             check("amostra no centro dá valor", conj.sample(cx, cy, 0) is not None)
         check("sidecar em baixo devolve None (falha aberta)", mau is None)
+
+        # --- rajadas: o campo tem de seguir o midflame, nao o vento de 10m ---
+        # gust_weather altera SO o wind_midflame_ms e deixa o
+        # wind_speed_10m_ms no valor sustentado. Ler o campo errado mandava
+        # o vento sustentado ao WindNinja enquanto o motor propagava com a
+        # rajada — apanhado em producao a 2026-07-30.
+        from fogos_triage.triage import gust_weather
+        base = _replace(wx(3.0, 225.0), wind_gust_10m_ms=9.0,
+                        wind_midflame_ms=3.0 * 0.40)
+        com_rajada = gust_weather(base)
+        check(f"gust_weather mantem o vento de 10m ({com_rajada.wind_speed_10m_ms})",
+              com_rajada.wind_speed_10m_ms == 3.0)
+        check(f"gust_weather sobe o midflame ({com_rajada.wind_midflame_ms:.2f})",
+              com_rajada.wind_midflame_ms > base.wind_midflame_ms)
+
+        pedidos = []
+        async def espia():
+            cli = httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
+                                    base_url="http://sidecar", timeout=300)
+            orig = cli.post
+            async def post(url, **kw):
+                pedidos.append(kw.get("json", {}))
+                return await orig(url, **kw)
+            cli.post = post
+            try:
+                with LandscapeReader(multiband_path=str(COG)) as r:
+                    return await fetch_wind_fields("http://sidecar", r, cx, cy, 7500.0,
+                                                   [com_rajada], mesh="coarse",
+                                                   client=cli, waf_simulacao=0.40)
+            finally:
+                await cli.aclose()
+        asyncio.run(espia())
+        enviado = pedidos[0]["input_speed_ms"] if pedidos else None
+        esperado = com_rajada.wind_midflame_ms / 0.40
+        check(f"WindNinja recebe a rajada ({enviado:.2f}), nao o sustentado (3.0)",
+              enviado is not None and abs(enviado - esperado) < 1e-6 and enviado > 3.5,
+              f"enviou {enviado}")
 
     print(f"\n{'='*52}\nRESULTADO: {passou} passados, {falhou} falhados, "
           f"{saltou} saltados\n{'='*52}")

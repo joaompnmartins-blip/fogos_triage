@@ -326,6 +326,7 @@ async def _run_free_simulation(
                     "não está definido — vento uniforme", job_id,
                 )
             else:
+                from fogos_triage.simulation import _WAF_SIMULACAO
                 from fogos_triage.windfield import fetch_wind_fields
                 from rasterio.warp import transform as _rio_transform
                 try:
@@ -334,6 +335,7 @@ async def _run_free_simulation(
                         wind_fields = await fetch_wind_fields(
                             windninja_url, _r, _xs[0], _ys[0],
                             bbox_km * 500.0, weather_hourly,
+                            waf_simulacao=_WAF_SIMULACAO,
                         )
                 except Exception as exc:
                     log.warning(

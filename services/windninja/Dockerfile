@@ -14,10 +14,15 @@ FROM condaforge/miniforge3:24.9.2-0
 
 WORKDIR /app
 
-# `windninja` traz o GDAL e o rasterio por dependência; fastapi/uvicorn
-# vêm do mesmo canal para não misturar dois gestores de pacotes no
-# mesmo ambiente.
-RUN mamba install -y -c conda-forge \
+# `mamba create` num ambiente NOVO, e não `mamba install` na base.
+#
+# Não é preferência de estilo: instalar na base da imagem deixa o solver
+# preso às versões que ela já traz, e o resultado foi um ambiente
+# inconsistente — libgdal.so.37 a pedir `sqlite3_total_changes64`
+# (SQLite >= 3.37) contra a libsqlite antiga da base, e o `import
+# rasterio` a rebentar só em runtime, depois de o build passar. Num
+# ambiente novo o solver resolve de raiz e traz libsqlite 3.53.
+RUN mamba create -y -n wn -c conda-forge \
         windninja \
         fastapi \
         uvicorn-standard \
@@ -25,9 +30,10 @@ RUN mamba install -y -c conda-forge \
         numpy \
     && mamba clean -afy
 
-# O WindNinja precisa de encontrar os seus dados (tabelas de rugosidade,
-# etc.). No layout do conda ficam em share/windninja.
-ENV WINDNINJA_DATA=/opt/conda/share/windninja \
+# Pôr o ambiente `wn` à frente no PATH dispensa `conda activate`, que não
+# funciona em CMD/ENTRYPOINT sem shell de login.
+ENV PATH=/opt/conda/envs/wn/bin:$PATH \
+    WINDNINJA_DATA=/opt/conda/envs/wn/share/windninja \
     PYTHONUNBUFFERED=1
 
 COPY services/windninja/main.py ./main.py

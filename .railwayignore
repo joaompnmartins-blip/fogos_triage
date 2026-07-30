@@ -1,0 +1,20 @@
+# O que NÃO sobe em `railway up`.
+#
+# Existe sobretudo por causa do `data/`: são 11 GB de landscape files e
+# COGs que nenhum serviço precisa de receber por upload — o worker e a
+# API descarregam-nos do R2 para os seus volumes, e o sidecar WindNinja
+# nem sequer os usa (recebe a janela do DEM no pedido).
+#
+# O `railway up` respeita o .gitignore, mas isto é explícito de
+# propósito: um `data/landscape_pt/` que saísse do .gitignore por
+# descuido passaria a ser 3.9 GB enviados em cada deploy.
+data/
+LFM/
+analise_windninja/
+node_modules/
+frontend/node_modules/
+frontend/dist/
+.git/
+__pycache__/
+*.pyc
+.venv/

@@ -437,6 +437,7 @@ async def _run_and_update(
                 )
             else:
                 from fogos_triage.landscape import LandscapeReader
+                from fogos_triage.simulation import _WAF_SIMULACAO
                 from fogos_triage.windfield import fetch_wind_fields
                 from rasterio.warp import transform as _rio_transform
                 try:
@@ -446,6 +447,7 @@ async def _run_and_update(
                             windninja_url, _r, _xs[0], _ys[0],
                             bbox_km * 500.0,  # meia-largura em metros
                             weather_hourly,
+                            waf_simulacao=_WAF_SIMULACAO,
                         )
                 except Exception as exc:
                     log.warning(
