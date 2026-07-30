@@ -42,6 +42,8 @@ from .fuel_moisture_table import FuelMoistureRow
 from .fuel_moisture_table import lookup as _lookup_fuel_moisture
 from .landscape import LandscapeReader, LandscapeRasters
 from .schemas import WeatherConditions
+from .waf import waf_albini_baughman
+from .weather import WAF_SEM_MODELO, WIND_10M_TO_20FT
 
 log = logging.getLogger(__name__)
 
@@ -215,6 +217,33 @@ def _point_moisture(
     )
 
 
+def _amostra_copado(arrays: dict, nodata: dict, row_idx, col_idx) -> tuple:
+    """(cobertura %, altura m) nos pontos dados, com NaN onde não há dado.
+
+    NaN e não 0: uma cobertura de 0% é uma afirmação ("não há copado"),
+    a ausência de banda é outra coisa, e as duas levam ao mesmo WAF do
+    leito por caminhos diferentes. Manter a distinção evita que um
+    landscape file sem estas bandas se leia como paisagem rasa.
+    """
+    def _banda(nome: str, escala: float = 1.0):
+        arr = arrays.get(nome)
+        if arr is None:
+            return np.full(row_idx.shape, np.nan)
+        vals = arr[row_idx, col_idx].astype(float)
+        nd = nodata.get(nome)
+        if nd is not None:
+            vals = np.where(vals == nd, np.nan, vals)
+        return vals * escala
+
+    # Alturas em decímetros nos rasters PT (ver LandscapeReader).
+    return _banda("canopy_cover"), _banda("stand_height", 0.1)
+
+
+def _ou_none(v: float) -> Optional[float]:
+    """NaN -> None, para o WAF distinguir "sem dado" de "zero"."""
+    return None if math.isnan(v) else float(v)
+
+
 def _build_ros_grid(
     reader: LandscapeReader,
     fuel_models: dict[int, FuelModelPT],
@@ -230,17 +259,19 @@ def _build_ros_grid(
     (ros, fi, chama). Calculado para toda a grelha; clip ao perímetro feito
     depois.
 
-    Só `slope` e `fuel_model` influenciam o cálculo Rothermel de superfície
-    (declive e modelo de combustível) — lidos uma única vez para todo o
-    bbox via `LandscapeReader.read_window`, em vez de uma leitura rasterio
-    por ponto da grelha.
+    `slope` e `fuel_model` entram no Rothermel de superfície; `canopy_cover`
+    e `stand_height` entram no WAF, que decide quanto do vento chega à
+    chama. Todas lidas uma única vez para todo o bbox via
+    `LandscapeReader.read_window`, em vez de uma leitura rasterio por ponto
+    da grelha.
     """
     half = bbox_km * 500.0
     min_x, max_x = cx_proj - half, cx_proj + half
     min_y, max_y = cy_proj - half, cy_proj + half
 
     arrays, nodata, window_transform = reader.read_window(
-        ["slope", "fuel_model"], min_x, min_y, max_x, max_y,
+        ["slope", "fuel_model", "canopy_cover", "stand_height"],
+        min_x, min_y, max_x, max_y,
     )
     slope_arr = arrays.get("slope")
     fuel_arr = arrays.get("fuel_model")
@@ -287,19 +318,27 @@ def _build_ros_grid(
     default_m_100h = (weather.fuel_moisture_100h_pct or 10.0) / 100.0
     default_m_lh   = (weather.fuel_moisture_live_h_pct or 100.0) / 100.0
     default_m_lw   = (weather.fuel_moisture_live_w_pct or 100.0) / 100.0
-    wind_mf = weather.wind_midflame_ms or 0.0
+    vento_20ft = _vento_20ft_uniforme(weather)
+    cob_pts, alt_pts = _amostra_copado(arrays, nodata, row_idx, col_idx)
 
     features = []
     d_lat = resolution_m / 111320.0
     # A grelha é toda da hora 0 (ver wx0 em run_simulation_sync), por isso
     # o campo amostrado também é o da hora 0. Passar a grelha a horária é
     # assunto de SIMULATION_HOURLY_GRID_PLAN.md, não deste plano.
-    for xg, yg, lon, lat, slope, fnum in zip(pts_x, pts_y, lons, lats, slope_deg, fuel_num):
-        wind_mf_p, _ = _vento_no_ponto(wind_fields, float(xg), float(yg), 0, wind_mf, 0.0)
+    for xg, yg, lon, lat, slope, fnum, cob, alt in zip(
+        pts_x, pts_y, lons, lats, slope_deg, fuel_num, cob_pts, alt_pts
+    ):
+        vento_20ft_p, _ = _vento_20ft_no_ponto(
+            wind_fields, float(xg), float(yg), 0, vento_20ft, 0.0,
+        )
         fm = fuel_models.get(int(fnum))
         if fm is None or fm.is_empty:
             ros, fi, flame = 0.0, 0.0, 0.0
         else:
+            wind_mf_p = _midflame_no_ponto(
+                vento_20ft_p, fm, _ou_none(cob), _ou_none(alt),
+            )
             try:
                 m_1h, m_10h, m_100h, m_lh, m_lw = _point_moisture(
                     fuel_moisture_table, int(fnum),
@@ -388,7 +427,8 @@ def _build_direction_arrows(
     recortado). Ver chamada em `run_simulation_sync`.
     """
     arrays, nodata, window_transform = reader.read_window(
-        ["slope", "aspect", "fuel_model"], min_x, min_y, max_x, max_y,
+        ["slope", "aspect", "fuel_model", "canopy_cover", "stand_height"],
+        min_x, min_y, max_x, max_y,
     )
     slope_arr = arrays.get("slope")
     aspect_arr = arrays.get("aspect")
@@ -433,6 +473,7 @@ def _build_direction_arrows(
     )
 
     lons, lats = rio_transform(reader.crs, "EPSG:4326", pts_x, pts_y)
+    cob_pts, alt_pts = _amostra_copado(arrays, nodata, row_idx, col_idx)
 
     all_features: list[dict] = []
     for t_h, weather, perimeter in steps:
@@ -441,22 +482,26 @@ def _build_direction_arrows(
         default_m_100h = (weather.fuel_moisture_100h_pct or 10.0) / 100.0
         default_m_lh   = (weather.fuel_moisture_live_h_pct or 100.0) / 100.0
         default_m_lw   = (weather.fuel_moisture_live_w_pct or 100.0) / 100.0
-        wind_mf = weather.wind_midflame_ms or 0.0
+        vento_20ft = _vento_20ft_uniforme(weather)
         wind_dir = weather.wind_direction_deg or 0.0
 
         features = []
         # `steps` traz (t_h, meteo dessa hora, perímetro); o índice do campo
         # é a hora inteira, igual ao hour_idx do _propagate.
         idx_hora = int(t_h)
-        for xg, yg, lon, lat, slope, aspect, fnum in zip(
-            pts_x, pts_y, lons, lats, slope_deg, aspect_deg, fuel_num
+        for xg, yg, lon, lat, slope, aspect, fnum, cob, alt in zip(
+            pts_x, pts_y, lons, lats, slope_deg, aspect_deg, fuel_num,
+            cob_pts, alt_pts
         ):
-            wind_mf_p, wind_dir_p = _vento_no_ponto(
-                wind_fields, float(xg), float(yg), idx_hora, wind_mf, wind_dir,
-            )
             fm = fuel_models.get(int(fnum))
             if fm is None or fm.is_empty:
                 continue
+            vento_20ft_p, wind_dir_p = _vento_20ft_no_ponto(
+                wind_fields, float(xg), float(yg), idx_hora, vento_20ft, wind_dir,
+            )
+            wind_mf_p = _midflame_no_ponto(
+                vento_20ft_p, fm, _ou_none(cob), _ou_none(alt),
+            )
             try:
                 m_1h, m_10h, m_100h, m_lh, m_lw = _point_moisture(
                     fuel_moisture_table, int(fnum),
@@ -529,39 +574,77 @@ def _clip_grid_to_perimeter(grid_geojson: dict, perimeter_geojson: dict) -> dict
 # ---------------------------------------------------------------------------
 
 _TERRAIN_CACHE_MARGIN_M = 300.0
-_TERRAIN_FIELDS = ["slope", "aspect", "fuel_model"]
+# `canopy_cover` e `stand_height` não entram no Rothermel de superfície —
+# entram no WAF, que decide quanto do vento chega à chama. Sem elas um
+# pinhal com sub-coberto levava o mesmo vento que o mato descoberto ao
+# lado.
+_TERRAIN_FIELDS = ["slope", "aspect", "fuel_model", "canopy_cover", "stand_height"]
 
-# WAF (wind adjustment factor) de 10 m para midflame. É o mesmo valor que
-# `derive_fire_weather` aplica quando é chamado sem altura/cobertura de
-# copas — que é exactamente como a simulação o chama hoje
-# (routes_meta.py, routes_freesim.py), ao contrário da triagem, que passa
-# o terreno e obtém 0.14 a 0.50 por píxel.
-#
-# Repete-se aqui, e não se lê do WeatherConditions, porque o campo do
-# WindNinja vem a 10 m e precisa da mesma conversão. Usar o mesmo 0.40
-# garante que ligar o WindNinja muda UMA coisa só — a variação espacial
-# do vento — e que qualquer diferença nos perímetros se pode atribuir ao
-# relevo. Ver a correcção sobre o WAF em WINDNINJA_PLAN.md.
-_WAF_SIMULACAO = 0.40
+# Acima desta cobertura de copas considera-se que há copado a abrigar o
+# combustível de superfície. Mesmo limiar da triagem (triage.py), para o
+# mesmo píxel não mudar de fórmula conforme quem pergunta.
+_COBERTURA_OVERSTORY_PCT = 10.0
 
 
-def _vento_no_ponto(
+def _vento_20ft_uniforme(wx: WeatherConditions) -> float:
+    """Vento a 20 pés (6.1 m) da meteo horária, em m/s.
+
+    É o vento que a simulação transporta agora, em vez do midflame: o
+    midflame já traz um WAF aplicado, e o WAF só se pode escolher depois
+    de se saber o modelo de combustível do píxel.
+    """
+    v = getattr(wx, "wind_20ft_ms", None)
+    if v is not None:
+        return v
+    # Meteo que não passou pelo `derive_fire_weather` (fallback estático do
+    # routes_meta): o midflame traz o WAF por omissão, e desfazê-lo é exacto.
+    return (wx.wind_midflame_ms or 0.0) / WAF_SEM_MODELO
+
+
+def _vento_20ft_no_ponto(
     wind_fields, x: float, y: float, hour_idx: int,
-    wind_mf_uniforme: float, wind_dir_uniforme: float,
+    vento_20ft_uniforme: float, wind_dir_uniforme: float,
 ) -> tuple[float, float]:
-    """(midflame m/s, direcção deg) num ponto.
+    """(vento a 20 pés m/s, direcção deg) num ponto.
 
-    Com `wind_fields`, usa o campo daquela hora e converte de 10 m para
-    midflame com o mesmo WAF do caminho uniforme. Sem campo — ou fora da
-    grelha, ou em nodata — devolve o par uniforme, que é o comportamento
-    actual byte a byte.
+    Com `wind_fields`, usa o campo daquela hora — que sai do WindNinja a
+    10 m — e sobe-o a 20 pés. Sem campo, ou fora da grelha, ou em nodata,
+    devolve o par uniforme.
+
+    Devolve 20 pés e não midflame porque o WAF que falta aplicar depende
+    do modelo de combustível e do copado do píxel, que esta função não
+    conhece. Quem chama junta as duas metades com `_midflame_no_ponto`.
     """
     if wind_fields is not None:
         amostra = wind_fields.sample(x, y, hour_idx)
         if amostra is not None:
             v10, direccao = amostra
-            return v10 * _WAF_SIMULACAO, direccao
-    return wind_mf_uniforme, wind_dir_uniforme
+            return v10 * WIND_10M_TO_20FT, direccao
+    return vento_20ft_uniforme, wind_dir_uniforme
+
+
+def _midflame_no_ponto(
+    vento_20ft: float,
+    fm: FuelModelPT,
+    canopy_cover_pct: Optional[float],
+    stand_height_m: Optional[float],
+) -> float:
+    """Vento midflame do píxel — 20 pés vezes o WAF de Albini & Baughman.
+
+    O WAF varia muito mais entre píxeis do que se supunha enquanto era
+    fixo em 0.40: 0.27 numa folhada rasa descoberta, 0.54 num mato de
+    1.70 m, e pode descer abaixo de 0.15 sob copado denso. Era essa
+    dispersão que o valor único achatava — ver `waf.py`.
+    """
+    if fm.depth <= 0:
+        return vento_20ft * WAF_SEM_MODELO
+    tem_copado = (canopy_cover_pct or 0.0) > _COBERTURA_OVERSTORY_PCT
+    waf = waf_albini_baughman(
+        fm.depth,
+        altura_copado_m=stand_height_m if tem_copado else None,
+        cobertura_frac=(canopy_cover_pct / 100.0) if tem_copado else None,
+    )
+    return vento_20ft * waf
 
 
 def _refresh_terrain_cache(reader: LandscapeReader, verts: list) -> dict:
@@ -578,8 +661,16 @@ def _refresh_terrain_cache(reader: LandscapeReader, verts: list) -> dict:
     }
 
 
-def _lookup_cached_terrain(cache: dict, x: float, y: float) -> Optional[tuple[float, float, int]]:
-    """Lê (slope_deg, aspect_deg, fuel_model_num) da janela em cache.
+def _lookup_cached_terrain(
+    cache: dict, x: float, y: float,
+) -> Optional[tuple[float, float, int, Optional[float], Optional[float]]]:
+    """Lê (slope_deg, aspect_deg, fuel_model_num, cobertura_%, altura_m)
+    da janela em cache.
+
+    Os dois últimos podem vir a None — landscape files sem essas bandas,
+    ou píxeis a nodata. Nesse caso o WAF cai na fórmula do leito, que é o
+    tratamento certo: sem copado conhecido, não se inventa abrigo.
+
     Devolve None se o ponto cair fora da janela — sinal para recarregar."""
     slope_arr = cache["arrays"].get("slope")
     if slope_arr is None:
@@ -611,7 +702,12 @@ def _lookup_cached_terrain(cache: dict, x: float, y: float) -> Optional[tuple[fl
     slope_deg = _val("slope") or 0.0
     aspect_deg = _val("aspect") or 0.0
     fuel_num = int(_val("fuel_model") or 98)
-    return slope_deg, aspect_deg, fuel_num
+    cobertura_pct = _val("canopy_cover")
+    # Alturas em decímetros nos rasters PT — mesma conversão que o
+    # `LandscapeReader.sample_projected` faz no caminho ponto-a-ponto.
+    altura_raw = _val("stand_height")
+    altura_m = altura_raw / 10.0 if altura_raw is not None else None
+    return slope_deg, aspect_deg, fuel_num, cobertura_pct, altura_m
 
 
 # ---------------------------------------------------------------------------
@@ -691,7 +787,7 @@ def _propagate(
         default_m_100h = (wx.fuel_moisture_100h_pct or 10.0) / 100.0
         default_m_lh   = (wx.fuel_moisture_live_h_pct or 100.0) / 100.0
         default_m_lw   = (wx.fuel_moisture_live_w_pct or 100.0) / 100.0
-        wind_mf = wx.wind_midflame_ms or 0.0
+        vento_20ft = _vento_20ft_uniforme(wx)
         wind_dir = wx.wind_direction_deg
 
         while snap_idx < len(snap_minutes) and t >= snap_minutes[snap_idx]:
@@ -727,12 +823,15 @@ def _propagate(
                 terrain_cache = _refresh_terrain_cache(reader, verts)
                 cached = _lookup_cached_terrain(terrain_cache, x_cur, y_cur)
             if cached is not None:
-                slope_deg, aspect_deg, fuel_num = cached
+                slope_deg, aspect_deg, fuel_num, cobertura_pct, altura_m = cached
             else:
                 # fallback raro — ponto fora de qualquer janela razoável
                 terrain = reader.sample_projected(x_cur, y_cur)
                 slope_deg, aspect_deg, fuel_num = (
                     terrain.slope_degrees, terrain.aspect_degrees, terrain.fuel_model_num,
+                )
+                cobertura_pct, altura_m = (
+                    terrain.canopy_cover_pct, terrain.stand_height_m,
                 )
             # Códigos NB Scott & Burgan (91-99) → FM98, mesmo tratamento de
             # "não combustível" em toda a app (ver fuel_models.py).
@@ -742,12 +841,16 @@ def _propagate(
                 new_verts.append((x_cur, y_cur, 0.0, 0.0))
                 continue
 
-            # Vento local: com campo WindNinja, o valor deste vértice
-            # nesta hora; sem campo, o uniforme. O `hour_idx` é o mesmo
-            # que já escolheu a meteo acima, portanto vento e humidades
-            # não podem dessincronizar.
-            wind_mf_p, wind_dir_p = _vento_no_ponto(
-                wind_fields, x_cur, y_cur, hour_idx, wind_mf, wind_dir,
+            # Vento local em duas metades: o vento a 20 pés — do campo
+            # WindNinja se houver, senão o uniforme — e depois o WAF deste
+            # píxel, que depende do modelo de combustível e do copado
+            # lidos acima. O `hour_idx` é o mesmo que já escolheu a meteo,
+            # portanto vento e humidades não podem dessincronizar.
+            vento_20ft_p, wind_dir_p = _vento_20ft_no_ponto(
+                wind_fields, x_cur, y_cur, hour_idx, vento_20ft, wind_dir,
+            )
+            wind_mf_p = _midflame_no_ponto(
+                vento_20ft_p, fm, cobertura_pct, altura_m,
             )
 
             try:

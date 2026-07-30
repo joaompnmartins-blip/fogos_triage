@@ -14,9 +14,10 @@ armadilhas. Em resumo do que interessa a quem lê este ficheiro:
 - O modelo é *mass-consistent*: dá compressão sobre cumeadas, abrigo
   topográfico e canalização. **Não** dá esteira de sotavento — é linear,
   e inverter o vento 180° devolve exactamente a mesma velocidade.
-- A velocidade que sai é a **10 m**, como a do Open-Meteo. Tem de passar
-  pelo mesmo WAF vegetativo que o vento uniforme já passa; este módulo
-  não o aplica.
+- A velocidade que sai é a **10 m**, como a do Open-Meteo, e é a essa
+  altura que também tem de entrar. Este módulo não aplica WAF nenhum:
+  quem o faz é o motor, por píxel, porque o WAF depende do modelo de
+  combustível e do copado do sítio. Aqui trata-se só do vento livre.
 
 Falha aberta em todo o lado: se o sidecar não responder, `fetch_wind_fields`
 devolve `None` e o motor continua com vento uniforme.
@@ -31,6 +32,8 @@ from datetime import datetime
 from typing import Optional, Sequence
 
 import numpy as np
+
+from .weather import WIND_10M_TO_20FT
 
 try:
     import httpx
@@ -155,10 +158,11 @@ async def fetch_wind_fields(
     houver `use_gusts` ou cenário de humidades, esta função deve ser
     chamada depois de esses já terem alterado o `weather_hourly`.
 
-    `waf_simulacao` tem de ser o MESMO factor que o motor aplica ao campo
-    (`simulation._WAF_SIMULACAO`): usa-se aqui para desfazer a conversão e
-    recuperar o vento a 10 m, e lá para a refazer por ponto. Se os dois
-    divergirem, o vento entra escalado.
+    `waf_simulacao` só serve ao caminho de recurso, para meteo que não
+    passou pelo `derive_fire_weather` e por isso não traz `wind_20ft_ms`;
+    tem de ser o WAF por omissão que produziu o midflame dessa meteo
+    (`weather.WAF_SEM_MODELO`). No caminho normal não é usado — lê-se o
+    `wind_20ft_ms` e divide-se pelo 1.15, sem WAF pelo meio.
 
     Devolve `None` em qualquer falha, incluindo falha a meio: um conjunto
     parcial daria metade das horas com relevo e metade sem, o que é pior
@@ -184,26 +188,45 @@ async def fetch_wind_fields(
     campos: list[WindField] = []
     try:
         for i, wx in enumerate(weather_hourly):
-            # O WindNinja quer o vento à altura de referência (10 m), mas a
-            # fonte de verdade sobre que vento a simulação vai usar é o
-            # `wind_midflame_ms` — é o ÚNICO campo de vento que o motor
-            # Rothermel lê.
+            # O WindNinja quer o vento à altura de referência (10 m), e o
+            # que se lê para lá chegar é o `wind_20ft_ms` — não o
+            # `wind_speed_10m_ms`, apesar de este parecer o campo óbvio.
             #
-            # A distinção importa por causa do `gust_weather`: com rajadas,
-            # ele altera só o midflame e deixa `wind_speed_10m_ms` no valor
-            # sustentado de propósito (para os dois continuarem distintos
-            # na exibição). Ler o `wind_speed_10m_ms` mandava o vento
-            # sustentado ao WindNinja enquanto o motor propagava com a
-            # rajada — apanhado em produção, onde a corrida com rajadas
-            # deu campos de 3.0 m/s enquanto o fogo corria a 5.9.
+            # A razão é o `gust_weather`: com rajadas, ele deixa o
+            # `wind_speed_10m_ms` no valor sustentado de propósito (para
+            # os dois continuarem distintos na exibição) e move o vento de
+            # trabalho para os outros campos. Ler o de 10 m mandava o
+            # vento sustentado ao WindNinja enquanto o motor propagava com
+            # a rajada — apanhado em produção, onde a corrida com rajadas
+            # deu campos de 3.0 m/s com o fogo a correr a 5.9.
             #
-            # Desfaz-se por isso o WAF, em vez de ler o campo de 10 m.
+            # Antes desfazia-se aqui o WAF do midflame, que dava no mesmo
+            # enquanto a simulação tinha um WAF único. Deixou de ter: cada
+            # píxel aplica o seu, conforme o modelo de combustível e o
+            # copado, e já não há um divisor válido para todo o campo. Os
+            # 20 pés são a última altura em que o vento ainda é uma só
+            # grandeza para toda a paisagem — é por isso o sítio certo
+            # para cortar, e daí divide-se pelo 1.15 para voltar aos 10 m
+            # que o sidecar pede.
+            #
+            # Este divisor não existia antes de o factor 1.15 entrar (em
+            # b04a203) e ficou em falta: `midflame / 0.40` deixou nesse
+            # momento de dar o vento a 10 m e passou a dar o de 20 pés,
+            # 15% acima. O erro era em grande parte cancelado pelo
+            # `_vento_no_ponto`, que na volta convertia o campo com o WAF
+            # sem repor o 1.15 — dois enganos simétricos, ambos corrigidos
+            # agora.
             direccao = getattr(wx, "wind_direction_deg", None)
+            vento_20ft = getattr(wx, "wind_20ft_ms", None)
             midflame = getattr(wx, "wind_midflame_ms", None)
-            if midflame is None or direccao is None:
+            if direccao is None or (vento_20ft is None and midflame is None):
                 log.warning("Campo de vento: hora %d sem vento — desiste", i)
                 return None
-            velocidade = midflame / waf_simulacao
+            # Sem `wind_20ft_ms` a meteo não passou pelo derive_fire_weather
+            # (caminho de fallback do routes_meta); aí o midflame ainda traz
+            # o WAF único e o 1.15, e desfazer ambos é exacto.
+            velocidade = ((vento_20ft if vento_20ft is not None
+                           else midflame / waf_simulacao) / WIND_10M_TO_20FT)
             corpo = {
                 **janela, "epsg": epsg, "nodata": -9999.0,
                 "input_speed_ms": float(velocidade),

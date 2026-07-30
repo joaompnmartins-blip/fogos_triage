@@ -21,7 +21,7 @@ from .schemas import (
     WeatherConditions,
 )
 from .severity import classify_severity
-from .weather import derive_fire_weather
+from .weather import WIND_10M_TO_20FT, derive_fire_weather
 
 
 NEIGHBOURHOOD_RADIUS_M = 50.0
@@ -226,6 +226,15 @@ def gust_weather(wx: WeatherConditions) -> WeatherConditions:
     para o vento sustentado e a rajada continuarem distintos mesmo
     quando é a rajada a conduzir a simulação.
 
+    `wind_20ft_ms` **tem** de acompanhar, ao contrário do vento a 10 m.
+    Não é um campo de exibição: é a entrada de quem aplica o WAF por
+    píxel (a simulação) e de quem monta o campo de vento do WindNinja.
+    Deixá-lo no valor sustentado fazia o fogo propagar com a rajada
+    enquanto essas duas peças usavam o vento sustentado — que é
+    exactamente a avaria apanhada em produção a 2026-07-30, quando o
+    windfield lia o `wind_speed_10m_ms` e mandava 3.0 m/s ao sidecar com
+    o fogo a correr a 5.9.
+
     Usada pelo cenário "Rajadas" da triagem (ver triage_occurrence /
     triage_neighbourhood) e pelo override "usar rajadas" da simulação
     ForeFire (services/api/routes_meta.py, routes_freesim.py).
@@ -236,6 +245,11 @@ def gust_weather(wx: WeatherConditions) -> WeatherConditions:
     return replace(
         wx,
         wind_midflame_ms=wx.wind_gust_10m_ms * waf,
+        # Só quando já vinha preenchido: `wind_20ft_ms` estar a None
+        # significa que o `derive_fire_weather` não correu, e inventá-lo
+        # aqui esconderia esse facto a quem o lê a jusante.
+        wind_20ft_ms=(wx.wind_gust_10m_ms * WIND_10M_TO_20FT
+                      if wx.wind_20ft_ms is not None else None),
     )
 
 

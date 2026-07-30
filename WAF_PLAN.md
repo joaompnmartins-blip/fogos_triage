@@ -188,6 +188,85 @@ def waf_albini_baughman(
 
 ---
 
+## ESTADO — o que ficou feito
+
+### Passo 1, triagem (commit `b04a203`, 2026-07-30)
+
+`src/fogos_triage/waf.py` criado com as três funções; `derive_fire_weather`
+ganhou `fuel_bed_depth_ft` e o factor 1.15; `WeatherConditions` ganhou
+`wind_20ft_ms`; FM225/226/235 passaram a dinâmicos.
+
+Calibração contra a tabela §7.3, em `tests/test_referencia_fernandes.py`:
+
+| | \|erro\| mediano | dentro de 15% |
+|---|---|---|
+| ponto de partida | 16% | 6/18 |
+| + factor 1.15 | 10% | 11/18 |
+| + modelos dinâmicos | 10% | 12/18 |
+| + WAF de A&B | **0.1%** | **18/18** |
+
+### Passo 2, simulação (2026-07-30)
+
+A pergunta "em aberto" acima foi respondida com **sim**: as duas bandas
+entraram no `_TERRAIN_FIELDS` e nas duas leituras de janela da grelha e
+das setas. O argumento que decidiu não foi o custo — foi que sem elas o
+mesmo píxel de pinhal era triado com WAF 0.17 e simulado com 0.40, mais
+do dobro do vento na simulação do que na triagem que lhe deu a
+prioridade. `tests/test_waf_simulacao.py` fixa a igualdade.
+
+O vento que a simulação transporta passou a ser o de **20 pés** e não o
+midflame: o midflame já traz um WAF aplicado, e o WAF só se pode escolher
+depois de se saber o modelo de combustível do píxel. `_WAF_SIMULACAO`
+desapareceu.
+
+**Dois erros apanhados por esta passagem**, ambos introduzidos pelo
+factor 1.15 do passo 1 e ambos em produção desde então:
+
+1. `gust_weather` não propagava a rajada para `wind_20ft_ms`. Como a
+   simulação passou a ler esse campo, ligar as rajadas teria voltado ao
+   vento sustentado, em silêncio. Mesma família da avaria de 2026-07-30
+   no windfield.
+2. O `windfield` mandava ao WindNinja o vento de 20 pés rotulado como
+   sendo a 10 m — 15% acima. Passou despercebido porque o
+   `_vento_no_ponto` cometia o erro simétrico na volta (convertia o campo
+   sem repor o 1.15) e os dois quase se cancelavam.
+
+**Impacto medido**, 15×15 km no Alto Minho, 39 409 píxeis combustíveis,
+vento de 6 m/s (21% dos píxeis têm copado):
+
+| modelo | % área | WAF médio | ROS antes | ROS agora | |
+|---|---|---|---|---|---|
+| FM232 herbáceas | 23.8% | 0.372 | 23.35 | 21.27 | −9% |
+| FM233 mato atlântico | 19.3% | 0.474 | 21.15 | 24.84 | **+17%** |
+| FM221 M-CAD | 17.0% | 0.220 | 14.44 | 8.20 | **−43%** |
+| FM223 M-EUC | 8.0% | 0.241 | 20.44 | 12.73 | −38% |
+| FM227 M-PIN | 4.5% | 0.246 | 16.13 | 10.12 | −37% |
+| FM214 F-RAC | 0.5% | 0.160 | 1.29 | 0.55 | −58% |
+
+Média da janela −10%; 37% dos píxeis aceleram, 45% abrandam. **O sinal
+depende do modelo** — os V sobem, os F e M descem —, portanto não é um
+factor de escala que se possa comunicar como "menos X%".
+
+Área queimada em simulações de 3 h, mesma ignição e meteo:
+
+| | 1 h | 2 h | 3 h |
+|---|---|---|---|
+| Alto Minho (mato) | −5% | −3% | −8% |
+| Gerês (copado) | **−49%** | **−47%** | **−41%** |
+
+### Por fazer
+
+- Deploy e verificação em produção.
+- `crown_ratio` = 0.5 continua a ser uma suposição, e agora pesa mais:
+  entra em 21% dos píxeis da janela medida, e o WAF varia com
+  1/√crown_ratio (1.53× entre 0.3 e 0.7). É o único número desta cadeia
+  que não vem de dados nem de fonte.
+- A fórmula do copado **não tem validação externa nenhuma**: a tabela
+  §7.3 corre todos os modelos com `shelter="open"`, portanto os 18/18
+  exercitam só a fórmula do leito.
+
+---
+
 ## Verificação
 
 1. `waf_albini_baughman` reproduz as tabelas §3.3 da referência para os
