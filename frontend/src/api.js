@@ -65,7 +65,7 @@ export async function fetchFireHistory(apiKey, fireId) {
 }
 
 export async function postSimulate(apiKey, fireId, {
-  duration_h = 3, wind_speed_ms, wind_direction_deg, useGusts, fuelMoistureScenario, bbox_km,
+  duration_h = 3, wind_speed_ms, wind_direction_deg, useGusts, useWindninja, fuelMoistureScenario, bbox_km,
   weatherStreamText, fuelMoistureTableText, startTime,
 } = {}) {
   const res = await fetch(`${API_BASE}/simulate`, {
@@ -77,6 +77,7 @@ export async function postSimulate(apiKey, fireId, {
       wind_speed_ms: wind_speed_ms || null,
       wind_direction_deg: wind_direction_deg || null,
       use_gusts: !!useGusts,
+      use_windninja: !!useWindninja,
       fuel_moisture_scenario: fuelMoistureScenario || null,
       bbox_km: bbox_km || null,
       weather_stream_text: weatherStreamText || null,
@@ -93,7 +94,7 @@ export async function getSimulationJob(apiKey, jobId) {
 }
 
 export async function postFreeSimulate(apiKey, {
-  ignitionPoints, duration_h = 3, useGusts, fuelMoistureScenario, bbox_km,
+  ignitionPoints, duration_h = 3, useGusts, useWindninja, fuelMoistureScenario, bbox_km,
   weatherStreamText, fuelMoistureTableText, startTime,
 } = {}) {
   const res = await fetch(`${API_BASE}/free-simulate`, {
@@ -103,6 +104,7 @@ export async function postFreeSimulate(apiKey, {
       ignition_points: ignitionPoints,
       duration_h,
       use_gusts: !!useGusts,
+      use_windninja: !!useWindninja,
       fuel_moisture_scenario: fuelMoistureScenario || null,
       bbox_km: bbox_km || null,
       weather_stream_text: weatherStreamText || null,

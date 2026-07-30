@@ -29,6 +29,7 @@ export default function SimulacaoView({ apiKey, theme }) {
   const [durationH, setDurationH] = useState(3)
   const [startTime, setStartTime] = useState('')
   const [useGusts, setUseGusts] = useState(false)
+  const [useWindninja, setUseWindninja] = useState(false)
   const [fuelMoistureScenario, setFuelMoistureScenario] = useState(null)
   const [weatherStreamText, setWeatherStreamText] = useState(null)
   const [weatherStreamFilename, setWeatherStreamFilename] = useState(null)
@@ -204,6 +205,7 @@ export default function SimulacaoView({ apiKey, theme }) {
       const job = await postSimulate(apiKey, fireId, {
         duration_h: durationH,
         useGusts,
+        useWindninja,
         fuelMoistureScenario,
         weatherStreamText,
         fuelMoistureTableText,
@@ -319,6 +321,20 @@ export default function SimulacaoView({ apiKey, theme }) {
             Usar rajadas (Open-Meteo)
           </label>
 
+          {/* Vento de terreno. O aviso de tempo usa os números medidos
+              (ver WINDNINJA_PLAN.md): ~6,5 s por hora simulada, o que dá
+              +26 s numa simulação de 3h. */}
+          <label className="filter-check" style={{ alignSelf: 'flex-end', marginBottom: 6 }}
+            title="Ajusta o vento ao relevo (WindNinja): aceleração em cumeadas, abrigo em vales. Acrescenta ~6 s por hora simulada.">
+            <input
+              type="checkbox"
+              checked={useWindninja}
+              disabled={isRunning}
+              onChange={e => setUseWindninja(e.target.checked)}
+            />
+            Vento de terreno (WindNinja)
+          </label>
+
           <button
             className="btn btn-primary"
             disabled={isRunning || !triage}
@@ -371,8 +387,28 @@ export default function SimulacaoView({ apiKey, theme }) {
             {triage && ` · Triagem: ${fmtDateTime(triage.computed_at)}`}
             {result.meta.start_time && ` · Início: ${fmtDateTime(result.meta.start_time)}`}
             {` · Resolução: ${result.meta.resolution_m}m`}
+            {result.meta.wind_field_source === 'windninja'
+              ? ` · Vento: terreno (${result.meta.wind_field_runs} corridas)`
+              : result.meta.use_windninja
+                ? ''
+                : ' · Vento: uniforme'}
           </div>
         )}
+        {/* Pedido e não cumprido: sem isto o utilizador marcava a caixa,
+            o sidecar falhava, e a simulação corria com vento uniforme sem
+            que nada o dissesse fora do meta. Falhar aberto não pode ser
+            falhar em silêncio. */}
+        {result && result.meta.use_windninja
+          && result.meta.wind_field_source !== 'windninja' && (
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--warn)',
+            marginTop: 4,
+          }}>
+            Vento de terreno pedido mas indisponível — simulação corrida com
+            vento uniforme.
+          </div>
+        )}
+
       </div>
     </div>
   )

@@ -300,6 +300,13 @@ class SimulationRequest(BaseModel):
     # se weather_stream_text também for dado — o ficheiro já tem a sua
     # própria linha do tempo. Ver fogos_triage.weather.fetch_weather_for_start_time.
     start_time: Optional[datetime] = None
+    # Vento ajustado ao relevo (sidecar WindNinja) em vez de vento
+    # espacialmente uniforme. Opt-in não pelo custo — medido em ~6.5 s por
+    # hora simulada, 2.2x numa simulação de 3h — mas por depender de um
+    # serviço externo cujo campo ainda não foi validado contra fogos
+    # reais. Falha aberta: se o sidecar não responder, a simulação corre
+    # com vento uniforme e diz-o em meta.wind_field_source.
+    use_windninja: bool = False
 
     _validate_fuel_moisture_scenario = field_validator("fuel_moisture_scenario")(
         _check_fuel_moisture_scenario
@@ -384,6 +391,13 @@ class FreeSimulationRequest(BaseModel):
     # se weather_stream_text também for dado — o ficheiro já tem a sua
     # própria linha do tempo. Ver fogos_triage.weather.fetch_weather_for_start_time.
     start_time: Optional[datetime] = None
+    # Vento ajustado ao relevo (sidecar WindNinja) em vez de vento
+    # espacialmente uniforme. Opt-in não pelo custo — medido em ~6.5 s por
+    # hora simulada, 2.2x numa simulação de 3h — mas por depender de um
+    # serviço externo cujo campo ainda não foi validado contra fogos
+    # reais. Falha aberta: se o sidecar não responder, a simulação corre
+    # com vento uniforme e diz-o em meta.wind_field_source.
+    use_windninja: bool = False
 
     _validate_fuel_moisture_scenario = field_validator("fuel_moisture_scenario")(
         _check_fuel_moisture_scenario

@@ -178,6 +178,7 @@ async def create_simulation(
         weather_stream_text=payload.weather_stream_text,
         fuel_moisture_table_text=payload.fuel_moisture_table_text,
         start_time=payload.start_time,
+        use_windninja=payload.use_windninja,
     ))
 
     return SimulationJob(
@@ -251,6 +252,7 @@ async def _run_and_update(
     weather_stream_text: Optional[str] = None,
     fuel_moisture_table_text: Optional[str] = None,
     start_time: Optional[datetime] = None,
+    use_windninja: bool = False,
 ):
     """Task em background: corre simulação e grava resultado no DB."""
     async with pool.acquire() as conn:
@@ -420,11 +422,46 @@ async def _run_and_update(
         elif fuel_moisture_scenario:
             fuel_moisture_source = "scenario"
 
+        # Campo de vento ajustado ao relevo. AQUI e não antes: o
+        # `weather_hourly` só está no estado final depois do gust_weather e
+        # do cenário de humidades, e é o vento que a simulação vai mesmo
+        # usar que tem de alimentar o WindNinja. Chamar antes daria os
+        # campos para o vento sustentado quando o utilizador pediu rajadas.
+        wind_fields = None
+        if use_windninja:
+            windninja_url = os.environ.get("WINDNINJA_URL")
+            if not windninja_url:
+                log.warning(
+                    "Simulação %s: use_windninja pedido mas WINDNINJA_URL não "
+                    "está definido — vento uniforme", job_id,
+                )
+            else:
+                from fogos_triage.landscape import LandscapeReader
+                from fogos_triage.windfield import fetch_wind_fields
+                from rasterio.warp import transform as _rio_transform
+                try:
+                    with LandscapeReader(**rasters_kwargs) as _r:
+                        _xs, _ys = _rio_transform("EPSG:4326", _r.crs, [lon], [lat])
+                        wind_fields = await fetch_wind_fields(
+                            windninja_url, _r, _xs[0], _ys[0],
+                            bbox_km * 500.0,  # meia-largura em metros
+                            weather_hourly,
+                        )
+                except Exception as exc:
+                    log.warning(
+                        "Simulação %s: campo de vento falhou (%s) — vento uniforme",
+                        job_id, exc,
+                    )
+
         result = await run_simulation_async(
             lat, lon, weather_hourly, fuel_dict, duration_h,
-            bbox_km=bbox_km, fuel_moisture_table=fuel_moisture_table, **rasters_kwargs,
+            bbox_km=bbox_km, fuel_moisture_table=fuel_moisture_table,
+            wind_fields=wind_fields, **rasters_kwargs,
         )
         result["meta"]["use_gusts"] = use_gusts and not weather_stream_text
+        # Distinto de wind_field_source: diz se foi PEDIDO, para o frontend
+        # poder avisar quando foi pedido e não foi cumprido.
+        result["meta"]["use_windninja"] = use_windninja
         result["meta"]["fuel_moisture_scenario"] = fuel_moisture_scenario
         result["meta"]["weather_source"] = weather_source
         result["meta"]["fuel_moisture_source"] = fuel_moisture_source
