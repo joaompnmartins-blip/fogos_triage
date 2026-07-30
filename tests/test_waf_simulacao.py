@@ -136,6 +136,25 @@ def main():
     check("modelo sem espessura cai no WAF por omissão, não rebenta",
           abs(_midflame_no_ponto(v20, _Vazio(), None, None) - v20 * WAF_SEM_MODELO) < 1e-12)
 
+    print("\nFM98 não combustível (depth=0) não pode rebentar a triagem:")
+    # Regressão de produção: sem o guarda, o ValueError do waf_sem_abrigo
+    # subia do derive_fire_weather até ao worker e matava a triagem
+    # INTEIRA da ocorrência, não só a do píxel não combustível.
+    fm98 = fm_todos[98]
+    check(f"FM98 tem mesmo depth 0 (é o gatilho)", fm98.depth == 0.0)
+    try:
+        wx98 = derive_fire_weather(wx_base(), fuel_bed_depth_ft=fm98.depth)
+        ok98 = abs(wx98.wind_midflame_ms
+                   - wx98.wind_20ft_ms * WAF_SEM_MODELO) < 1e-12
+    except Exception as exc:
+        wx98, ok98 = None, False
+        print(f"        rebentou: {exc}")
+    check("derive_fire_weather com depth=0 devolve o WAF por omissão", ok98)
+    check("e com copado também não rebenta",
+          derive_fire_weather(wx_base(), stand_height_m=20.0, canopy_cover_pct=70.0,
+                              has_overstory=True,
+                              fuel_bed_depth_ft=0.0).wind_midflame_ms > 0)
+
     print("\nO MESMO PÍXEL tem de dar o mesmo vento na triagem e na simulação:")
     # É esta a regra que justifica a alteração toda. Antes, um pinhal com
     # copado era triado com WAF 0.17 e simulado com 0.40 — mais do dobro

@@ -8,7 +8,18 @@
 # O `railway up` respeita o .gitignore, mas isto é explícito de
 # propósito: um `data/landscape_pt/` que saísse do .gitignore por
 # descuido passaria a ser 3.9 GB enviados em cada deploy.
-data/
+#
+# EXCLUIR OS SUBDIRECTÓRIOS, NUNCA `data/` INTEIRO. Esteve aqui `data/`
+# e partia todos os `railway up`: os dois Dockerfiles fazem
+# `COPY data /data`, e sem a pasta no contexto o build morre nesse passo.
+# Os deploys por GitHub continuavam a passar (o .railwayignore não se
+# lhes aplica), o que tornava a avaria intermitente conforme a via —
+# apanhado a 2026-07-30. Os quatro ficheiros que ficam são 16 KB:
+# fuel_models_pt.csv, lfmc_climatologia_pt.csv, limiares_outputs_farsite.txt
+# e modelos_combustivel_PT_cores.csv, todos precisos em runtime.
+data/landscape/
+data/landscape_pt/
+data/AltoMinho/
 LFM/
 analise_windninja/
 node_modules/

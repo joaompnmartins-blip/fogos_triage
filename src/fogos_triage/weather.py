@@ -408,8 +408,19 @@ def derive_fire_weather(
     # combustível está à sombra (humidades), e para isso um limiar faz
     # sentido; o abrigo do vento é contínuo, e quem arbitra se o copado
     # chega a abrigar é o `min()` das duas fórmulas lá dentro.
+    # `> 0` e não só `is not None`: o FM98 (não combustível — urbano,
+    # água, os códigos NB do Scott & Burgan) tem `depth = 0`, e a fórmula
+    # do leito tem um `ln` que não o aceita. O `waf_sem_abrigo` levanta
+    # ValueError, e sem este guarda a excepção subia até ao worker e
+    # matava a triagem INTEIRA da ocorrência — não só a do píxel não
+    # combustível. Apanhado em produção a 2026-07-30, nos logs do worker:
+    # "Erro a triar 20261073916: espessura do leito tem de ser positiva".
+    #
+    # Um píxel não combustível dá ROS 0 de qualquer maneira, portanto o
+    # valor do WAF é indiferente — o que não é indiferente é rebentar.
+    # Mesmo tratamento que `simulation._midflame_no_ponto` já fazia.
     wind_20ft = wx.wind_speed_10m_ms * WIND_10M_TO_20FT
-    if fuel_bed_depth_ft is not None:
+    if fuel_bed_depth_ft is not None and fuel_bed_depth_ft > 0:
         waf = waf_albini_baughman(
             fuel_bed_depth_ft,
             altura_copado_m=stand_height_m,
