@@ -37,21 +37,26 @@ log = logging.getLogger(__name__)
 
 # Factor de conversão do vento a 10 m (altura meteorológica padrão) para
 # 20 pés = 6.1 m (altura de referência do NFDRS, sobre a qual o WAF de
-# Albini & Baughman 1979 é definido). MODELO_FOGO_REFERENCIA.md §3.
+# Albini & Baughman 1979 é definido).
 #
-# NÃO INVERTER SEM LER O WAF_PLAN.md. É multiplicação por decisão
-# tomada, não por distração: as duas fontes do projecto contradizem-se.
+# É uma DIVISÃO por 1.15, seguindo o RMRS-GTR-266 §1 (Andrews 2012, USDA
+# FS, citando Turner & Lawson 1978) — `WAF/RMRS-GTR-266_WAF_reference.md`.
 #
-#   MODELO_FOGO_REFERENCIA.md §3   U(20 ft) = U(10 m) x 1.15
-#   WAF/RMRS-GTR-266 §1            U(20 ft) = U(10 m) / 1.15
+# Diverge de `modelos_PFernandes/MODELO_FOGO_REFERENCIA.md` §3, que
+# manda multiplicar. A divergência é deliberada e está documentada no
+# WAF_PLAN.md: 20 pés são 6.10 m, ABAIXO dos 10 m, e o vento cresce com a
+# altura, logo U(20 ft) tem de ser MENOR que U(10 m). O perfil
+# logarítmico confirma o próprio 1.15 — resolver
+# ln(10/z0)/ln(6.096/z0) = 1.15 dá z0 ~= 0.23 m, rugosidade de pastagem
+# alta ou mato baixo, plausível para estações de meteorologia de
+# incêndios. O que estava em disputa era só de que lado da fracção ficava.
 #
-# O RMRS é a fonte primária e está fisicamente certo — 20 pés são 6.10 m,
-# ABAIXO dos 10 m, e o vento cresce com a altura. Mas a tabela §7.3 do
-# Fernandes, que é a nossa única calibração ponta-a-ponta, foi gerada com
-# o x1.15: inverter aqui dá 0/18 nessa tabela, com desvio uniforme de
-# -28% em todos os modelos. Fica como está até o Paulo Fernandes
-# arbitrar; o que muda depois é o motor todo, não esta linha.
-WIND_10M_TO_20FT = 1.15
+# Custo desta escolha: a tabela §7.3 do Fernandes deixou de poder validar
+# a cadeia toda, porque foi gerada com o x1.15. O
+# `test_referencia_fernandes.py` passou a alimentar o motor com o vento a
+# 20 pés que a referência usou, isolando o passo em disputa — continua a
+# validar o Rothermel e o WAF, já não valida esta linha.
+WIND_10M_TO_20FT = 1.0 / 1.15
 
 # WAF usado quando o modelo de combustível não é conhecido — não dá para
 # calcular a fórmula do leito sem a espessura. É o valor que a escada

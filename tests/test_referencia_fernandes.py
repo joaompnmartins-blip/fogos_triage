@@ -16,6 +16,15 @@ Histórico do que este teste apanhou, por ordem:
   + factor 1.15 de 10 m para 20 pés                   10%         11/18
   + FM225/226/235 marcados dinâmicos                  10%         12/18
   + WAF de Albini & Baughman (era escada fixa)       0.1%         18/18
+
+**O que esta tabela já NÃO valida.** Desde que a conversão de 10 m para
+20 pés passou a seguir o RMRS-GTR-266 (divisão por 1.15, contra a
+multiplicação do §3 da referência), a cadeia completa deixou de ser
+comparável: a tabela foi gerada com a convenção contrária. A tabela é
+por isso alimentada com o vento a 20 pés que a referência usou, o que a
+mantém a validar o Rothermel e as fórmulas de WAF — e deixa o passo em
+disputa a ser verificado num bloco próprio, contra o RMRS e contra o
+perfil logarítmico.
 """
 import math
 import sys
@@ -51,6 +60,20 @@ M_1H, M_10H, M_100H, M_HERB, M_LENH = 6.0, 7.0, 8.0, 30.0, 80.0
 VENTO_10M_MS = 20.0 / 3.6
 DECLIVE_DEG = math.degrees(math.atan(0.20))     # 20% de declive
 TOLERANCIA_ROS = 0.15                            # §7.1
+
+# Vento a 20 pés que a REFERÊNCIA usou para gerar a tabela §7.3, fixado
+# aqui em vez de recalculado a partir dos 20 km/h.
+#
+# Não é conveniência: desde que passámos à convenção do RMRS-GTR-266
+# (`U20 = U10m / 1.15`, ver weather.py), a nossa cadeia já não reproduz o
+# vento de que a tabela partiu — a referência multiplicava. Alimentar o
+# motor com os 20 km/h daria 0/18 com desvio uniforme de -28%, e isso
+# diria apenas que as duas convenções diferem, coisa que já sabemos.
+#
+# Fixando o vento de 20 pés da referência, a tabela continua a fazer o
+# que sabe fazer: validar o Rothermel e as fórmulas de WAF. O passo em
+# disputa fica isolado e é verificado à parte, mais abaixo.
+VENTO_20FT_REFERENCIA_MS = 20.0 * 1.15 / 3.6
 
 passou = falhou = 0
 
@@ -123,6 +146,25 @@ def main():
                                       cobertura_frac=COBERTURA_MINIMA_FRAC - 1e-9))
     check(f"limiar deixou de ser um degrau (salto {salto:.4f})", salto < 1e-6)
 
+    print("\nConversão 10 m -> 20 pés: seguimos o RMRS, não a referência PT.")
+    # É o único ponto em que divergimos deliberadamente do
+    # MODELO_FOGO_REFERENCIA.md. A tabela §7.3 não o pode arbitrar, por
+    # ter sido gerada com a convenção contrária — daí este bloco.
+    v20 = VENTO_10M_MS * WIND_10M_TO_20FT
+    check(f"20 pés fica ABAIXO dos 10 m ({v20:.2f} < {VENTO_10M_MS:.2f} m/s)",
+          v20 < VENTO_10M_MS)
+    check("é divisão por 1.15 (RMRS §1, Turner & Lawson 1978)",
+          abs(v20 - VENTO_10M_MS / 1.15) < 1e-12)
+    check("difere da referência PT por 1.15² = 1.3225",
+          abs(VENTO_20FT_REFERENCIA_MS / v20 - 1.15 ** 2) < 1e-12,
+          f"{VENTO_20FT_REFERENCIA_MS / v20:.4f}")
+    # Sanidade física: o perfil logarítmico tem de dar o mesmo sentido, e
+    # o 1.15 tem de corresponder a uma rugosidade plausível.
+    z0 = 0.23
+    razao_log = math.log(10.0 / z0) / math.log(6.096 / z0)
+    check(f"perfil logarítmico com z0={z0} m confirma o 1.15 "
+          f"(dá {razao_log:.3f})", abs(razao_log - 1.15) < 0.01)
+
     print("\nDomínio dos modelos PT — WAF sempre fisicamente plausível:")
     wafs = {n: waf_sem_abrigo(m.depth) for n, m in fm.items() if n != 98}
     check(f"todos entre 0.2 e 0.6 ({min(wafs.values()):.3f}–{max(wafs.values()):.3f})",
@@ -138,16 +180,18 @@ def main():
               m.load_live_h > 0 and m.is_dynamic,
               f"herb={m.load_live_h} dynamic={m.is_dynamic}")
 
-    print(f"\nTabela §7.3 — cenário severo, 20 km/h a 10 m, declive 20%, 'open'")
-    print(f"  (WAF calculado do leito; a referência corre os F e M com 'open'")
-    print(f"   nesta tabela para comparabilidade, e di-lo expressamente)\n")
+    print(f"\nTabela §7.3 — cenário severo, declive 20%, 'open'")
+    print(f"  Alimentada com os {VENTO_20FT_REFERENCIA_MS:.2f} m/s a 20 pés que a")
+    print(f"  referência usou, e não com os nossos 20 km/h a 10 m: a nossa")
+    print(f"  conversão segue o RMRS e daria outro vento (ver bloco acima).")
+    print(f"  Assim a tabela valida o Rothermel e o WAF, que é o que pode.\n")
     print(f"  {'modelo':>7} {'ROS ref':>8} {'ROS':>7} {'erro':>6}   {'I_B ref':>8} {'I_B':>7} {'erro':>6}")
     erros = []
     for cod, (n, ros_ref, ib_ref) in sorted(
         REFERENCIA.items(), key=lambda kv: kv[1][1], reverse=True
     ):
         m = fm[n]
-        midflame = VENTO_10M_MS * WIND_10M_TO_20FT * waf_sem_abrigo(m.depth)
+        midflame = VENTO_20FT_REFERENCIA_MS * waf_sem_abrigo(m.depth)
         ros, ib, *_ = _rothermel_direct(
             m, M_1H / 100, M_10H / 100, M_100H / 100, M_HERB / 100, M_LENH / 100,
             wind_midflame_ms=midflame, slope_degrees=DECLIVE_DEG,

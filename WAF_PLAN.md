@@ -283,7 +283,45 @@ quase nulo porque a cobertura no raster é binária — 73% a 0%, 27% a
 ≥20%, nada pelo meio. Vale como garantia de que o impossível não
 acontece, não como mudança de números.
 
-### EM ABERTO — a direcção do factor 1.15
+### RESOLVIDO — a direcção do factor 1.15 (2026-07-30)
+
+**Decisão: seguir o RMRS-GTR-266.** `WIND_10M_TO_20FT = 1.0 / 1.15`.
+
+O projecto diverge deliberadamente do §3 do
+`MODELO_FOGO_REFERENCIA.md`, que manda multiplicar. Razão: 20 pés são
+6.10 m, **abaixo** dos 10 m, e o vento cresce com a altura. O perfil
+logarítmico confirma o próprio valor — resolver
+`ln(10/z₀)/ln(6.096/z₀) = 1.15` dá `z₀ ≈ 0.23 m`, rugosidade de pastagem
+alta ou mato baixo, plausível para estações de meteorologia de
+incêndios. O 1.15 estava certo; o que estava em disputa era o lado da
+fracção.
+
+**Custo: a tabela §7.3 deixou de poder validar a cadeia completa.** Foi
+gerada com a convenção contrária, e alimentá-la com os nossos 20 km/h
+daria 0/18 — o que só diria que as duas convenções diferem. O
+`test_referencia_fernandes.py` passou a alimentá-la com o vento a 20 pés
+que a referência usou (6.39 m/s), o que a mantém a validar o Rothermel e
+as fórmulas de WAF (18/18, |erro| mediano 0.1%) e isola o passo em
+disputa, agora verificado em bloco próprio contra o RMRS e contra o
+perfil logarítmico.
+
+**Impacto.** ROS da triagem, 8 m/s e declive 20%, uniforme entre modelos:
+
+| modelo | antes | depois | |
+|---|---|---|---|
+| FM232 herbáceas | 30.00 | 20.42 | −32% |
+| FM227 pinhal | 21.05 | 14.60 | −31% |
+| FM231 herbáceas altas | 39.69 | 27.82 | −30% |
+| FM233 mato atlântico | 30.77 | 22.82 | −26% |
+
+Área queimada a 3 h: Alto Minho −32%, Gerês −36%.
+
+Ao contrário do WAF por píxel, **este é um factor de escala**: desce
+tudo, e pode comunicar-se como tal. Os comprimentos de chama descem com
+ele (FM233 8.21 → 7.15 m), o que desloca ocorrências entre categorias
+tácticas junto às fronteiras de 1.2 / 2.4 / 3.4 m.
+
+### Histórico da questão (o que levou à decisão)
 
 **As duas fontes contradizem-se, e a diferença é de 32% no vento.**
 
@@ -306,16 +344,20 @@ sistemático de −22% a −31%, sem dispersão. Essa uniformidade é a
 assinatura de um erro puro de escala do vento, e é a prova de que as duas
 fontes divergem num escalar só.
 
-Decidir com o Paulo Fernandes. Se o RMRS ganhar, o ROS cai ~28% em toda a
-linha e a tabela §7.3 deixa de servir de calibração.
+Decidido a favor do RMRS — ver a secção acima. Vale a pena confirmar com
+o Paulo Fernandes, não para reverter, mas porque o §3 da referência dele
+tem então um erro que convém que ele saiba.
 
 ### Por fazer
 
 - Deploy e verificação em produção.
-- `crown_ratio` = 0.5 continua a ser uma suposição, e agora pesa mais:
-  entra em 21% dos píxeis da janela medida, e o WAF varia com
-  1/√crown_ratio (1.53× entre 0.3 e 0.7). É o único número desta cadeia
-  que não vem de dados nem de fonte.
+- `crown_ratio` = 0.5 continua a ser uma suposição, por decisão: o
+  RMRS §8 dá a tipificação do Albini & Baughman (intolerante à sombra,
+  maduro aberto 0.5, maduro denso 0.2), mas é norte-americana e
+  transpô-la para pinhal bravo e eucaliptal precisa de confirmação. Pesa
+  em 21% dos píxeis da janela medida, e o WAF varia com 1/√crown_ratio
+  (1.53× entre 0.3 e 0.7). É o único número desta cadeia que não vem de
+  dados nem de fonte.
 - A fórmula do copado **não tem validação externa nenhuma**: a tabela
   §7.3 corre todos os modelos com `shelter="open"`, portanto os 18/18
   exercitam só a fórmula do leito.
