@@ -298,17 +298,38 @@ Mesma filosofia dos módulos "fonte única de verdade" já estabelecidos
 - `_build_direction_arrows()`: já recebe `steps` com a meteo por
   instantâneo, portanto ganha o campo pelo mesmo mecanismo — sem isto as
   setas passariam a discordar do perímetro que as acompanha.
-- **WAF vegetativo:** a velocidade local que o WindNinja devolve é a 10 m
-  e tem de passar pelo mesmo WAF já usado hoje (calculado em
-  `derive_fire_weather` a partir de altura/cobertura de copas). Isso
-  exige `stand_height` e `canopy_cover` por píxel, que **ainda não são
-  lidos** em nenhum dos dois sítios — `_TERRAIN_FIELDS` é
-  `["slope", "aspect", "fuel_model"]` (`simulation.py:518`) e a leitura
-  da grelha é igualmente restrita. (Uma versão anterior deste plano
-  afirmava que o `terrain_cache` "já traz" esses campos — não traz; é
-  trabalho a mais do que estava escrito.) Nota a favor: o `read_window`
-  ganhou entretanto o parâmetro `max_dim`, que torna esta leitura extra
-  mais barata a zoom baixo.
+> **CORRECÇÃO (2026-07-30): não há WAF por píxel a respeitar.** As
+> versões anteriores desta secção diziam que a velocidade do WindNinja
+> "tem de passar pelo mesmo WAF vegetativo já usado hoje", e faziam disso
+> um pré-requisito: ler `stand_height` e `canopy_cover` por píxel. A
+> premissa é falsa. Medido:
+>
+> | caminho | chamada a `derive_fire_weather` | WAF |
+> |---|---|---|
+> | triagem (`triage.py:64`) | com altura/cobertura/coberto | **por píxel**, 0.14 a 0.50 |
+> | **simulação** (`routes_meta.py:366`, `routes_freesim.py:280`) | só humidades vivas | **constante 0.40** |
+>
+> A simulação já ignora o WAF vegetativo por completo — aplica 0.40 em
+> todo o território. Portanto:
+>
+> - **Aplica-se o mesmo 0.40 à velocidade do WindNinja.** A única
+>   diferença entre ligar e desligar passa a ser o campo espacial, o que é
+>   o que torna a fase 5 interpretável: uma mudança no perímetro só pode
+>   vir do relevo. Introduzir WAF por píxel ao mesmo tempo daria duas
+>   causas possíveis e nenhuma maneira de as separar.
+> - **A fase 3a desaparece.** Não é preciso ler bandas extra, nem pagar
+>   esse custo nas simulações com o WindNinja desligado.
+>
+> **Fica registada uma inconsistência real, agora com plano próprio:**
+> para o mesmo ponto num pinhal denso, a triagem usa WAF 0.14 e a
+> simulação 0.40 — quase 3x o vento midflame, em dois números que o
+> sistema mostra lado a lado ao mesmo utilizador. Isso, mais um factor
+> 1.15 em falta na conversão de 10 m para 20 pés e a escada de `if` em
+> vez da fórmula de Albini & Baughman, estão em **`WAF_PLAN.md`**.
+>
+> Esse trabalho vem **depois** desta integração estar validada: as duas
+> alterações mexem no mesmo número (o vento midflame) e, feitas juntas,
+> tornam impossível atribuir uma mudança nos perímetros a uma delas.
 - Sem `wind_fields`, comportamento actual inalterado byte a byte.
 - `meta` ganha `"wind_field_source": "windninja" | "uniforme"` e
   `"wind_field_runs": <n>` (quantas corridas foram feitas, = número de

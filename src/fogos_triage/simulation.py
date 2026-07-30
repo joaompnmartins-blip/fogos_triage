@@ -223,6 +223,7 @@ def _build_ros_grid(
     bbox_km: float,
     resolution_m: float,
     fuel_moisture_table: Optional[dict[int, FuelMoistureRow]] = None,
+    wind_fields=None,
 ) -> dict:
     """
     Constrói uma GeoJSON FeatureCollection com uma célula por ponto de grelha
@@ -290,7 +291,11 @@ def _build_ros_grid(
 
     features = []
     d_lat = resolution_m / 111320.0
-    for lon, lat, slope, fnum in zip(lons, lats, slope_deg, fuel_num):
+    # A grelha é toda da hora 0 (ver wx0 em run_simulation_sync), por isso
+    # o campo amostrado também é o da hora 0. Passar a grelha a horária é
+    # assunto de SIMULATION_HOURLY_GRID_PLAN.md, não deste plano.
+    for xg, yg, lon, lat, slope, fnum in zip(pts_x, pts_y, lons, lats, slope_deg, fuel_num):
+        wind_mf_p, _ = _vento_no_ponto(wind_fields, float(xg), float(yg), 0, wind_mf, 0.0)
         fm = fuel_models.get(int(fnum))
         if fm is None or fm.is_empty:
             ros, fi, flame = 0.0, 0.0, 0.0
@@ -302,7 +307,7 @@ def _build_ros_grid(
                 )
                 ros, fi, *_ = _rothermel_direct(
                     fm, m_1h, m_10h, m_100h, m_lh, m_lw,
-                    wind_midflame_ms=wind_mf,
+                    wind_midflame_ms=wind_mf_p,
                     slope_degrees=float(slope),
                 )
                 flame = 0.0775 * fi ** 0.46 if fi > 0 else 0.0
@@ -342,6 +347,7 @@ def _build_direction_arrows(
     min_x: float, min_y: float, max_x: float, max_y: float,
     n_per_side: int = DIRECTION_ARROWS_PER_SIDE,
     fuel_moisture_table: Optional[dict[int, FuelMoistureRow]] = None,
+    wind_fields=None,
 ) -> dict:
     """
     Constrói uma GeoJSON FeatureCollection de pontos com a direcção de
@@ -439,7 +445,15 @@ def _build_direction_arrows(
         wind_dir = weather.wind_direction_deg or 0.0
 
         features = []
-        for lon, lat, slope, aspect, fnum in zip(lons, lats, slope_deg, aspect_deg, fuel_num):
+        # `steps` traz (t_h, meteo dessa hora, perímetro); o índice do campo
+        # é a hora inteira, igual ao hour_idx do _propagate.
+        idx_hora = int(t_h)
+        for xg, yg, lon, lat, slope, aspect, fnum in zip(
+            pts_x, pts_y, lons, lats, slope_deg, aspect_deg, fuel_num
+        ):
+            wind_mf_p, wind_dir_p = _vento_no_ponto(
+                wind_fields, float(xg), float(yg), idx_hora, wind_mf, wind_dir,
+            )
             fm = fuel_models.get(int(fnum))
             if fm is None or fm.is_empty:
                 continue
@@ -450,7 +464,7 @@ def _build_direction_arrows(
                 )
                 ros, fi, phi_w, phi_s, *_ = _rothermel_direct(
                     fm, m_1h, m_10h, m_100h, m_lh, m_lw,
-                    wind_midflame_ms=wind_mf,
+                    wind_midflame_ms=wind_mf_p,
                     slope_degrees=float(slope),
                 )
             except Exception:
@@ -459,7 +473,7 @@ def _build_direction_arrows(
                 continue
 
             theta_deg = _max_spread_direction_from_phi(
-                wind_direction_deg=wind_dir,
+                wind_direction_deg=wind_dir_p,
                 aspect_degrees=float(aspect),
                 phi_w=phi_w,
                 phi_s=phi_s,
@@ -516,6 +530,38 @@ def _clip_grid_to_perimeter(grid_geojson: dict, perimeter_geojson: dict) -> dict
 
 _TERRAIN_CACHE_MARGIN_M = 300.0
 _TERRAIN_FIELDS = ["slope", "aspect", "fuel_model"]
+
+# WAF (wind adjustment factor) de 10 m para midflame. É o mesmo valor que
+# `derive_fire_weather` aplica quando é chamado sem altura/cobertura de
+# copas — que é exactamente como a simulação o chama hoje
+# (routes_meta.py, routes_freesim.py), ao contrário da triagem, que passa
+# o terreno e obtém 0.14 a 0.50 por píxel.
+#
+# Repete-se aqui, e não se lê do WeatherConditions, porque o campo do
+# WindNinja vem a 10 m e precisa da mesma conversão. Usar o mesmo 0.40
+# garante que ligar o WindNinja muda UMA coisa só — a variação espacial
+# do vento — e que qualquer diferença nos perímetros se pode atribuir ao
+# relevo. Ver a correcção sobre o WAF em WINDNINJA_PLAN.md.
+_WAF_SIMULACAO = 0.40
+
+
+def _vento_no_ponto(
+    wind_fields, x: float, y: float, hour_idx: int,
+    wind_mf_uniforme: float, wind_dir_uniforme: float,
+) -> tuple[float, float]:
+    """(midflame m/s, direcção deg) num ponto.
+
+    Com `wind_fields`, usa o campo daquela hora e converte de 10 m para
+    midflame com o mesmo WAF do caminho uniforme. Sem campo — ou fora da
+    grelha, ou em nodata — devolve o par uniforme, que é o comportamento
+    actual byte a byte.
+    """
+    if wind_fields is not None:
+        amostra = wind_fields.sample(x, y, hour_idx)
+        if amostra is not None:
+            v10, direccao = amostra
+            return v10 * _WAF_SIMULACAO, direccao
+    return wind_mf_uniforme, wind_dir_uniforme
 
 
 def _refresh_terrain_cache(reader: LandscapeReader, verts: list) -> dict:
@@ -582,6 +628,7 @@ def _propagate(
     distance_resolution_m: float,
     ignition_points_proj: Optional[list[tuple[float, float]]] = None,
     fuel_moisture_table: Optional[dict[int, FuelMoistureRow]] = None,
+    wind_fields=None,
 ) -> tuple[list[PerimeterSnapshot], bool]:
     """Propaga o fogo usando Richards (1990); devolve snapshots do perímetro.
 
@@ -695,6 +742,14 @@ def _propagate(
                 new_verts.append((x_cur, y_cur, 0.0, 0.0))
                 continue
 
+            # Vento local: com campo WindNinja, o valor deste vértice
+            # nesta hora; sem campo, o uniforme. O `hour_idx` é o mesmo
+            # que já escolheu a meteo acima, portanto vento e humidades
+            # não podem dessincronizar.
+            wind_mf_p, wind_dir_p = _vento_no_ponto(
+                wind_fields, x_cur, y_cur, hour_idx, wind_mf, wind_dir,
+            )
+
             try:
                 m_1h, m_10h, m_100h, m_lh, m_lw = _point_moisture(
                     fuel_moisture_table, fuel_num,
@@ -702,7 +757,7 @@ def _propagate(
                 )
                 ros_m_min, fi_kw, phi_w, phi_s, _, sigma, eff_ms = _rothermel_direct(
                     fm, m_1h, m_10h, m_100h, m_lh, m_lw,
-                    wind_midflame_ms=wind_mf,
+                    wind_midflame_ms=wind_mf_p,
                     slope_degrees=slope_deg,
                 )
             except Exception:
@@ -731,7 +786,7 @@ def _propagate(
             fi_step = fi_kw * (ros_step / R_eq) if R_eq > 0 else 0.0
 
             theta_deg = _max_spread_direction_from_phi(
-                wind_direction_deg=wind_dir,
+                wind_direction_deg=wind_dir_p,
                 aspect_degrees=aspect_deg,
                 phi_w=phi_w,
                 phi_s=phi_s,
@@ -1094,6 +1149,7 @@ def run_simulation_sync(
     distance_resolution_m: Optional[float] = None,
     ignition_points: Optional[list[tuple[float, float]]] = None,
     fuel_moisture_table: Optional[dict[int, FuelMoistureRow]] = None,
+    wind_fields=None,
 ) -> dict:
     """Corre a simulação completa. Devolve dict para gravar em result_json.
 
@@ -1179,7 +1235,7 @@ def run_simulation_sync(
                  effective_resolution_m, bbox_km, bbox_km)
         grid = _build_ros_grid(
             reader, fuel_models, wx0, cx, cy, bbox_km, effective_resolution_m,
-            fuel_moisture_table=fuel_moisture_table,
+            fuel_moisture_table=fuel_moisture_table, wind_fields=wind_fields,
         )
 
         log.info("Simulação: a propagar %.1fh (distance_resolution=%.1fm, %d snapshots meteo)...",
@@ -1187,7 +1243,7 @@ def run_simulation_sync(
         snapshots, perimeter_coarsened = _propagate(
             reader, fuel_models, weather_hourly, cx, cy, duration_h, snapshot_hours,
             effective_distance_resolution_m, ignition_points_proj,
-            fuel_moisture_table=fuel_moisture_table,
+            fuel_moisture_table=fuel_moisture_table, wind_fields=wind_fields,
         )
 
         # Setas de direcção: grelha grosseira centrada na extensão do
@@ -1218,7 +1274,7 @@ def run_simulation_sync(
                 reader, fuel_models, arrow_steps,
                 min(xs_f) - margin_m, min(ys_f) - margin_m,
                 max(xs_f) + margin_m, max(ys_f) + margin_m,
-                fuel_moisture_table=fuel_moisture_table,
+                fuel_moisture_table=fuel_moisture_table, wind_fields=wind_fields,
             )
 
     if not snapshots:
@@ -1266,6 +1322,12 @@ def run_simulation_sync(
             "distance_resolution_m": effective_distance_resolution_m,
             "distance_resolution_requested_m": requested_distance_resolution_m,  # None = nativa
             "perimeter_resolution_coarsened": perimeter_coarsened,
+            # Transparência sobre o vento usado, no mesmo espírito de
+            # weather_source/fuel_moisture_source: sem isto não se
+            # distingue uma simulação com vento de terreno de uma que
+            # pediu o WindNinja e caiu no uniforme por o sidecar falhar.
+            "wind_field_source":     "windninja" if wind_fields else "uniforme",
+            "wind_field_runs":       len(wind_fields) if wind_fields else 0,
             "ignition":              [lat, lon],
             "ignition_points":       ignition_points,  # None = ignição pontual em (lat, lon)
             "wind_speed_ms":         wx0.wind_speed_10m_ms,
@@ -1291,6 +1353,7 @@ async def run_simulation_async(
     distance_resolution_m: Optional[float] = None,
     ignition_points: Optional[list[tuple[float, float]]] = None,
     fuel_moisture_table: Optional[dict[int, FuelMoistureRow]] = None,
+    wind_fields=None,
 ) -> dict:
     """Wrapper assíncrono — corre run_simulation_sync num executor."""
     loop = asyncio.get_event_loop()
@@ -1303,5 +1366,6 @@ async def run_simulation_async(
             distance_resolution_m=distance_resolution_m,
             ignition_points=ignition_points,
             fuel_moisture_table=fuel_moisture_table,
+            wind_fields=wind_fields,
         ),
     )
