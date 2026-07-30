@@ -50,9 +50,18 @@ COBERTURA_MINIMA_FRAC = 0.0
 
 # Razão de copa (comprimento de copa viva / altura total) assumida quando
 # não é conhecida. NÃO existe nos nossos dados — nem no raster nem nos
-# modelos de combustível — e a fórmula do copado precisa dela. 0.5 é o
-# valor médio típico de povoamento gerido; convém confirmar com fonte de
-# domínio antes de tratar os resultados abrigados como definitivos.
+# modelos de combustível — e a fórmula do copado precisa dela.
+#
+# A tipificação de povoamentos do Albini & Baughman (RMRS-GTR-266 §8) dá,
+# para espécies intolerantes à sombra como o pinheiro-bravo e o
+# eucalipto: maduro aberto 0.5, maduro denso 0.2, jovem aberto 0.7,
+# jovem denso 0.4. O 0.5 corresponde portanto a povoamento maduro aberto.
+#
+# Mantido fixo por decisão, e não por falta de alternativa: a
+# tipificação é norte-americana e transpô-la para o pinhal bravo e o
+# eucaliptal portugueses precisa de confirmação de fonte de domínio.
+# O WAF varia com 1/sqrt(razao_copa) — 1.53x entre 0.3 e 0.7 —, por isso
+# a escolha pesa em todos os píxeis com copado (21% da paisagem medida).
 RAZAO_COPA_ASSUMIDA = 0.5
 
 # Limites físicos. O WAF é uma fracção do vento a 20 pés: valores acima de
