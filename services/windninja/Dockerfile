@@ -38,6 +38,12 @@ ENV PATH=/opt/conda/envs/wn/bin:$PATH \
 
 COPY services/windninja/main.py ./main.py
 
+# Verificação do plano nº1: confirmar que o WindNinja_cli corre dentro
+# do container. Falha o build se o binário não existir, em vez de deixar
+# a avaria aparecer só no primeiro pedido.
+RUN WindNinja_cli --help > /dev/null 2>&1 || \
+    (echo "WindNinja_cli não responde" && exit 1)
+
 EXPOSE 8080
 
 # Um worker só: cada corrida do WindNinja é CPU-bound e usa até 255 MB;
