@@ -539,8 +539,13 @@ def _lookup_cached_terrain(cache: dict, x: float, y: float) -> Optional[tuple[fl
     if slope_arr is None:
         return None
     wt = cache["window_transform"]
-    col = int((x - wt.c) / wt.a)
-    row = int((y - wt.f) / wt.e)
+    # floor e não int: o int() de Python trunca em direcção a zero, por
+    # isso um vértice a poucos metros para fora da margem esquerda/superior
+    # da janela dava col/row = 0 em vez de cair fora — e em vez de
+    # devolver None (o sinal para recarregar a janela), lia-se a célula da
+    # borda como se fosse a certa.
+    col = math.floor((x - wt.c) / wt.a)
+    row = math.floor((y - wt.f) / wt.e)
     height, width = slope_arr.shape
     if not (0 <= row < height and 0 <= col < width):
         return None
