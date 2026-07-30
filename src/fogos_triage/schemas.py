@@ -55,6 +55,13 @@ class WeatherConditions:
 
     # Derivadas — calculadas pelo módulo de meteorologia
     wind_midflame_ms: Optional[float] = None  # após aplicar WAF
+    # Vento à altura de referência do NFDRS (20 pés = 6.1 m), antes do WAF.
+    # Guardado porque o WAF depende do modelo de combustível — e na
+    # simulação o modelo varia de píxel para píxel, portanto um único
+    # `wind_midflame_ms` por hora não o consegue transportar. Quem sabe o
+    # modelo (triagem por ponto, simulação por píxel) aplica o WAF a este
+    # valor. Ver fogos_triage.waf.
+    wind_20ft_ms: Optional[float] = None
     fuel_moisture_1h_pct: Optional[float] = None
     fuel_moisture_10h_pct: Optional[float] = None
     fuel_moisture_100h_pct: Optional[float] = None

@@ -31,8 +31,20 @@ except ImportError:
     HAS_HTTPX = False
 
 from .schemas import WeatherConditions
+from .waf import waf_albini_baughman
 
 log = logging.getLogger(__name__)
+
+# Factor de conversão do vento a 10 m (altura meteorológica padrão) para
+# 20 pés = 6.1 m (altura de referência do NFDRS, sobre a qual o WAF de
+# Albini & Baughman 1979 é definido). MODELO_FOGO_REFERENCIA.md §3.
+WIND_10M_TO_20FT = 1.15
+
+# WAF usado quando o modelo de combustível não é conhecido — não dá para
+# calcular a fórmula do leito sem a espessura. É o valor que a escada
+# anterior devolvia no ramo sem coberto, e mantém-se para o caminho da
+# simulação não mudar de comportamento sem ser por decisão explícita.
+WAF_SEM_MODELO = 0.40
 
 OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 OPEN_METEO_ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
@@ -339,6 +351,7 @@ def derive_fire_weather(
     has_overstory: bool = False,
     live_h_pct: Optional[float] = None,
     live_w_pct: Optional[float] = None,
+    fuel_bed_depth_ft: Optional[float] = None,
 ) -> WeatherConditions:
     """
     Enriquece WeatherConditions com derivadas necessárias para o motor de fogo:
@@ -363,17 +376,34 @@ def derive_fire_weather(
     - Com coberto fechado (>50% cover): WAF ≈ 0.1-0.2
     - Com coberto aberto: WAF ≈ 0.2-0.3
     """
-    # Wind adjustment factor (simplificado)
-    if has_overstory and canopy_cover_pct > 50:
-        waf = 0.1 + 0.05 * max(0, (stand_height_m - 5) / 20)
-    elif has_overstory and canopy_cover_pct > 20:
-        waf = 0.25
-    elif stand_height_m > 1.8:
-        waf = 0.5
+    # WAF de Albini & Baughman 1979 — ver fogos_triage.waf, que substituiu
+    # uma escada de quatro degraus fixos (0.10/0.25/0.40/0.50). Medido
+    # contra os 18 modelos da tabela §7.3 da referência: a escada dava
+    # |erro| mediano de 10.3% no ROS e 12/18 dentro da tolerância; a
+    # fórmula dá 0.1% e 18/18.
+    #
+    # Sem `fuel_bed_depth_ft` não há como calcular a fórmula do leito, e
+    # cai-se no valor por omissão — que é o comportamento histórico da
+    # simulação e serve de ponte enquanto ela não passa o modelo por
+    # píxel.
+    wind_20ft = wx.wind_speed_10m_ms * WIND_10M_TO_20FT
+    if fuel_bed_depth_ft is not None:
+        waf = waf_albini_baughman(
+            fuel_bed_depth_ft,
+            altura_copado_m=stand_height_m if has_overstory else None,
+            cobertura_frac=(canopy_cover_pct / 100.0) if has_overstory else None,
+        )
     else:
-        waf = 0.4
+        waf = WAF_SEM_MODELO
 
-    wind_midflame = wx.wind_speed_10m_ms * waf
+    # Cadeia completa de conversão (MODELO_FOGO_REFERENCIA.md §3):
+    #     U(10 m) -> U(20 ft) = U(10 m) x 1.15 -> U_midflame = U(20 ft) x WAF
+    #
+    # O passo dos 10 m para os 20 pés faltava, e sem ele o vento midflame
+    # saía 13% abaixo em TUDO — triagem e simulação, todos os modelos.
+    # O WAF de Albini & Baughman é definido sobre o vento a 20 pés (6.1 m),
+    # que é a altura de referência do NFDRS; a meteorologia dá 10 m.
+    wind_midflame = wind_20ft * waf
 
     # Humidades dos combustíveis mortos (Simard 1968 + Rothermel 1972)
     m_1h = estimate_fine_dead_moisture_pct(
@@ -397,6 +427,7 @@ def derive_fire_weather(
         precipitation_mm_24h=wx.precipitation_mm_24h,
         cloud_cover_pct=wx.cloud_cover_pct,
         wind_midflame_ms=wind_midflame,
+        wind_20ft_ms=wind_20ft,
         fuel_moisture_1h_pct=m_1h,
         fuel_moisture_10h_pct=m_10h,
         fuel_moisture_100h_pct=m_100h,

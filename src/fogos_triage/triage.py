@@ -61,6 +61,10 @@ def triage_neighbourhood(
             continue
 
         has_overstory = (terrain.canopy_cover_pct or 0) > 10
+        # `fm.depth` (pés) é o que permite calcular o WAF do leito —
+        # sem ele cai-se no valor por omissão. Cada píxel tem o seu
+        # modelo, logo o seu WAF: folhada rasa trava muito mais o vento
+        # do que mato alto (0.27 contra 0.54).
         wx = derive_fire_weather(
             weather_raw,
             stand_height_m=terrain.stand_height_m or 0.0,
@@ -68,6 +72,7 @@ def triage_neighbourhood(
             has_overstory=has_overstory,
             live_h_pct=live_h_pct,
             live_w_pct=live_w_pct,
+            fuel_bed_depth_ft=fm.depth,
         )
 
         try:
@@ -166,6 +171,7 @@ def triage_occurrence(
             stand_height_m=stand_h,
             canopy_cover_pct=terrain.canopy_cover_pct or 0.0,
             has_overstory=has_overstory,
+            fuel_bed_depth_ft=fm.depth,
         )
 
     # 2 cenários: "Vento Geral" (central) e "Rajadas" (gusts)
