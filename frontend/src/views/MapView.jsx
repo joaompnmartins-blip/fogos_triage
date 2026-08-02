@@ -3,7 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { fetchFiresGeo } from '../api'
-import { SEVERITY_COLOR, SEVERITY_LABEL, CONTROL_LABEL } from '../constants'
+import {
+  SEVERITY_COLOR, SEVERITY_LABEL, CONTROL_LABEL,
+  STATUS_EM_RESOLUCAO, STATUS_EM_RESOLUCAO_COLOR, STATUS_EM_RESOLUCAO_LABEL,
+} from '../constants'
 import { REGION_CENTER, REGION_BBOX, REGION_ZOOM } from '../region'
 import {
   basemapStyle, addFuelModelLayer, setFuelModelLayerVisible, setFuelModelLayerOpacity,
@@ -21,6 +24,17 @@ const priorityColorExpr = [
   '6', SEVERITY_COLOR[6],
   '7', SEVERITY_COLOR[7],
   '#888888',
+]
+
+// O estado sobrepõe-se à severidade: uma ocorrência em resolução está
+// dominada, e é isso que interessa ver no mapa, não a severidade que lhe
+// foi atribuída à chegada. `status_code` é INTEGER na BD (migrations/
+// 001_initial_schema.sql), ao contrário do `priority_class`, que chega
+// como string — daí o `==` com número aqui e o `match` com '1'/'2' acima.
+const fireColorExpr = [
+  'case',
+  ['==', ['get', 'status_code'], STATUS_EM_RESOLUCAO], STATUS_EM_RESOLUCAO_COLOR,
+  priorityColorExpr,
 ]
 
 export default function MapView({ apiKey, theme }) {
@@ -93,7 +107,7 @@ export default function MapView({ apiKey, theme }) {
         source: 'fires',
         paint: {
           'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 14, 12, 28],
-          'circle-color': priorityColorExpr,
+          'circle-color': fireColorExpr,
           'circle-opacity': 0.10,
           'circle-blur': 1,
         },
@@ -107,7 +121,7 @@ export default function MapView({ apiKey, theme }) {
         source: 'fires',
         paint: {
           'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 5, 10, 10, 14, 16],
-          'circle-color': priorityColorExpr,
+          'circle-color': fireColorExpr,
           'circle-stroke-width': ['match', ['get', 'natureza_code'],
             3105, 2.5,
             3109, 0,
@@ -131,7 +145,7 @@ export default function MapView({ apiKey, theme }) {
           'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 9, 10, 16, 14, 24],
           'circle-color': 'rgba(0,0,0,0)',
           'circle-stroke-width': 1.5,
-          'circle-stroke-color': priorityColorExpr,
+          'circle-stroke-color': fireColorExpr,
           'circle-opacity': 1,
         },
       })
@@ -169,10 +183,21 @@ export default function MapView({ apiKey, theme }) {
       const pColor = SEVERITY_COLOR[category] || '#888'
       const loc = [p.municipality, p.district].filter(Boolean).join(' · ')
       const flame = p.flame_length_m != null ? `${Number(p.flame_length_m).toFixed(1)}m` : '—'
+      // Em resolução, o ponto está azul e não da cor da severidade — o
+      // popup tem de dizer porquê, senão a cor fica a explicar-se a si
+      // própria. A severidade continua visível, que é o ponto de a
+      // manter aqui.
+      const emResolucao = Number(p.status_code) === STATUS_EM_RESOLUCAO
+      const linhaEstado = emResolucao
+        ? `<div style="color:${STATUS_EM_RESOLUCAO_COLOR};font-size:10px;margin-bottom:3px">
+             ● ${STATUS_EM_RESOLUCAO_LABEL}
+           </div>`
+        : ''
       popup
         .setLngLat(e.lngLat)
         .setHTML(`
           <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#d4e5d0;line-height:1.6">
+            ${linhaEstado}
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
               <span style="color:${pColor};font-weight:500">${category ?? '—'} ${pLabel}</span>
             </div>
@@ -267,6 +292,16 @@ export default function MapView({ apiKey, theme }) {
           <div className="map-legend-item" style={{ marginTop: 4 }}>
             <div className="map-legend-dot" style={{ background: '#888888' }} />
             <span>Sem triagem</span>
+          </div>
+        </div>
+
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)', letterSpacing: '.08em', textTransform: 'uppercase', marginTop: 10, marginBottom: 6 }}>
+          Estado
+        </div>
+        <div className="map-legend">
+          <div className="map-legend-item" title="Ocorrência dominada, a caminho da conclusão — a cor do estado sobrepõe-se à da severidade">
+            <div className="map-legend-dot" style={{ background: STATUS_EM_RESOLUCAO_COLOR }} />
+            <span>Em Resolução</span>
           </div>
         </div>
 

@@ -29,6 +29,25 @@ export const SEVERITY_LABEL = {
 
 export const SEVERITY_IS_EWE = { 1: false, 2: false, 3: false, 4: false, 5: true, 6: true, 7: true }
 
+// Estado "Em Resolução" (código 7 da fogos.pt, ver StatusCode em
+// ingestion/fogos_client.py) — ocorrência já dominada, a caminho da
+// conclusão.
+//
+// Tem cor própria no mapa porque a leitura operacional é outra: já não
+// compete por meios com as que estão activas, e a severidade que lhe foi
+// atribuída no início deixa de ser o que decide. A cor de severidade não
+// se perde — continua no popup, na lista e no detalhe.
+//
+// #7FC4E8 não foi escolhido por gosto: é o azul claro que mais se separa
+// das 7 cores de severidade e do cinzento "sem triagem" — ΔE 18.3 em
+// visão normal e 12.8 sob simulação de protanopia, deuteranopia e
+// tritanopia (limiares 15 e 8). O #4FA3D1, mais bonito sobre satélite,
+// reprovava com 11.9. Como sempre neste mapa, a cor nunca é o único
+// sinal: a legenda e o popup nomeiam o estado.
+export const STATUS_EM_RESOLUCAO = 7
+export const STATUS_EM_RESOLUCAO_COLOR = '#7FC4E8'
+export const STATUS_EM_RESOLUCAO_LABEL = 'EM RESOLUÇÃO'
+
 // Capacidade de controlo por categoria (Tedim et al. 2018, Tabela 3) —
 // substitui o antigo TACTIC_LABEL (esquema de 4 níveis por comprimento de
 // chama, duplicado em 3 sítios independentes antes desta migração).
