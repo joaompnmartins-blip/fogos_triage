@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { fetchFiresGeo } from '../api'
@@ -44,6 +44,7 @@ export default function MapView({ apiKey, theme }) {
   const setupLayersFnRef = useRef(null)
   const basemapInitRef = useRef(true)  // skip first run of basemap effect
   const navigate = useNavigate()
+  const location = useLocation()
   const [basemap, setBasemap] = useState('osm')
   const [fireCount, setFireCount] = useState(null)
   const [loadError, setLoadError] = useState(null)
@@ -224,6 +225,19 @@ export default function MapView({ apiKey, theme }) {
       mapRef.current = null
     }
   }, [apiKey]) // eslint-disable-line
+
+  // Clique em "Mapa" na barra lateral estando já no mapa — repõe o
+  // enquadramento da região. O sinal é um carimbo de tempo novo em
+  // `location.state` a cada clique (ver Sidebar em App.jsx); sem ele o
+  // React Router não remontaria a vista e o mapa ficaria onde estava.
+  //
+  // Vindo de outra vista este efeito também corre, mas o mapa acabou de
+  // montar já nesta posição, e o flyTo não tem para onde ir.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !location.state?.reporVista) return
+    map.flyTo({ center: REGION_CENTER, zoom: REGION_ZOOM, duration: 600 })
+  }, [location.state?.reporVista])
 
   // Basemap/tema switching — skip first render (map já inicializado com o
   // estilo correcto em basemapStyle(basemap, theme) acima)

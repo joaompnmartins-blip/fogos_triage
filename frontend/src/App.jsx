@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
-import { BrowserRouter, Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom'
+import {
+  BrowserRouter, Routes, Route, NavLink, Navigate, useLocation, useNavigate,
+} from 'react-router-dom'
 import MapView from './views/MapView'
 import ListaView from './views/ListaView'
 import DetalheView from './views/DetalheView'
@@ -65,6 +67,7 @@ function KeyModal({ onSave }) {
 
 function Sidebar({ health, onChangeKey, apiKey, theme, onToggleTheme }) {
   const location = useLocation()
+  const navigate = useNavigate()
   const isListArea = location.pathname.startsWith('/lista') || location.pathname.startsWith('/fogo')
   const ok = health && health.database_ok
   const workerTs = health?.worker_last_seen_at
@@ -91,6 +94,18 @@ function Sidebar({ health, onChangeKey, apiKey, theme, onToggleTheme }) {
         <NavLink
           to="/mapa"
           className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+          onClick={(e) => {
+            // Estando já no mapa, o NavLink não faz nada: o destino é a
+            // rota actual, o MapView não remonta e a vista fica onde o
+            // utilizador a deixou. Navegar à mão com um carimbo de tempo
+            // dá um `location.state` novo em cada clique, que é o sinal
+            // que o MapView escuta para repor o enquadramento.
+            //
+            // Vindo de outra vista não é preciso sinal nenhum — o
+            // MapView monta de raiz já no enquadramento da região.
+            e.preventDefault()
+            navigate('/mapa', { state: { reporVista: Date.now() } })
+          }}
         >
           <span className="nav-icon">◎</span>
           <span>Mapa</span>
