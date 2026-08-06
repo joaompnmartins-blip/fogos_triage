@@ -7,7 +7,7 @@ import {
   SEVERITY_COLOR, SEVERITY_LABEL, CONTROL_LABEL,
   STATUS_EM_RESOLUCAO, STATUS_EM_RESOLUCAO_COLOR, STATUS_EM_RESOLUCAO_LABEL,
 } from '../constants'
-import { REGION_CENTER, REGION_BBOX, REGION_ZOOM } from '../region'
+import { REGION_BBOX, REGION_INITIAL_VIEW, flyToRegion } from '../region'
 import {
   basemapStyle, addFuelModelLayer, setFuelModelLayerVisible, setFuelModelLayerOpacity,
   FUEL_MODEL_MIN_ZOOM,
@@ -69,8 +69,7 @@ export default function MapView({ apiKey, theme }) {
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: basemapStyle(basemap, theme),
-      center: REGION_CENTER,
-      zoom: REGION_ZOOM,
+      ...REGION_INITIAL_VIEW,
       attributionControl: false,
       maxZoom: 17,
       minZoom: 4,
@@ -236,7 +235,7 @@ export default function MapView({ apiKey, theme }) {
   useEffect(() => {
     const map = mapRef.current
     if (!map || !location.state?.reporVista) return
-    map.flyTo({ center: REGION_CENTER, zoom: REGION_ZOOM, duration: 600 })
+    flyToRegion(map)
   }, [location.state?.reporVista])
 
   // Basemap/tema switching — skip first render (map já inicializado com o

@@ -5,7 +5,7 @@ import { TerraDraw, TerraDrawPointMode, TerraDrawLineStringMode, TerraDrawSelect
 import { TerraDrawMapLibreGLAdapter } from 'terra-draw-maplibre-gl-adapter'
 import { postFreeSimulate, getFreeSimulationJob } from '../api'
 import { fmt, fmtDateTime, FUEL_MOISTURE_SCENARIO_LABEL } from '../constants'
-import { REGION_CENTER, REGION_ZOOM } from '../region'
+import { REGION_INITIAL_VIEW } from '../region'
 import {
   msToKmh,
   initSimulationLayers, updateSimulationLayerStyle,
@@ -292,8 +292,7 @@ export default function SimuladorLivreView({ apiKey, theme }) {
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: basemapStyle(basemap, theme),
-      center: REGION_CENTER,
-      zoom: REGION_ZOOM,
+      ...REGION_INITIAL_VIEW,
       attributionControl: false,
     })
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right')
