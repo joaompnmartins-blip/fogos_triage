@@ -32,6 +32,17 @@ _DEFAULT_TERRAIN = TerrainConditions(
 )
 
 
+def _maior_combustivel(pixeis: list[tuple]) -> str:
+    """Código do modelo combustível mais frequente na vizinhança.
+
+    Só para a nota que acompanha o caso "dominante não combustível":
+    diz ao operador o que existe à volta que pode arder, para a
+    categoria 1 não se confundir com ausência de combustível.
+    """
+    c = Counter(fm.code for _, fm in pixeis if not fm.is_empty)
+    return c.most_common(1)[0][0] if c else "—"
+
+
 def triage_neighbourhood(
     occurrence: Occurrence,
     fuel_models: dict[int, FuelModelPT],
@@ -44,75 +55,125 @@ def triage_neighbourhood(
     Triagem com amostragem de vizinhança (grelha densa à resolução do
     raster, até 50 m — ver LandscapeReader.sample_neighbourhood).
 
-    Para cada pixel: deriva meteo com WAF per-pixel (canopy/height dos rasters),
-    corre Rothermel, e recolhe o ROS resultante. O pixel representativo
-    (mediana de ROS, P50) dá o terreno/combustível usados nos 2 cenários:
+    O combustível é escolhido por **maioria simples sobre a vizinhança
+    inteira**, não combustíveis incluídos, e tudo o resto é calculado
+    para esse modelo. Entre os píxeis que o têm, o de comportamento
+    mediano dá o declive e o copado; sobre ele correm os 2 cenários:
       "Vento Geral" (central) → vento sustentado (Open-Meteo)
       "Rajadas"     (gusts)   → vento de rajada (Open-Meteo), mesmo WAF
 
-    O modelo de combustível reportado é o dominante (moda) na vizinhança.
-    Fallback para triagem pixel-único se nenhum pixel produzir ROS válido.
-    """
-    pixel_results: list[tuple] = []  # (pred, terrain, fm, wx)
+    Antes escolhia-se o píxel de ROS mediano entre os que ardiam. A
+    mediana protegia contra o píxel excepcional mas não contra a
+    filtragem que a precedia — os não combustíveis saíam antes de
+    entrar, e a classificação descrevia só a fracção que ardia, por
+    pequena que fosse.
 
+    **O reverso desta regra**: onde o dominante é não combustível, a
+    ocorrência fica sem previsão de fogo mesmo havendo combustível por
+    perto (47% das ocorrências, medido sobre 400 reais). As notas dizem
+    sempre quanto combustível ficou de fora, para a categoria 1 não ser
+    lida como ausência de combustível.
+    """
+    # (terreno, modelo) de cada píxel — TODOS, incluindo os não
+    # combustíveis. É deliberado que os NB entrem: a maioria conta-se
+    # sobre a vizinhança inteira, não sobre a parte que arde.
+    pixeis: list[tuple[TerrainConditions, FuelModelPT]] = []
     for terrain in terrains:
         fm = fuel_models.get(normalize_fuel_model_num(terrain.fuel_model_num))
-        if fm is None:
-            continue
+        if fm is not None:
+            pixeis.append((terrain, fm))
 
-        has_overstory = (terrain.canopy_cover_pct or 0) > 10
+    if not pixeis:
+        wx0 = derive_fire_weather(weather_raw, live_h_pct=live_h_pct, live_w_pct=live_w_pct)
+        return triage_occurrence(occurrence, fuel_models, _DEFAULT_TERRAIN, wx0)
+
+    # Modelo dominante por MAIORIA SIMPLES sobre a vizinhança toda.
+    #
+    # Substituiu a mediana do ROS sobre os píxeis que ardiam. A mediana
+    # era robusta contra o píxel excepcional, mas não contra a filtragem
+    # que a precedia: os não combustíveis eram descartados antes de
+    # entrar, e a mediana dos sobreviventes descrevia só a fracção que
+    # ardia. Numa ocorrência em Paranhos (Porto), 69 dos 81 píxeis eram
+    # urbanos e a classificação saiu de 12 píxeis de mato disperso.
+    #
+    # A consequência desta regra tem de ser conhecida por quem a lê:
+    # quando o dominante é não combustível, a ocorrência fica sem
+    # previsão de fogo, mesmo havendo combustível na vizinhança. Medido
+    # sobre 400 ocorrências reais, acontece em 47% delas. É por isso que
+    # as notas abaixo dizem sempre quanto combustível ficou de fora — a
+    # categoria 1 nunca deve chegar ao operador sem esse contexto.
+    contagem = Counter(fm.num for _, fm in pixeis)
+    num_dominante, n_dominante = contagem.most_common(1)[0]
+    do_dominante = [(t, fm) for t, fm in pixeis if fm.num == num_dominante]
+    fm_dominante = do_dominante[0][1]
+
+    n_arde = sum(1 for _, fm in pixeis if not fm.is_empty)
+    # O `normalize_fuel_model_num` colapsa os códigos NB do Scott &
+    # Burgan (91-99) todos em FM98, portanto o código do modelo não
+    # distingue urbano de água, rocha ou regadio. Para quem lê a
+    # triagem a diferença importa — 91 num centro urbano e 93 em
+    # regadio pedem decisões diferentes —, por isso o código do raster
+    # vai na nota quando difere do normalizado.
+    brutos = Counter(t.fuel_model_num for t, fm in do_dominante)
+    bruto_dominante = brutos.most_common(1)[0][0]
+    sufixo_bruto = (f" (raster: {bruto_dominante})"
+                    if bruto_dominante != num_dominante else "")
+    notas_base = [
+        f"Modelo dominante {fm_dominante.code}{sufixo_bruto}: "
+        f"{n_dominante}/{len(pixeis)} px, raio {NEIGHBOURHOOD_RADIUS_M:.0f}m"
+    ]
+
+    resultados = []
+    for terrain, fm in do_dominante:
         # `fm.depth` (pés) é o que permite calcular o WAF do leito —
-        # sem ele cai-se no valor por omissão. Cada píxel tem o seu
-        # modelo, logo o seu WAF: folhada rasa trava muito mais o vento
-        # do que mato alto (0.27 contra 0.54).
+        # sem ele cai-se no valor por omissão. O WAF continua a ser
+        # calculado por píxel: mesmo dentro de um só modelo, a cobertura
+        # e a altura do copado variam de píxel para píxel.
         wx = derive_fire_weather(
             weather_raw,
             stand_height_m=terrain.stand_height_m or 0.0,
             canopy_cover_pct=terrain.canopy_cover_pct or 0.0,
-            has_overstory=has_overstory,
+            has_overstory=(terrain.canopy_cover_pct or 0) > 10,
             live_h_pct=live_h_pct,
             live_w_pct=live_w_pct,
             fuel_bed_depth_ft=fm.depth,
         )
-
         try:
-            pred = predict_surface_fire(fm, terrain, wx, "")
+            resultados.append((predict_surface_fire(fm, terrain, wx, ""), terrain, fm, wx))
         except Exception:
             continue
 
-        if pred.ros_m_per_min > 0:
-            pixel_results.append((pred, terrain, fm, wx))
-
-    # Fallback para pixel único se nenhum pixel produziu ROS válido
-    if not pixel_results:
-        terrain0 = terrains[0] if terrains else _DEFAULT_TERRAIN
+    if not resultados:
         wx0 = derive_fire_weather(weather_raw, live_h_pct=live_h_pct, live_w_pct=live_w_pct)
-        return triage_occurrence(occurrence, fuel_models, terrain0, wx0)
+        return triage_occurrence(occurrence, fuel_models, do_dominante[0][0], wx0)
 
-    pixel_results.sort(key=lambda x: x[0].ros_m_per_min)
-    n = len(pixel_results)
-
-    central_pred, central_terrain, central_fm, central_wx = pixel_results[n // 2]
+    # Píxel representativo: o de comportamento mediano DENTRO do modelo
+    # dominante. Já não decide qual o combustível — só de que ponto vêm o
+    # declive e o copado —, e continua a proteger contra o píxel de
+    # declive excepcional.
+    resultados.sort(key=lambda x: x[0].ros_m_per_min)
+    central_pred, central_terrain, central_fm, central_wx = resultados[len(resultados) // 2]
     central_pred = replace(central_pred, scenario="central")
 
     gust_wx = gust_weather(central_wx)
     gust_pred = predict_surface_fire(central_fm, central_terrain, gust_wx, "gusts")
 
-    notes = [
-        f"Multi-pixel: {n}/{len(terrains)} px válidos, raio {NEIGHBOURHOOD_RADIUS_M:.0f}m"
-    ]
+    notes = list(notas_base)
+    if fm_dominante.is_empty:
+        # O caso que o operador tem de conseguir distinguir de "não há
+        # nada a arder aqui".
+        notes.append(
+            f"Dominante NÃO COMBUSTÍVEL — sem previsão de fogo. "
+            f"{n_arde}/{len(pixeis)} px combustíveis na vizinhança"
+            + (f" (maior: {_maior_combustivel(pixeis)})" if n_arde else "")
+        )
+    elif n_arde < len(pixeis):
+        notes.append(f"{n_arde}/{len(pixeis)} px combustíveis na vizinhança")
 
     central_pred = _check_crown(central_pred, central_terrain, notes)
     gust_pred = _check_crown(gust_pred, central_terrain, notes)
 
-    # Modelo dominante na vizinhança
-    fm_counter = Counter(
-        fuel_models[t.fuel_model_num].code
-        for _, t, _, _ in pixel_results
-        if t.fuel_model_num in fuel_models
-    )
-    dominant_fm_code = (fm_counter.most_common(1)[0][0]
-                        if fm_counter else central_fm.code)
+    dominant_fm_code = fm_dominante.code
 
     waf = (central_wx.wind_midflame_ms / central_wx.wind_speed_10m_ms
            if (central_wx.wind_speed_10m_ms or 0) > 0 else 0.0)
