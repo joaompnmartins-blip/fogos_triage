@@ -503,9 +503,10 @@ export default function SimuladorLivreView({ apiKey, theme }) {
   return (
     <div ref={rootRef} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
 
-      <div className="breadcrumb" style={{ flexShrink: 0 }}>
-        <span>Simulador</span>
-      </div>
+      {/* Sem breadcrumb: era só a palavra "Simulador", sem ligação para
+          onde quer que fosse, a repetir o item já activo na barra
+          lateral. Os breadcrumbs das vistas de ocorrência ficam — esses
+          navegam de volta. */}
 
       {/* Mapa */}
       <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>

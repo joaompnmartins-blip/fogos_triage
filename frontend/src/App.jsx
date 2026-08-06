@@ -196,11 +196,23 @@ function Topbar() {
 // ---------------------------------------------------------------------------
 
 function AppShell({ apiKey, onChangeKey, health, theme, onToggleTheme }) {
+  const location = useLocation()
+  // Vistas de mapa a ecrã inteiro. Aqui o cabeçalho não dizia nada que a
+  // barra lateral já não diga — o item activo nomeia a vista — e a altura
+  // que ocupava fazia falta ao mapa.
+  //
+  // Só estas duas: nas rotas de ocorrência o cabeçalho traz o número
+  // ("Ocorrência #20261107430"), que não está em mais lado nenhum.
+  // `/simulador` é o simulador livre; `/fogo/:id/simulacao` continua com
+  // cabeçalho por causa do identificador.
+  const semTopbar = location.pathname.startsWith('/mapa')
+    || location.pathname.startsWith('/simulador')
+
   return (
     <div id="shell">
       <Sidebar health={health} onChangeKey={onChangeKey} apiKey={apiKey} theme={theme} onToggleTheme={onToggleTheme} />
       <div className="main">
-        <Topbar />
+        {!semTopbar && <Topbar />}
         <div className="content">
           <Routes>
             <Route path="/" element={<Navigate to="/mapa" replace />} />
