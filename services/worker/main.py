@@ -45,7 +45,9 @@ from fogos_triage.db.repository import OccurrenceRepository, init_pool
 from fogos_triage.db.triage_repo import TriageResultRepository
 from fogos_triage.fuel_models import load_fuel_models_csv
 from fogos_triage.ingestion.adapters import fogos_to_occurrence
-from fogos_triage.ingestion.fogos_client import FogosFire, fetch_fires
+from fogos_triage.ingestion.fogos_client import (
+    FogosFire, FogosRateLimitError, fetch_fires,
+)
 from fogos_triage.landscape import (
     LandscapeRasters, LandscapeReader, MockLandscapeReader, ensure_landscape,
 )
@@ -53,6 +55,11 @@ from fogos_triage.schemas import TerrainConditions
 from fogos_triage.triage import triage_neighbourhood
 from fogos_triage.lfmc_climatologia import descreve as descreve_lfmc, lfmc_climatologia
 from fogos_triage.weather import fetch_open_meteo, fetch_precipitation_sum
+
+# Espera quando a fogos.pt devolve 429 sem `Retry-After`. Os valores
+# observados foram 3287 e 3600 s, portanto uma hora é a ordem certa —
+# subestimar aqui é voltar ao ciclo que se alimenta a si próprio.
+RATE_LIMIT_ESPERA_OMISSAO_S = 3600.0
 
 log = logging.getLogger(__name__)
 
@@ -375,6 +382,20 @@ async def poll_cycle(resources: dict) -> dict:
         fires = await fetch_fires()
         stats["fetched"] = len(fires)
         log.info(f"fogos.pt: {len(fires)} ocorrências")
+    except FogosRateLimitError as exc:
+        # Distinto de qualquer outro erro: a fogos.pt não está em baixo, está
+        # a dizer-nos para abrandar, e diz durante quanto tempo. Sem
+        # stack trace — não é uma avaria nossa, é uma resposta normal do
+        # protocolo, e 40 minutos de tracebacks só escondem o que interessa.
+        espera = exc.retry_after_s or RATE_LIMIT_ESPERA_OMISSAO_S
+        stats["errors"] += 1
+        stats["retry_after_s"] = espera
+        log.warning(
+            "fogos.pt: limite de caudal atingido — próximo pedido daqui a "
+            "%.0f min (Retry-After=%s)",
+            espera / 60, exc.retry_after_s if exc.retry_after_s else "ausente",
+        )
+        return stats
     except Exception as exc:
         log.exception(f"Erro a ir à fogos.pt: {exc}")
         stats["errors"] += 1
@@ -442,17 +463,22 @@ async def run_worker():
 
     async with worker_resources(config) as resources:
         while not stop_event.is_set():
+            espera = config.poll_interval_s
             try:
-                await poll_cycle(resources)
+                stats = await poll_cycle(resources)
+                # Levar 429 e continuar a bater de 2 em 2 minutos foi o que
+                # nos manteve bloqueados mais de 40 minutos a 2026-08-31: a
+                # janela de penalização era de 55 min e o worker fazia ~27
+                # pedidos lá dentro, cada um a poder reiniciá-la. Agora
+                # espera-se o que a própria fogos.pt pediu.
+                if stats and stats.get("retry_after_s"):
+                    espera = max(espera, float(stats["retry_after_s"]))
             except Exception as exc:
                 log.exception(f"Erro no ciclo: {exc}")
 
             # Esperar próximo ciclo ou sinal de paragem
             try:
-                await asyncio.wait_for(
-                    stop_event.wait(),
-                    timeout=config.poll_interval_s,
-                )
+                await asyncio.wait_for(stop_event.wait(), timeout=espera)
             except asyncio.TimeoutError:
                 continue  # tempo expirou, próximo ciclo
 

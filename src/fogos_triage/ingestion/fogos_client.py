@@ -44,6 +44,7 @@ Estrutura observada da resposta (Maio 2026):
 from __future__ import annotations
 
 import asyncio
+import os
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import IntEnum
@@ -62,11 +63,55 @@ except ImportError:
     HAS_CURL_CFFI = False
 
 
-FOGOS_API_URL = "https://api-dev.fogos.pt/new/fires"
+FOGOS_API_URL = os.environ.get(
+    "FOGOS_API_URL", "https://api.fogos.pt/v2/incidents/active",
+)
+
+# Era `https://api-dev.fogos.pt/new/fires` — um host de DESENVOLVIMENTO, do
+# qual não devíamos depender. Os dois partilham o mesmo limitador de caudal,
+# portanto a troca não foi o que resolveu o bloqueio de 2026-08-31 (isso foi
+# a chave); é só deixar de assentar em infraestrutura que ninguém garante.
+#
+# A resposta do v2 tem a mesma forma que o parser já esperava — `success` +
+# `data`, com `id`, `dateTime.sec`, `coords`, `lat`/`lng`, `statusCode`,
+# `naturezaCode`, `weather` —, verificado a correr o `FogosFire.from_api`
+# sobre ela sem alterar uma linha. Devolve só as activas, o que inclui
+# Vigilância e Conclusão.
+
+# Chave de API da fogos.pt. Sem ela o limite por IP é apertadíssimo: a
+# 2026-08-31 o worker apanhou 429 durante mais de 40 minutos seguidos, e
+# medindo daqui bastaram 2 pedidos anónimos para uma penalização de 55 min.
+# A própria resposta 429 diz o que fazer:
+#
+#   {"error": "rate_limit_exceeded",
+#    "detail": "Too many requests. Please slow down or authenticate with an
+#               API key for higher limits.",
+#    "requestAccessUrl": "https://api.fogos.pt/api/request-access"}
+#
+# NUNCA no código — vem do ambiente. Está definida no serviço `worker` do
+# Railway.
+FOGOS_API_KEY = os.environ.get("FOGOS_API_KEY", "").strip()
+
+
+class FogosRateLimitError(RuntimeError):
+    """429 da fogos.pt, com o `Retry-After` que ela própria indicou.
+
+    Existe para o worker poder esperar o tempo pedido em vez de voltar a
+    bater ao fim de 120 s. A distinção importa: um 429 não é "a fogos.pt
+    está em baixo", é "estás a pedir demais", e tratá-los da mesma maneira
+    foi o que manteve o worker preso num ciclo que se alimentava a si
+    próprio.
+    """
+
+    def __init__(self, retry_after_s: Optional[float] = None):
+        self.retry_after_s = retry_after_s
+        super().__init__(
+            f"fogos.pt: rate limit (retry-after={retry_after_s or 'não indicado'}s)"
+        )
+
 
 # A API parece bloquear pedidos sem User-Agent reconhecível (CloudFlare/Vercel).
-# Em produção vale a pena pedir à fogos.pt para nos pôr numa whitelist ou
-# fornecer API key. Por ora, identificamo-nos como browser moderno.
+# Com a chave presente juntamos o cabeçalho de autorização (ver _headers).
 DEFAULT_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
@@ -326,15 +371,41 @@ async def fetch_fires(
     return fires
 
 
+def _headers() -> dict:
+    """Cabeçalhos do pedido, com autorização quando há chave.
+
+    `Authorization: Bearer <chave>` — esquema confirmado contra a API a
+    2026-09-01: com o cabeçalho, um IP em plena penalização de 55 minutos
+    voltou a receber 200 no pedido seguinte.
+    """
+    h = dict(DEFAULT_HEADERS)
+    if FOGOS_API_KEY:
+        h["Authorization"] = f"Bearer {FOGOS_API_KEY}"
+    return h
+
+
+def _retry_after_s(resp) -> Optional[float]:
+    """Segundos do cabeçalho `Retry-After`, se a resposta o trouxer."""
+    try:
+        v = resp.headers.get("Retry-After") or resp.headers.get("retry-after")
+        return float(v) if v is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
 async def _fetch_with_curl_cffi(timeout_s: float) -> dict:
     """Fetch usando curl_cffi (impersona TLS de Chrome). Atravessa Cloudflare."""
     def _sync_fetch():
         response = cffi_requests.get(
             FOGOS_API_URL,
-            headers=DEFAULT_HEADERS,
+            headers=_headers(),
             impersonate="chrome120",
             timeout=timeout_s,
         )
+        # O 429 é apanhado ANTES do raise_for_status para o `Retry-After`
+        # não se perder — é o número que decide quanto o worker espera.
+        if response.status_code == 429:
+            raise FogosRateLimitError(_retry_after_s(response))
         response.raise_for_status()
         return response.json()
     # curl_cffi.requests é sync; corremos em executor para não bloquear o loop
@@ -345,9 +416,11 @@ async def _fetch_with_httpx(client, timeout_s: float) -> dict:
     """Fallback httpx (provavelmente falha com 403 em produção)."""
     own_client = client is None
     if own_client:
-        client = httpx.AsyncClient(timeout=timeout_s, headers=DEFAULT_HEADERS)
+        client = httpx.AsyncClient(timeout=timeout_s, headers=_headers())
     try:
-        response = await client.get(FOGOS_API_URL, headers=DEFAULT_HEADERS)
+        response = await client.get(FOGOS_API_URL, headers=_headers())
+        if response.status_code == 429:
+            raise FogosRateLimitError(_retry_after_s(response))
         response.raise_for_status()
         return response.json()
     finally:
