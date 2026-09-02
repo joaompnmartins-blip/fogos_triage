@@ -73,18 +73,22 @@ def main():
 
     print("\nChave de API — no ambiente, nunca no código:")
     m = recarrega(FOGOS_API_URL=None, FOGOS_API_KEY=None)
-    check("sem chave, não há cabeçalho de autorização",
-          "Authorization" not in m._headers())
+    check("sem chave, não há cabeçalho de chave",
+          "X-API-Key" not in m._headers())
     m = recarrega(FOGOS_API_URL=None, FOGOS_API_KEY="segredo123")
-    check("com chave, Authorization: Bearer",
-          m._headers().get("Authorization") == "Bearer segredo123")
+    # X-API-Key, não Authorization: Bearer. Adivinhei o Bearer e a chave
+    # foi silenciosamente ignorada durante um dia — ficámos no escalão
+    # anónimo (1 pedido/hora) sem nenhum erro de autenticação visível.
+    check("com chave, X-API-Key", m._headers().get("X-API-Key") == "segredo123")
+    check("e NÃO Authorization: Bearer (era o engano)",
+          "Authorization" not in m._headers())
     check("os outros cabeçalhos mantêm-se",
           m._headers().get("Referer") == "https://fogos.pt/")
     check("_headers devolve cópia, não o dicionário partilhado",
           m._headers() is not m.DEFAULT_HEADERS)
     m_esp = recarrega(FOGOS_API_URL=None, FOGOS_API_KEY="  k  ")
     check("espaços à volta da chave são aparados",
-          m_esp._headers().get("Authorization") == "Bearer k")
+          m_esp._headers().get("X-API-Key") == "k")
 
     print("\nO 429 traz consigo o tempo de espera:")
     m = recarrega(FOGOS_API_URL=None, FOGOS_API_KEY=None)

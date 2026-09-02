@@ -78,15 +78,17 @@ FOGOS_API_URL = os.environ.get(
 # sobre ela sem alterar uma linha. Devolve só as activas, o que inclui
 # Vigilância e Conclusão.
 
-# Chave de API da fogos.pt. Sem ela o limite por IP é apertadíssimo: a
-# 2026-08-31 o worker apanhou 429 durante mais de 40 minutos seguidos, e
-# medindo daqui bastaram 2 pedidos anónimos para uma penalização de 55 min.
-# A própria resposta 429 diz o que fazer:
+# Chave de API da fogos.pt, enviada no cabeçalho `X-API-Key` (ver
+# `_headers`). Sem ela ficamos no escalão anónimo — 1 pedido por hora —,
+# que a 2026-08-31 deixou o worker 40+ minutos a apanhar 429 e a app com
+# os dados congelados.
 #
-#   {"error": "rate_limit_exceeded",
-#    "detail": "Too many requests. Please slow down or authenticate with an
-#               API key for higher limits.",
-#    "requestAccessUrl": "https://api.fogos.pt/api/request-access"}
+# Limites publicados em api.fogos.pt/api/limits (grupo Ocorrencias):
+#     anónimo        1 pedido / 3600 s
+#     autenticado  300 pedidos / 60 s
+#
+# Com o POLL_INTERVAL_S de 120 s usamos 0.5 pedidos/minuto contra os 300
+# permitidos — folga de sobra, e nem sequer é preciso pensar no assunto.
 #
 # NUNCA no código — vem do ambiente. Está definida no serviço `worker` do
 # Railway.
@@ -372,15 +374,26 @@ async def fetch_fires(
 
 
 def _headers() -> dict:
-    """Cabeçalhos do pedido, com autorização quando há chave.
+    """Cabeçalhos do pedido, com a chave de API quando existe.
 
-    `Authorization: Bearer <chave>` — esquema confirmado contra a API a
-    2026-09-01: com o cabeçalho, um IP em plena penalização de 55 minutos
-    voltou a receber 200 no pedido seguinte.
+    **`X-API-Key`, não `Authorization: Bearer`.** É o que a fogos.pt
+    documenta (`api.fogos.pt/api/limits` devolve `"apiKeyHeader":
+    "X-API-Key"`) e o que o email de atribuição da chave manda usar.
+
+    Esteve aqui `Authorization: Bearer` durante um dia, por eu ter
+    adivinhado o esquema em vez de o ler. O efeito não foi um erro de
+    autenticação visível — foi a chave ser silenciosamente ignorada e
+    ficarmos no escalão anónimo, que é 1 pedido por hora. Daí o worker
+    conseguir exactamente uma ingestão por hora e eu ter concluído, mal,
+    que era esse o plafond da chave.
+
+    Limites reais (api.fogos.pt/api/limits, grupo Ocorrencias):
+        anónimo        1 pedido / 3600 s
+        autenticado  300 pedidos / 60 s
     """
     h = dict(DEFAULT_HEADERS)
     if FOGOS_API_KEY:
-        h["Authorization"] = f"Bearer {FOGOS_API_KEY}"
+        h["X-API-Key"] = FOGOS_API_KEY
     return h
 
 
