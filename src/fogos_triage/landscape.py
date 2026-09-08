@@ -54,6 +54,14 @@ BAND_NAME_MAP = {
     "aspect": "aspect",
     "fuelmodel": "fuel_model",
     "canopycover": "canopy_cover",
+    # O Landscape_COS_2025 etiqueta a cobertura de copas como
+    # "TreeCoverDensity" (a nomenclatura do Copernicus HRL, onde é a
+    # percentagem de coberto arbóreo — a mesma grandeza). Sem este alias
+    # a banda não era reconhecida e o `canopy_cover` ficava ausente: o
+    # leitor avisa mas continua, e TODOS os píxeis passavam a usar a
+    # fórmula do leito no WAF, desfazendo o abrigo do copado sem nada
+    # falhar visivelmente.
+    "treecoverdensity": "canopy_cover",
     "standheight": "stand_height",
     "canopybaseheight": "canopy_base_height",
     "canopybulkdensity": "canopy_bulk_density",
